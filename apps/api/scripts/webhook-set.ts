@@ -4,9 +4,17 @@ const apiUrl = getEnvOptional("API_URL") || getEnvOptional("WEBAPP_URL");
 const secret = getEnvOptional("WEBHOOK_SECRET");
 const shopToken = getEnvOptional("SHOP_BOT_TOKEN");
 const adminToken = getEnvOptional("ADMIN_BOT_TOKEN");
+const vercelBypass = getEnvOptional("VERCEL_AUTOMATION_BYPASS_SECRET");
+
+function buildWebhookUrl(path: string): string {
+  const base = `${apiUrl.replace(/\/$/, "")}/webhook/${path}`;
+  if (!vercelBypass) return base;
+  const q = new URLSearchParams({ "x-vercel-protection-bypass": vercelBypass });
+  return `${base}?${q.toString()}`;
+}
 
 async function setWebhook(token: string, path: string) {
-  const url = `${apiUrl.replace(/\/$/, "")}/webhook/${path}`;
+  const url = buildWebhookUrl(path);
   const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -17,7 +25,7 @@ async function setWebhook(token: string, path: string) {
     }),
   });
   const data = await res.json();
-  console.log(path, data);
+  console.log(path, url, data);
 }
 
 if (!shopToken || !adminToken) {

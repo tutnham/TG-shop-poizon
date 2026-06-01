@@ -27,6 +27,7 @@
 | `API_URL` | Тот же URL (для webhook) |
 | `DEMO_MODE` | `false` в проде; `true` только для UI без Telegram |
 | `VITE_API_URL` | Пусто или тот же домен (относительные `/api`) |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | Секрет из Vercel → Deployment Protection → Protection Bypass for Automation (если включена защита) |
 | `POIZON_API_KEY` | Ключ Poparce (фаза 3) |
 | `TON_WALLET_ADDRESS` | Адрес TON для оплаты |
 
@@ -40,6 +41,12 @@ bun run build
 Подключите репозиторий к Vercel. Root directory: корень проекта.
 
 ## 5. Webhooks
+
+Если на Vercel включена **Bot Protection** / **Security Checkpoint**, Telegram не сможет достучаться до webhook (получит HTML вместо API). Варианты:
+
+**A (проще):** Vercel → Project → **Settings → Security** → отключите **Attack Challenge Mode** / **Bot Protection** для Production.
+
+**B (безопаснее):** Vercel → **Settings → Deployment Protection** → **Protection Bypass for Automation** → сгенерируйте секрет → добавьте в env как `VERCEL_AUTOMATION_BYPASS_SECRET`. Скрипт `webhook:set` добавит его в URL автоматически.
 
 После деплоя локально с `.env`:
 
