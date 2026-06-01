@@ -1,0 +1,178 @@
+import type { ProductDetail, ProductListItem } from "@poizon-shop/shared";
+import { sanitizeSearchQuery } from "../lib/search-sanitize.js";
+import { getSupabase } from "./client.js";
+import { getConfigValue } from "./config.repository.js";
+
+type ProductRow = {
+  id: string;
+  name: string;
+  name_ru: string | null;
+  brand: string | null;
+  image_urls: string[] | null;
+  price_rub: number;
+  price_usdt: number;
+  is_available: boolean;
+  sold_count: number;
+  synced_at: string | null;
+  price_cny: number | null;
+  sizes: Record<string, string[]>;
+  stock: Record<string, boolean>;
+  category_id: string | null;
+  source: string;
+};
+
+function toListItem(row: ProductRow): ProductListItem {
+  return {
+    id: row.id,
+    name: row.name_ru ?? row.name,
+    brand: row.brand,
+    image_url: row.image_urls?.[0] ?? null,
+    price_rub: Number(row.price_rub),
+    price_usdt: Number(row.price_usdt),
+    is_available: row.is_available,
+    sold_count: row.sold_count,
+    synced_at: row.synced_at,
+  };
+}
+
+export async function listProducts(opts: {
+  page: number;
+  limit: number;
+  category?: string;
+  brand?: string;
+  search?: string;
+  sort: string;
+  min_price?: number;
+  max_price?: number;
+}): Promise<{ items: ProductListItem[]; total: number }> {
+  const hideDemo = await getConfigValue<boolean>("hide_demo_products", false);
+  let query = getSupabase()
+    .from("products")
+    .select("*", { count: "exact" })
+    .eq("is_available", true);
+
+  if (hideDemo) query = query.neq("source", "demo");
+
+  if (opts.category) {
+    const { data: cat } = await getSupabase()
+      .from("categories")
+      .select("id")
+      .eq("slug", opts.category)
+      .maybeSingle();
+    if (cat) query = query.eq("category_id", cat.id);
+  }
+  if (opts.brand)
+    query = query.ilike("brand", `%${sanitizeSearchQuery(opts.brand)}%`);
+  if (opts.search) {
+    const term = sanitizeSearchQuery(opts.search);
+    if (term) query = query.or(`name.ilike.%${term}%,name_ru.ilike.%${term}%`);
+  }
+  if (opts.min_price != null) query = query.gte("price_rub", opts.min_price);
+  if (opts.max_price != null) query = query.lte("price_rub", opts.max_price);
+
+  switch (opts.sort) {
+    case "price_asc":
+      query = query.order("price_rub", { ascending: true });
+      break;
+    case "price_desc":
+      query = query.order("price_rub", { ascending: false });
+      break;
+    case "new":
+      query = query.order("created_at", { ascending: false });
+      break;
+    default:
+      query = query.order("sold_count", { ascending: false });
+  }
+
+  const from = (opts.page - 1) * opts.limit;
+  const { data, count, error } = await query.range(from, from + opts.limit - 1);
+  if (error) throw new Error(error.message);
+
+  return {
+    items: (data as ProductRow[]).map(toListItem),
+    total: count ?? 0,
+  };
+}
+
+export async function getProductById(
+  id: string,
+): Promise<ProductDetail | null> {
+  const { data, error } = await getSupabase()
+    .from("products")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const row = data as ProductRow;
+  const base = toListItem(row);
+  return {
+    ...base,
+    name_ru: row.name_ru,
+    image_urls: row.image_urls ?? [],
+    sizes: (row.sizes as Record<string, string[]>) ?? {},
+    stock: (row.stock as Record<string, boolean>) ?? {},
+    price_cny: row.price_cny != null ? Number(row.price_cny) : null,
+    category_id: row.category_id,
+  };
+}
+
+export async function listCategories(): Promise<
+  { id: string; name: string; name_ru: string; slug: string }[]
+> {
+  const { data, error } = await getSupabase()
+    .from("categories")
+    .select("id, name, name_ru, slug");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function setProductVisibility(
+  id: string,
+  visible: boolean,
+): Promise<void> {
+  const { error } = await getSupabase()
+    .from("products")
+    .update({ is_available: visible, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function upsertProductFromPoizon(row: {
+  poizon_id: string;
+  name: string;
+  brand: string | null;
+  category_id: string | null;
+  image_urls: string[];
+  price_cny: number;
+  price_rub: number;
+  price_usdt: number;
+  sizes: Record<string, string[]>;
+  stock: Record<string, boolean>;
+  sold_count: number;
+  is_available: boolean;
+}): Promise<void> {
+  const { error } = await getSupabase()
+    .from("products")
+    .upsert(
+      {
+        ...row,
+        source: "poizon",
+        synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "poizon_id" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+export async function getLastSyncTime(): Promise<string | null> {
+  const { data } = await getSupabase()
+    .from("sync_logs")
+    .select("finished_at")
+    .eq("status", "success")
+    .order("finished_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data?.finished_at ?? null;
+}

@@ -1,0 +1,32 @@
+:root {
+  --color-bg: #0f1115;
+  --color-surface: #171a1f;
+  --color-surface-2: #1d2128;
+  --color-surface-3: #252a33;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-text: #f2f4f7;
+  --color-text-muted: #9aa4b2;
+  --color-text-faint: #6b7280;
+  --color-accent: #4f98a3;
+  --color-accent-hover: #5daab6;
+  --color-success: #6daa45;
+  --color-warning: #e8af34;
+  --color-danger: #c05a5a;
+  --color-price-rub: #f2f4f7;
+  --color-price-usdt: #e8af34;
+  --page-padding: 16px;
+  --section-gap: 20px;
+  --card-gap: 12px;
+  --radius-card: 16px;
+  --radius-chip: 999px;
+  --radius-sheet: 24px;
+  --font-xs: 12px;
+  --font-sm: 14px;
+  --font-md: 16px;
+  --font-lg: 18px;
+  --font-xl: 22px;
+  --anim-fast: 140ms;
+  --anim-base: 180ms;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

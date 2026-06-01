@@ -1,0 +1,27 @@
+{
+  "name": "@poizon-shop/api",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "npx tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "npx tsx src/index.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "db:migrate": "bun run scripts/migrate.ts",
+    "webhook:set": "bun run scripts/webhook-set.ts"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.2",
+    "@poizon-shop/shared": "file:../../packages/shared",
+    "@supabase/supabase-js": "^2.47.10",
+    "grammy": "^1.35.0",
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.6.14",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
