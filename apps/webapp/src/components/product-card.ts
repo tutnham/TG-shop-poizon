@@ -3,45 +3,58 @@ import { t } from "../i18n/index.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { navigate } from "../router.js";
 
-export function renderProductCard(p: ProductListItem): HTMLElement {
+export type ProductCardBadge = {
+  text: string;
+  variant?: "top" | "new";
+};
+
+export function renderProductCard(
+  p: ProductListItem,
+  opts?: { badge?: ProductCardBadge },
+): HTMLElement {
   const el = document.createElement("article");
   el.className = "product-card";
+
+  const badgeHtml = opts?.badge
+    ? `<div class="product-card__badge${opts.badge.variant === "new" ? " product-card__badge--new" : ""}">${escapeHtml(opts.badge.text)}</div>`
+    : "";
+
+  const stockClass = p.is_available ? "badge-success" : "badge-muted";
+  const stockText = p.is_available ? t("in_stock") : t("out_of_stock");
+
   el.innerHTML = `
-    <style>
-      .product-card {
-        background: var(--color-surface);
-        border-radius: var(--radius-card);
-        overflow: hidden;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.22);
-        transition: transform var(--anim-fast);
-      }
-      .product-card:active { transform: scale(0.98); }
-      .product-card img {
-        width: 100%; aspect-ratio: 1; object-fit: cover;
-        background: var(--color-surface-2);
-      }
-      .product-card .body { padding: 10px 12px; }
-      .product-card .brand { font-size: var(--font-xs); color: var(--color-text-muted); margin: 0; }
-      .product-card .name {
-        font-size: var(--font-sm); margin: 4px 0 8px;
-        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-      }
-    </style>
-    <img src="${escapeAttrUrl(p.image_url)}" alt="" loading="lazy" />
-    <div class="body">
-      <p class="brand">${escapeHtml(p.brand)}</p>
-      <p class="name">${escapeHtml(p.name)}</p>
-      <div class="price-rub">${formatRub(p.price_rub)}</div>
-      <div class="price-usdt">${escapeHtml(p.price_usdt)} USDT</div>
-      <span class="badge ${p.is_available ? "badge-success" : "badge-muted"}">
-        ${p.is_available ? t("in_stock") : t("out_of_stock")}
-      </span>
+    ${badgeHtml}
+    <div class="product-card__media">
+      <img src="${escapeAttrUrl(p.image_url)}" alt="" loading="lazy" />
+      <button type="button" class="product-card__fav" aria-label="${t("favorite")}">
+        <span class="material-symbols-outlined">favorite</span>
+      </button>
+    </div>
+    <div class="product-card__body">
+      <div>
+        <p class="product-card__brand">${escapeHtml(p.brand ?? "")}</p>
+        <h3 class="product-card__name">${escapeHtml(p.name)}</h3>
+      </div>
+      <div class="product-card__prices">
+        <div class="product-card__price-rub">${formatRub(p.price_rub)}</div>
+        <div class="product-card__price-usdt">~ ${formatUsdt(p.price_usdt)} USDT</div>
+        <span class="badge ${stockClass} product-card__stock">${stockText}</span>
+      </div>
     </div>
   `;
+
+  el.querySelector(".product-card__fav")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+  });
+
   el.addEventListener("click", () => navigate(`/product/${p.id}`));
   return el;
 }
 
 function formatRub(n: number): string {
   return `${n.toLocaleString("ru-RU")} ₽`;
+}
+
+function formatUsdt(n: number): string {
+  return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 }

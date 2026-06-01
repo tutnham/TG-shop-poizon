@@ -19,7 +19,8 @@ type CartLine = {
 };
 
 export async function renderCart(app: HTMLElement): Promise<void> {
-  app.innerHTML = `<div class="page"><h2 class="section-title">${t("cart")}</h2><div id="cart-list"></div></div>`;
+  app.classList.add("page-with-nav");
+  app.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("cart")}</h2><div id="cart-list"></div></div>`;
   const list = app.querySelector("#cart-list") as HTMLElement;
 
   setupBackButton(() => goBack());

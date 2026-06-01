@@ -16,7 +16,8 @@ export async function renderProduct(app: HTMLElement): Promise<void> {
   const id = getRouteParam("id");
   if (!id) return;
 
-  app.innerHTML = '<div class="page" id="product-page"></div>';
+  app.innerHTML =
+    '<div class="page page-tg-content" id="product-page"></div>';
   const page = app.querySelector("#product-page") as HTMLElement;
   page.innerHTML = `<div class="skeleton" style="height:60vh"></div>`;
 

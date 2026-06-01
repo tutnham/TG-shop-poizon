@@ -50,6 +50,11 @@ export async function handleRoute(): Promise<void> {
   if (home) await home();
 }
 
+export function getCurrentPath(): string {
+  const hash = window.location.hash.slice(1) || "/";
+  return hash.startsWith("/") ? hash : `/${hash}`;
+}
+
 export function getRouteParam(name: string): string | null {
   const hash = window.location.hash.slice(1) || "/";
   if (name === "id") {

@@ -1,79 +1,205 @@
-export function getTg() {
-  return window.Telegram?.WebApp;
+/** Фон Mini App — совпадает с --color-bg в tokens.css */
+export const TG_BG = "#111317";
+
+type Inset = { top: number; bottom: number; left: number; right: number };
+
+type ThemeParams = Record<string, string | undefined>;
+
+type TgWebApp = {
+  initData: string;
+  initDataUnsafe: { user?: { language_code?: string } };
+  ready: () => void;
+  expand: () => void;
+  close: () => void;
+  setHeaderColor: (color: string) => void;
+  setBackgroundColor: (color: string) => void;
+  enableClosingConfirmation: () => void;
+  disableVerticalSwipes?: () => void;
+  colorScheme?: "light" | "dark";
+  themeParams?: ThemeParams;
+  safeAreaInset?: Inset;
+  contentSafeAreaInset?: Inset;
+  viewportStableHeight?: number;
+  isExpanded?: boolean;
+  onEvent: (event: string, handler: () => void) => void;
+  offEvent: (event: string, handler: () => void) => void;
+  MainButton: {
+    setText: (t: string) => void;
+    show: () => void;
+    hide: () => void;
+    onClick: (fn: () => void) => void;
+    offClick: (fn: () => void) => void;
+    isVisible?: boolean;
+  };
+  BackButton: {
+    show: () => void;
+    hide: () => void;
+    onClick: (fn: () => void) => void;
+    offClick: (fn: () => void) => void;
+  };
+  HapticFeedback?: {
+    impactOccurred: (s: "light" | "medium" | "heavy") => void;
+    notificationOccurred: (s: "error" | "success" | "warning") => void;
+  };
+  showAlert: (msg: string) => void;
+  openLink: (url: string) => void;
+};
+
+const ZERO_INSET: Inset = { top: 0, bottom: 0, left: 0, right: 0 };
+
+let mainButtonHandler: (() => void) | null = null;
+let backButtonHandler: (() => void) | null = null;
+
+function insetPx(value: number | undefined): string {
+  const n = typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+  return `${n}px`;
+}
+
+function normalizeInset(raw?: Partial<Inset> | null): Inset {
+  if (!raw) return { ...ZERO_INSET };
+  return {
+    top: raw.top ?? 0,
+    bottom: raw.bottom ?? 0,
+    left: raw.left ?? 0,
+    right: raw.right ?? 0,
+  };
+}
+
+/** Пробрасывает safe / content safe area из Telegram в CSS-переменные. */
+export function applyTelegramLayout(): void {
+  const tg = getTg();
+  const root = document.documentElement;
+
+  const safe = normalizeInset(tg?.safeAreaInset);
+  const content = normalizeInset(tg?.contentSafeAreaInset ?? tg?.safeAreaInset);
+
+  root.style.setProperty("--tg-safe-top", insetPx(safe.top));
+  root.style.setProperty("--tg-safe-bottom", insetPx(safe.bottom));
+  root.style.setProperty("--tg-safe-left", insetPx(safe.left));
+  root.style.setProperty("--tg-safe-right", insetPx(safe.right));
+
+  root.style.setProperty("--tg-content-top", insetPx(content.top));
+  root.style.setProperty("--tg-content-bottom", insetPx(content.bottom));
+  root.style.setProperty("--tg-content-left", insetPx(content.left));
+  root.style.setProperty("--tg-content-right", insetPx(content.right));
+
+}
+
+function applyTelegramChrome(): void {
+  const tg = getTg();
+  if (!tg) return;
+  tg.setHeaderColor(TG_BG);
+  tg.setBackgroundColor(TG_BG);
+  document.documentElement.classList.add("tg-mini-app", "tg-theme-dark");
+  document.documentElement.style.colorScheme = "dark";
+}
+
+function onThemeChanged(): void {
+  applyTelegramChrome();
+  applyTelegramLayout();
+}
+
+function bindTelegramEvents(): void {
+  const tg = getTg();
+  if (!tg?.onEvent) return;
+
+  const relayout = () => {
+    applyTelegramLayout();
+  };
+
+  tg.onEvent("themeChanged", onThemeChanged);
+  tg.onEvent("safeAreaChanged", relayout);
+  tg.onEvent("contentSafeAreaChanged", relayout);
+  tg.onEvent("viewportChanged", relayout);
+}
+
+export function getTg(): TgWebApp | undefined {
+  return window.Telegram?.WebApp as TgWebApp | undefined;
 }
 
 export function initTelegram(): void {
   const tg = getTg();
   if (!tg) return;
+
   tg.ready();
   tg.expand();
-  tg.setHeaderColor("#0f1115");
-  tg.setBackgroundColor("#0f1115");
   tg.enableClosingConfirmation();
+  tg.disableVerticalSwipes?.();
+
+  applyTelegramChrome();
+  applyTelegramLayout();
+  bindTelegramEvents();
+
+  requestAnimationFrame(() => applyTelegramLayout());
+  setTimeout(() => applyTelegramLayout(), 120);
 }
 
 export function haptic(type: "light" | "medium" | "success" = "light"): void {
   const tg = getTg();
-  if (!type) return;
-  if (type === "success") tg?.HapticFeedback?.notificationOccurred("success");
-  else tg?.HapticFeedback?.impactOccurred(type);
+  if (!tg) return;
+  if (type === "success") tg.HapticFeedback?.notificationOccurred("success");
+  else tg.HapticFeedback?.impactOccurred(type);
 }
 
 export function showMainButton(text: string, onClick: () => void): void {
   const tg = getTg();
   if (!tg?.MainButton) return;
+
+  if (mainButtonHandler) {
+    tg.MainButton.offClick(mainButtonHandler);
+  }
+  mainButtonHandler = onClick;
+
   tg.MainButton.setText(text);
   tg.MainButton.show();
   tg.MainButton.onClick(onClick);
+  document.documentElement.classList.add("tg-main-button-visible");
+
+  requestAnimationFrame(() => applyTelegramLayout());
+  setTimeout(() => applyTelegramLayout(), 150);
 }
 
 export function hideMainButton(): void {
   const tg = getTg();
-  tg?.MainButton.hide();
-  tg?.MainButton.offClick(() => {});
+  if (!tg?.MainButton) return;
+
+  if (mainButtonHandler) {
+    tg.MainButton.offClick(mainButtonHandler);
+    mainButtonHandler = null;
+  }
+  tg.MainButton.hide();
+  document.documentElement.classList.remove("tg-main-button-visible");
+  requestAnimationFrame(() => applyTelegramLayout());
 }
 
 export function setupBackButton(onBack: () => void): void {
   const tg = getTg();
   if (!tg?.BackButton) return;
+
+  if (backButtonHandler) {
+    tg.BackButton.offClick(backButtonHandler);
+  }
+  backButtonHandler = onBack;
+
   tg.BackButton.show();
   tg.BackButton.onClick(onBack);
 }
 
 export function hideBackButton(): void {
-  getTg()?.BackButton.hide();
+  const tg = getTg();
+  if (!tg?.BackButton) return;
+
+  if (backButtonHandler) {
+    tg.BackButton.offClick(backButtonHandler);
+    backButtonHandler = null;
+  }
+  tg.BackButton.hide();
 }
 
 declare global {
   interface Window {
     Telegram?: {
-      WebApp: {
-        initData: string;
-        initDataUnsafe: { user?: { language_code?: string } };
-        ready: () => void;
-        expand: () => void;
-        setHeaderColor: (c: string) => void;
-        setBackgroundColor: (c: string) => void;
-        enableClosingConfirmation: () => void;
-        MainButton: {
-          setText: (t: string) => void;
-          show: () => void;
-          hide: () => void;
-          onClick: (fn: () => void) => void;
-          offClick: (fn: () => void) => void;
-        };
-        BackButton: {
-          show: () => void;
-          hide: () => void;
-          onClick: (fn: () => void) => void;
-        };
-        HapticFeedback?: {
-          impactOccurred: (s: string) => void;
-          notificationOccurred: (s: string) => void;
-        };
-        showAlert: (msg: string) => void;
-        openLink: (url: string) => void;
-      };
+      WebApp: TgWebApp;
     };
   }
 }

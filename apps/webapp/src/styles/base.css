@@ -1,4 +1,5 @@
 @import "./tokens.css";
+@import "./components.css";
 
 *,
 *::before,
@@ -10,19 +11,46 @@ html,
 body {
   margin: 0;
   padding: 0;
+  min-height: 100dvh;
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
   font-size: var(--font-md);
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: var(--color-primary-container);
+  color: #fff;
 }
 
 #app {
   min-height: 100vh;
-  padding-top: var(--safe-top);
-  padding-bottom: calc(80px + var(--safe-bottom));
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app.has-bottom-nav {
+  padding-bottom: var(--bottom-nav-height);
+}
+
+.page-tg-content {
+  padding-top: calc(var(--content-safe-top) + 12px);
+  padding-left: max(var(--page-padding), var(--content-safe-left));
+  padding-right: max(var(--page-padding), var(--content-safe-right));
+}
+
+.page-tg-content--below-header {
+  padding-top: calc(var(--header-height) + 12px);
 }
 
 button {
@@ -36,12 +64,6 @@ button {
 input,
 textarea {
   font: inherit;
-  color: var(--color-text);
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  width: 100%;
 }
 
 .page {
@@ -63,13 +85,13 @@ textarea {
 .skeleton {
   background: linear-gradient(
     90deg,
-    var(--color-surface) 25%,
-    var(--color-surface-2) 50%,
-    var(--color-surface) 75%
+    var(--color-surface-base) 25%,
+    var(--color-surface-elevated) 50%,
+    var(--color-surface-base) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.2s infinite;
-  border-radius: var(--radius-card);
+  border-radius: var(--radius-xl);
 }
 
 @keyframes shimmer {
@@ -100,38 +122,23 @@ textarea {
 }
 
 .badge-muted {
-  background: var(--color-surface-3);
+  background: var(--color-surface-overlay);
   color: var(--color-text-muted);
 }
 
 .btn-primary {
-  background: var(--color-accent);
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   padding: 14px 20px;
   border-radius: 14px;
   font-weight: 600;
-  min-height: 44px;
+  min-height: var(--touch-target);
   width: 100%;
   transition: background var(--anim-fast);
 }
 
 .btn-primary:active {
   background: var(--color-accent-hover);
-}
-
-.chip {
-  padding: 10px 16px;
-  border-radius: var(--radius-chip);
-  background: var(--color-surface-2);
-  color: var(--color-text-muted);
-  font-size: var(--font-sm);
-  white-space: nowrap;
-  min-height: 44px;
-}
-
-.chip.active {
-  background: var(--color-accent);
-  color: #fff;
 }
 
 .empty-state {
@@ -143,7 +150,7 @@ textarea {
 .price-rub {
   color: var(--color-price-rub);
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .price-usdt {

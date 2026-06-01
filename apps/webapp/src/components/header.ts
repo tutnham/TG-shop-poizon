@@ -4,49 +4,39 @@ import { navigate } from "../router.js";
 
 export function renderHeader(
   root: HTMLElement,
-  opts?: { showSearch?: boolean },
+  opts?: { showSearch?: boolean; searchInputId?: string },
 ): void {
+  root.querySelector(".app-header")?.remove();
+  root.querySelector(".search-section")?.remove();
+
   const header = document.createElement("header");
   header.className = "app-header";
   header.innerHTML = `
-    <style>
-      .app-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px var(--page-padding);
-        background: rgba(15, 17, 21, 0.92);
-        backdrop-filter: blur(8px);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        min-height: 52px;
-      }
-      .app-header h1 { font-size: var(--font-lg); margin: 0; font-weight: 700; }
-      .header-actions { display: flex; gap: 8px; align-items: center; }
-      .icon-btn {
-        min-width: 44px; min-height: 44px;
-        display: flex; align-items: center; justify-content: center;
-        background: var(--color-surface-2);
-        border-radius: 12px;
-        font-size: var(--font-sm);
-      }
-    </style>
-    <h1>${t("shop")}</h1>
-    <div class="header-actions">
-      <button type="button" class="icon-btn" id="lang-btn">${t("lang")}</button>
-      <button type="button" class="icon-btn" id="orders-btn">📋</button>
-      <button type="button" class="icon-btn" id="cart-btn">🛒</button>
-    </div>
+    <button type="button" class="header-icon-btn" id="menu-btn" aria-label="${t("menu")}">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <h1 class="app-header__title">${t("shop")}</h1>
+    <button type="button" class="header-icon-btn" id="header-search-btn" aria-label="${t("search")}">
+      <span class="material-symbols-outlined">search</span>
+    </button>
+    <button type="button" class="header-icon-btn" id="lang-btn" hidden aria-label="${t("lang")}">
+      ${t("lang")}
+    </button>
   `;
   root.prepend(header);
 
-  header
-    .querySelector("#cart-btn")
-    ?.addEventListener("click", () => navigate("/cart"));
-  header
-    .querySelector("#orders-btn")
-    ?.addEventListener("click", () => navigate("/orders"));
+  header.querySelector("#menu-btn")?.addEventListener("click", () => {
+    navigate("/orders");
+  });
+
+  header.querySelector("#header-search-btn")?.addEventListener("click", () => {
+    const input = document.getElementById(
+      opts?.searchInputId ?? "search-input",
+    ) as HTMLInputElement | null;
+    input?.focus();
+    input?.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
   header.querySelector("#lang-btn")?.addEventListener("click", async () => {
     const next: Lang = getLang() === "ru" ? "en" : "ru";
     setLang(next);
@@ -59,9 +49,15 @@ export function renderHeader(
   });
 
   if (opts?.showSearch) {
-    const search = document.createElement("div");
-    search.style.padding = "0 var(--page-padding) 12px";
-    search.innerHTML = `<input type="search" id="search-input" placeholder="${t("search_placeholder")}" />`;
-    root.insertBefore(search, header.nextSibling);
+    const searchSection = document.createElement("section");
+    searchSection.className = "search-section";
+    const inputId = opts.searchInputId ?? "search-input";
+    searchSection.innerHTML = `
+      <div class="search-bar">
+        <span class="material-symbols-outlined search-bar__icon">search</span>
+        <input type="search" id="${inputId}" placeholder="${t("search_placeholder")}" autocomplete="off" />
+      </div>
+    `;
+    header.insertAdjacentElement("afterend", searchSection);
   }
 }

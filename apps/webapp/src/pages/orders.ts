@@ -5,7 +5,8 @@ import { goBack, navigate } from "../router.js";
 import { hideMainButton, setupBackButton } from "../telegram.js";
 
 export async function renderOrders(app: HTMLElement): Promise<void> {
-  app.innerHTML = `<div class="page"><h2 class="section-title">${t("orders")}</h2><div id="orders-list"></div></div>`;
+  app.classList.add("page-with-nav");
+  app.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("orders")}</h2><div id="orders-list"></div></div>`;
   const list = app.querySelector("#orders-list") as HTMLElement;
   setupBackButton(() => goBack());
   hideMainButton();

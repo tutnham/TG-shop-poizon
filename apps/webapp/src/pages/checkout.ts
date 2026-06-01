@@ -14,7 +14,8 @@ let deliveryData = { full_name: "", phone: "", address: "" };
 
 export async function renderCheckout(app: HTMLElement): Promise<void> {
   step = 1;
-  app.innerHTML = '<div class="page" id="checkout"></div>';
+  app.innerHTML =
+    '<div class="page page-tg-content" id="checkout"></div>';
   const page = app.querySelector("#checkout") as HTMLElement;
   setupBackButton(() => {
     if (step === 2) {

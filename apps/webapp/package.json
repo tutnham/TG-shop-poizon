@@ -8,7 +8,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.5",
     "@poizon-shop/shared": "file:../../packages/shared",
+    "material-symbols": "^0.28.2",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
   },
