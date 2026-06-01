@@ -33,12 +33,17 @@
 
 ## 4. Деплой
 
+**Важно — Root Directory в Vercel:**
+
+- **Settings → General → Root Directory** = пусто (корень репозитория, **не** `apps/api` и **не** `apps/webapp`)
+- **Build Command** и **Install Command** — Override **выключен** (берётся из `vercel.json`)
+
 ```bash
 bun install
 bun run build
 ```
 
-Подключите репозиторий к Vercel. Root directory: корень проекта.
+Подключите репозиторий к Vercel. Root directory: **корень проекта** (`.`).
 
 ## 5. Webhooks
 

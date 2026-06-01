@@ -6,7 +6,7 @@
     "dev:api": "npm run dev -w @poizon-shop/api",
     "dev:webapp": "npm run dev -w @poizon-shop/webapp",
     "build": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp",
-    "build:api": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/api",
+    "build:api": "npm run build -w @poizon-shop/shared && npm run typecheck -w @poizon-shop/api",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "npm run test -w @poizon-shop/api"
