@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp",
-  "installCommand": "npm ci --include=dev",
+  "buildCommand": "npm run build",
+  "installCommand": "npm ci",
   "outputDirectory": "apps/webapp/dist",
   "framework": null,
   "functions": {

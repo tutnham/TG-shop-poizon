@@ -11,8 +11,11 @@
     "lint:fix": "biome check --write .",
     "test": "npm run test -w @poizon-shop/api"
   },
+  "dependencies": {
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "typescript": "^5.7.2"
+    "@biomejs/biome": "^1.9.4"
   }
 }
