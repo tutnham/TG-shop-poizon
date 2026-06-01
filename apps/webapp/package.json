@@ -4,15 +4,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p tsconfig.json && npx vite build",
+    "build": "tsc -p tsconfig.json && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@poizon-shop/shared": "file:../../packages/shared"
-  },
-  "devDependencies": {
-    "@types/node": "^22.10.2",
+    "@poizon-shop/shared": "file:../../packages/shared",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
   }
 }
