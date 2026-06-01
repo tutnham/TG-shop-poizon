@@ -1,7 +1,7 @@
 {
-  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp",
+  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && mkdir -p dist && cp -r apps/webapp/dist/. dist/",
   "installCommand": "npm ci --workspaces --include-workspace-root",
-  "outputDirectory": "apps/webapp/dist",
+  "outputDirectory": "dist",
   "framework": null,
   "functions": {
     "api/index.ts": {

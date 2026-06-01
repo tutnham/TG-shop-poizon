@@ -37,6 +37,7 @@
 
 - **Settings → General → Root Directory** = пусто (корень репозитория, **не** `apps/api` и **не** `apps/webapp`)
 - **Build Command** и **Install Command** — Override **выключен** (берётся из `vercel.json`)
+- **Output Directory** — Override **выключен** (в `vercel.json` указано `dist`)
 
 ```bash
 bun install
