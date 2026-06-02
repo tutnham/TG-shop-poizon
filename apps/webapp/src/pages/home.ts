@@ -1,6 +1,10 @@
 import type { ProductListItem } from "@poizon-shop/shared";
 import { apiGet } from "../api/client.js";
 import { mountCartPeek } from "../components/cart-peek.js";
+import {
+  renderCatalogPreview,
+  setCatalogPreviewVisible,
+} from "../components/catalog-preview.js";
 import { renderHeader } from "../components/header.js";
 import { renderProductCard } from "../components/product-card.js";
 import { t } from "../i18n/index.js";
@@ -69,6 +73,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     </div>
   `;
   main.appendChild(trust);
+
+  main.appendChild(renderCatalogPreview());
 
   const catalog = document.createElement("section");
   catalog.className = "catalog-section";
@@ -162,10 +168,12 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         grid.appendChild(renderProductCard(p, badge ? { badge } : undefined));
         cardIndex++;
       }
+      setCatalogPreviewVisible(page === 1 && res.data.length === 0);
       hasMore = page < res.pagination.pages;
       page++;
     } catch {
       sk.remove();
+      setCatalogPreviewVisible(true);
       grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">${t("error")}<br/><button type="button" class="btn-primary" style="margin-top:16px;width:auto">${t("retry")}</button></div>`;
       grid.querySelector("button")?.addEventListener("click", () => {
         page = 1;

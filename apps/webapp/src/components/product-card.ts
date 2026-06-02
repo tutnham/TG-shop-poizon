@@ -4,6 +4,7 @@ import { addProductToCartWithFeedback } from "../lib/cart-actions.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { hideKeyboard } from "../lib/keyboard.js";
+import { showToast } from "../lib/toast.js";
 import { navigate } from "../router.js";
 import { haptic } from "../telegram.js";
 
@@ -14,14 +15,16 @@ export type ProductCardBadge = {
 
 export function renderProductCard(
   p: ProductListItem,
-  opts?: { badge?: ProductCardBadge },
+  opts?: { badge?: ProductCardBadge; demo?: boolean },
 ): HTMLElement {
   const el = document.createElement("article");
-  el.className = "product-card";
+  el.className = `product-card${opts?.demo ? " product-card--demo" : ""}`;
 
-  const badgeHtml = opts?.badge
-    ? `<div class="product-card__badge${opts.badge.variant === "new" ? " product-card__badge--new" : ""}">${escapeHtml(opts.badge.text)}</div>`
-    : "";
+  const badgeHtml = opts?.demo
+    ? `<div class="product-card__badge product-card__badge--demo">${escapeHtml(t("demo_badge"))}</div>`
+    : opts?.badge
+      ? `<div class="product-card__badge${opts.badge.variant === "new" ? " product-card__badge--new" : ""}">${escapeHtml(opts.badge.text)}</div>`
+      : "";
 
   const stockClass = p.is_available ? "badge-success" : "badge-muted";
   const stockText = p.is_available ? t("in_stock") : t("out_of_stock");
@@ -29,7 +32,7 @@ export function renderProductCard(
   el.innerHTML = `
     ${badgeHtml}
     <div class="product-card__media">
-      <img src="${escapeAttrUrl(p.image_url)}" alt="" loading="lazy" />
+      <img src="${escapeAttrUrl(p.image_url)}" alt="" loading="lazy" decoding="async" />
       <button type="button" class="product-card__fav" aria-label="${t("favorite")}">
         <span class="material-symbols-outlined">favorite</span>
       </button>
@@ -59,6 +62,10 @@ export function renderProductCard(
   ) as HTMLButtonElement | null;
   addBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
+    if (opts?.demo) {
+      showToast(t("demo_preview_toast"));
+      return;
+    }
     if (!p.is_available || addBtn.disabled) return;
     addBtn.disabled = true;
     addBtn.classList.add("product-card__add--loading");
@@ -73,6 +80,10 @@ export function renderProductCard(
 
   el.addEventListener("click", () => {
     hideKeyboard();
+    if (opts?.demo) {
+      showToast(t("demo_preview_toast"));
+      return;
+    }
     navigate(`/product/${p.id}`);
   });
 

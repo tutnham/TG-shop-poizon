@@ -364,6 +364,30 @@
   }
 }
 
+.catalog-preview {
+  margin-top: var(--section-gap);
+  padding: 0 var(--page-padding);
+}
+
+.catalog-preview__head {
+  margin-bottom: 12px;
+}
+
+.catalog-preview__hint {
+  margin: 4px 0 0;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  font-weight: 400;
+}
+
+.product-card--demo {
+  outline: 1px dashed rgba(87, 217, 215, 0.35);
+}
+
+.product-card__badge--demo {
+  color: var(--color-secondary);
+}
+
 .catalog-section {
   margin-top: var(--section-gap);
   padding: 0 var(--page-padding) 24px;
