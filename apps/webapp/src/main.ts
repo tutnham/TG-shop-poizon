@@ -25,8 +25,11 @@ setLang(detectLang());
 ensurePageRoot(app);
 
 async function dispatch(path: string, handler: () => void | Promise<void>) {
-  await handler();
-  syncBottomNav(app, path);
+  try {
+    await handler();
+  } finally {
+    syncBottomNav(app, getCurrentPath());
+  }
 }
 
 function wrap(handler: () => void | Promise<void>) {

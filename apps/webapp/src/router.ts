@@ -8,10 +8,20 @@ export function registerRoute(path: string, handler: RouteHandler): void {
   routes[path] = handler;
 }
 
+/** Путь SPA из hash (#/cart). Не-маршрутные фрагменты (tgWebAppData) → главная. */
+export function getCurrentPath(): string {
+  const raw = window.location.hash.slice(1);
+  if (!raw) return "/";
+  if (!raw.startsWith("/")) return "/";
+  const pathOnly = raw.split("?")[0]?.split("#")[0] ?? "/";
+  return pathOnly || "/";
+}
+
 export function navigate(path: string, replace = false): void {
+  const normalized = path.startsWith("/") ? path : `/${path}`;
   if (!replace && currentRoute) historyStack.push(currentRoute);
-  currentRoute = path;
-  window.location.hash = path;
+  currentRoute = normalized;
+  window.location.hash = normalized;
 }
 
 export function goBack(): void {
@@ -20,13 +30,12 @@ export function goBack(): void {
     currentRoute = prev;
     window.location.hash = prev;
   } else {
-    navigate("#/", true);
+    navigate("/", true);
   }
 }
 
 export async function handleRoute(): Promise<void> {
-  const hash = window.location.hash.slice(1) || "/";
-  currentRoute = hash.startsWith("/") ? hash : `/${hash}`;
+  currentRoute = getCurrentPath();
 
   const handler = routes[currentRoute];
   if (handler) {
@@ -50,15 +59,10 @@ export async function handleRoute(): Promise<void> {
   if (home) await home();
 }
 
-export function getCurrentPath(): string {
-  const hash = window.location.hash.slice(1) || "/";
-  return hash.startsWith("/") ? hash : `/${hash}`;
-}
-
 export function getRouteParam(name: string): string | null {
-  const hash = window.location.hash.slice(1) || "/";
+  const path = getCurrentPath();
   if (name === "id") {
-    const m = hash.match(/\/(?:product|orders)\/([^/]+)/);
+    const m = path.match(/\/(?:product|orders)\/([^/]+)/);
     return m?.[1] ?? null;
   }
   return null;

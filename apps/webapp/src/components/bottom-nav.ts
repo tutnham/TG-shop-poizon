@@ -1,6 +1,7 @@
 import { apiGet } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { getCurrentPath, navigate } from "../router.js";
+import { ensurePageRoot } from "../shell.js";
 
 const NAV_PATHS = ["/", "/orders", "/cart", "/profile", "/menu"] as const;
 
@@ -111,6 +112,7 @@ export function syncBottomNav(app: HTMLElement, path: string): void {
   }
 
   app.classList.add("has-bottom-nav");
+  ensurePageRoot(app);
   let nav = app.querySelector<HTMLElement>(".bottom-nav");
   if (!nav) {
     nav = buildNavItems(path);
@@ -118,6 +120,7 @@ export function syncBottomNav(app: HTMLElement, path: string): void {
     refreshCartDot();
   } else {
     updateActiveState(nav, path);
+    app.appendChild(nav);
   }
 }
 
