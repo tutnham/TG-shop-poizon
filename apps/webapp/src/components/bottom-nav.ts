@@ -1,6 +1,6 @@
-import { apiGet } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { bindBottomNavToVisualViewport } from "../lib/bottom-nav-viewport.js";
+import { refreshCartBadge } from "../lib/cart-badge.js";
 import { hideKeyboard } from "../lib/keyboard.js";
 import { getCurrentPath, navigate } from "../router.js";
 import { ensurePageRoot } from "../shell.js";
@@ -98,14 +98,7 @@ function updateActiveState(nav: HTMLElement, path: string): void {
 }
 
 function refreshCartDot(): void {
-  void apiGet<{ data: unknown[] }>("/api/cart")
-    .then((res) => {
-      const dot = document.getElementById("cart-nav-dot");
-      if (dot) dot.hidden = !res.data?.length;
-    })
-    .catch(() => {
-      /* offline */
-    });
+  refreshCartBadge();
 }
 
 function getOrCreateNav(app: HTMLElement, path: string): HTMLElement {

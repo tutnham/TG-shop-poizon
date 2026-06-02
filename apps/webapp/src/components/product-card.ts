@@ -1,8 +1,11 @@
 import type { ProductListItem } from "@poizon-shop/shared";
 import { t } from "../i18n/index.js";
+import { addProductToCartWithFeedback } from "../lib/cart-actions.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { hideKeyboard } from "../lib/keyboard.js";
 import { navigate } from "../router.js";
+import { haptic } from "../telegram.js";
 
 export type ProductCardBadge = {
   text: string;
@@ -30,6 +33,9 @@ export function renderProductCard(
       <button type="button" class="product-card__fav" aria-label="${t("favorite")}">
         <span class="material-symbols-outlined">favorite</span>
       </button>
+      <button type="button" class="product-card__add" aria-label="${t("add_to_cart")}" ${p.is_available ? "" : "disabled"}>
+        <span class="material-symbols-outlined">add_shopping_cart</span>
+      </button>
     </div>
     <div class="product-card__body">
       <div>
@@ -38,7 +44,7 @@ export function renderProductCard(
       </div>
       <div class="product-card__prices">
         <div class="product-card__price-rub">${formatRub(p.price_rub)}</div>
-        <div class="product-card__price-usdt">~ ${formatUsdt(p.price_usdt)} USDT</div>
+        <div class="product-card__price-usdt">${formatUsdt(p.price_usdt)}</div>
         <span class="badge ${stockClass} product-card__stock">${stockText}</span>
       </div>
     </div>
@@ -48,17 +54,27 @@ export function renderProductCard(
     e.stopPropagation();
   });
 
+  const addBtn = el.querySelector(
+    ".product-card__add",
+  ) as HTMLButtonElement | null;
+  addBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!p.is_available || addBtn.disabled) return;
+    addBtn.disabled = true;
+    addBtn.classList.add("product-card__add--loading");
+    void addProductToCartWithFeedback(p.id)
+      .then(() => haptic("success"))
+      .catch(() => haptic("light"))
+      .finally(() => {
+        addBtn.disabled = !p.is_available;
+        addBtn.classList.remove("product-card__add--loading");
+      });
+  });
+
   el.addEventListener("click", () => {
     hideKeyboard();
     navigate(`/product/${p.id}`);
   });
+
   return el;
-}
-
-function formatRub(n: number): string {
-  return `${n.toLocaleString("ru-RU")} ₽`;
-}
-
-function formatUsdt(n: number): string {
-  return n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 }

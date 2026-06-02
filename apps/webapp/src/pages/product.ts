@@ -1,7 +1,10 @@
 import type { ProductDetail } from "@poizon-shop/shared";
-import { apiGet, apiPost } from "../api/client.js";
+import { apiGet } from "../api/client.js";
 import { t } from "../i18n/index.js";
+import { addProductToCart } from "../lib/cart-actions.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { formatRub, formatUsdt } from "../lib/format-price.js";
+import { showToast } from "../lib/toast.js";
 import { getRouteParam, goBack } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
@@ -41,8 +44,8 @@ export async function renderProduct(app: HTMLElement): Promise<void> {
       </div>
       <p style="color:var(--color-text-muted);margin:12px 0 4px">${escapeHtml(p.brand)}</p>
       <h2 style="margin:0 0 12px;font-size:var(--font-xl)">${escapeHtml(p.name)}</h2>
-      <div class="price-rub" style="font-size:var(--font-lg)">${escapeHtml(p.price_rub.toLocaleString())} ₽</div>
-      <div class="price-usdt">${escapeHtml(p.price_usdt)} USDT</div>
+      <div class="price-rub" style="font-size:var(--font-lg)">${formatRub(p.price_rub)}</div>
+      <div class="price-usdt">${formatUsdt(p.price_usdt)}</div>
       <p style="font-size:var(--font-xs);color:var(--color-text-faint)">${t("markup_note")}</p>
       <h3 class="section-title">${t("select_size")}</h3>
       <div class="size-grid" id="sizes"></div>
@@ -78,13 +81,9 @@ export async function renderProduct(app: HTMLElement): Promise<void> {
         return;
       }
       try {
-        await apiPost("/api/cart", {
-          product_id: p.id,
-          size: selectedSize,
-          quantity: 1,
-        });
+        await addProductToCart(p.id, 1, selectedSize);
         haptic("success");
-        window.Telegram?.WebApp?.showAlert("✓");
+        showToast(t("added_to_cart"));
       } catch (e) {
         window.Telegram?.WebApp?.showAlert(
           e instanceof Error ? e.message : t("error"),

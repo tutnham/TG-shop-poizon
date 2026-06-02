@@ -1,6 +1,11 @@
-import { apiDelete, apiGet } from "../api/client.js";
+import { apiGet } from "../api/client.js";
+import {
+  type CartLineView,
+  renderCartItemCard,
+} from "../components/cart-item-card.js";
 import { t } from "../i18n/index.js";
-import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { refreshCartBadge } from "../lib/cart-badge.js";
+import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { goBack, navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
@@ -9,78 +14,72 @@ import {
   showMainButton,
 } from "../telegram.js";
 
-type CartLine = {
-  id: string;
-  product_id: string;
-  size: string;
-  quantity: number;
-  line_rub: number;
-  line_usdt: number;
-  product: { name: string; image_url: string | null };
-};
-
 export async function renderCart(app: HTMLElement): Promise<void> {
   clearPageRoot(app);
   app.classList.add("page-with-nav");
   const pageRoot = ensurePageRoot(app);
-  pageRoot.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("cart")}</h2><div id="cart-list"></div></div>`;
+  pageRoot.innerHTML = `
+    <div class="page page-tg-content cart-page">
+      <h2 class="section-title">${t("cart")}</h2>
+      <div id="cart-list" class="cart-page__list"></div>
+      <div id="cart-summary" class="cart-summary" hidden></div>
+    </div>
+  `;
+
   const list = pageRoot.querySelector("#cart-list") as HTMLElement;
+  const summary = pageRoot.querySelector("#cart-summary") as HTMLElement;
 
   setupBackButton(() => goBack());
+  refreshCartBadge();
+
+  const rerender = () => renderCart(app);
 
   try {
     const res = await apiGet<{
-      data: CartLine[];
+      data: CartLineView[];
       total_rub: number;
       total_usdt: number;
     }>("/api/cart");
 
     if (!res.data.length) {
       list.innerHTML = `
-        <div class="empty-state">
+        <div class="empty-state cart-page__empty">
+          <span class="material-symbols-outlined cart-page__empty-icon">shopping_cart</span>
           <p>${t("empty_cart")}</p>
           <p>${t("empty_cart_hint")}</p>
-          <button class="btn-primary" id="to-cat">${t("to_catalog")}</button>
+          <button type="button" class="btn-primary" id="to-cat">${t("to_catalog")}</button>
         </div>`;
       list
         .querySelector("#to-cat")
         ?.addEventListener("click", () => navigate("/"));
+      summary.hidden = true;
       hideMainButton();
       return;
     }
 
+    list.innerHTML = "";
     for (const item of res.data) {
-      const row = document.createElement("div");
-      row.style.cssText =
-        "display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-border)";
-      row.innerHTML = `
-        <img src="${escapeAttrUrl(item.product.image_url)}" style="width:72px;height:72px;border-radius:12px;object-fit:cover" />
-        <div style="flex:1">
-          <div>${escapeHtml(item.product.name)}</div>
-          <div style="color:var(--color-text-muted);font-size:var(--font-sm)">${escapeHtml(item.size)} × ${escapeHtml(item.quantity)}</div>
-          <div class="price-rub">${escapeHtml(item.line_rub)} ₽</div>
-          <button type="button" data-id="${escapeHtml(item.id)}" style="color:var(--color-danger);font-size:var(--font-sm);margin-top:8px">✕</button>
-        </div>
-      `;
-      row.querySelector("button")?.addEventListener("click", async () => {
-        await apiDelete(`/api/cart/${item.id}`);
-        await renderCart(app);
-      });
-      list.appendChild(row);
+      list.appendChild(renderCartItemCard(item, rerender));
     }
 
-    const total = document.createElement("div");
-    total.style.marginTop = "16px";
-    total.innerHTML = `
-      <div>${t("total")}</div>
-      <div class="price-rub">${escapeHtml(res.total_rub.toLocaleString())} ₽</div>
-      <div class="price-usdt">${escapeHtml(res.total_usdt)} USDT</div>
+    summary.hidden = false;
+    summary.innerHTML = `
+      <div class="cart-summary__row">
+        <span>${res.data.length} ${t("cart_items")}</span>
+      </div>
+      <div class="cart-summary__totals">
+        <div class="cart-summary__price">
+          <span class="cart-summary__label">${t("total")}</span>
+          <span class="price-rub cart-summary__rub">${formatRub(res.total_rub)}</span>
+          <span class="price-usdt cart-summary__usdt">${formatUsdt(res.total_usdt)}</span>
+        </div>
+      </div>
     `;
-    list.appendChild(total);
 
     showMainButton(t("proceed_checkout"), () => navigate("/checkout"));
   } catch {
     list.innerHTML = `<div class="empty-state">${t("error")}</div>`;
+    summary.hidden = true;
     hideMainButton();
   }
 }

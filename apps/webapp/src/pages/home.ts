@@ -1,5 +1,6 @@
 import type { ProductListItem } from "@poizon-shop/shared";
 import { apiGet } from "../api/client.js";
+import { mountCartPeek } from "../components/cart-peek.js";
 import { renderHeader } from "../components/header.js";
 import { renderProductCard } from "../components/product-card.js";
 import { t } from "../i18n/index.js";
@@ -85,6 +86,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const syncBadge = document.createElement("p");
   syncBadge.className = "sync-footer";
   main.appendChild(syncBadge);
+
+  void mountCartPeek(main);
 
   const allChip = document.createElement("button");
   allChip.type = "button";
