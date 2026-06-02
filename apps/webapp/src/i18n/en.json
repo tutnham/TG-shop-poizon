@@ -27,6 +27,8 @@
   "out_of_stock": "Out of stock",
   "add_to_cart": "Add to cart",
   "added_to_cart": "Added to cart",
+  "in_cart": "In cart",
+  "view_cart": "View cart",
   "cart_remove": "Remove",
   "cart_items": "items",
   "cart_open": "Open cart",

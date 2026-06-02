@@ -83,12 +83,6 @@ function refreshHomeCartPeek(): void {
 export async function addProductToCartWithFeedback(
   productId: string,
 ): Promise<void> {
-  try {
-    await addProductToCart(productId, 1);
-    showToast(t("added_to_cart"));
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : t("error");
-    window.Telegram?.WebApp?.showAlert(msg);
-    throw e;
-  }
+  await addProductToCart(productId, 1);
+  showToast(t("added_to_cart"));
 }
