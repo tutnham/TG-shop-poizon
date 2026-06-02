@@ -9,6 +9,8 @@
   "catalog_preview_hint": "This is how items look in the catalog · RUB and USDT",
   "demo_badge": "Preview",
   "demo_preview_toast": "Demo card — layout preview only",
+  "demo_mode_hint": "Demo product: size picker and cart work locally",
+  "demo_cart_note": "Demo items in cart. Checkout is only for live catalog items.",
   "trust_auth": "Authenticity<br/>check",
   "trust_delivery": "Delivery<br/>5-10 days",
   "trust_support": "Support<br/>24/7",

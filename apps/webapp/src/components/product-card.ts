@@ -4,7 +4,6 @@ import { addProductToCartWithFeedback } from "../lib/cart-actions.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { hideKeyboard } from "../lib/keyboard.js";
-import { showToast } from "../lib/toast.js";
 import { navigate } from "../router.js";
 import { haptic } from "../telegram.js";
 
@@ -62,10 +61,6 @@ export function renderProductCard(
   ) as HTMLButtonElement | null;
   addBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (opts?.demo) {
-      showToast(t("demo_preview_toast"));
-      return;
-    }
     if (!p.is_available || addBtn.disabled) return;
     addBtn.disabled = true;
     addBtn.classList.add("product-card__add--loading");
@@ -80,10 +75,6 @@ export function renderProductCard(
 
   el.addEventListener("click", () => {
     hideKeyboard();
-    if (opts?.demo) {
-      showToast(t("demo_preview_toast"));
-      return;
-    }
     navigate(`/product/${p.id}`);
   });
 

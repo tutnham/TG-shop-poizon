@@ -1,4 +1,4 @@
-import type { ProductListItem } from "@poizon-shop/shared";
+import type { ProductDetail, ProductListItem } from "@poizon-shop/shared";
 
 /** Префикс id для демо-карточек (не уходят в реальный API). */
 export const DEMO_PRODUCT_ID_PREFIX = "00000000-0000-4000-8000-";
@@ -32,3 +32,28 @@ export const DEMO_PRODUCTS: ProductListItem[] = [
     sold_count: 89,
   },
 ];
+
+const DEMO_DETAILS: Record<string, ProductDetail> = {
+  [DEMO_PRODUCTS[0].id]: {
+    ...DEMO_PRODUCTS[0],
+    name_ru: DEMO_PRODUCTS[0].name,
+    image_urls: [DEMO_PRODUCTS[0].image_url ?? ""],
+    sizes: { EU: ["40", "41", "42", "43", "44"] },
+    stock: { "40": true, "41": true, "42": true, "43": true, "44": false },
+    price_cny: null,
+    category_id: null,
+  },
+  [DEMO_PRODUCTS[1].id]: {
+    ...DEMO_PRODUCTS[1],
+    name_ru: DEMO_PRODUCTS[1].name,
+    image_urls: [DEMO_PRODUCTS[1].image_url ?? ""],
+    sizes: { EU: ["38", "39", "40", "41", "42"] },
+    stock: { "38": true, "39": true, "40": true, "41": true, "42": true },
+    price_cny: null,
+    category_id: null,
+  },
+};
+
+export function getDemoProductDetail(id: string): ProductDetail | null {
+  return DEMO_DETAILS[id] ?? null;
+}
