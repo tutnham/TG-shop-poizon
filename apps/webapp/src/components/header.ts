@@ -1,13 +1,15 @@
-import { apiPatch } from "../api/client.js";
-import { type Lang, getLang, setLang, t } from "../i18n/index.js";
+import { t } from "../i18n/index.js";
+import { langToggleLabel, toggleLanguage } from "../i18n/toggle-language.js";
 import { navigate } from "../router.js";
+import { ensurePageRoot } from "../shell.js";
 
 export function renderHeader(
   root: HTMLElement,
   opts?: { showSearch?: boolean; searchInputId?: string },
 ): void {
-  root.querySelector(".app-header")?.remove();
-  root.querySelector(".search-section")?.remove();
+  const pageRoot = ensurePageRoot(root);
+  pageRoot.querySelector(".app-header")?.remove();
+  pageRoot.querySelector(".search-section")?.remove();
 
   const header = document.createElement("header");
   header.className = "app-header";
@@ -19,14 +21,14 @@ export function renderHeader(
     <button type="button" class="header-icon-btn" id="header-search-btn" aria-label="${t("search")}">
       <span class="material-symbols-outlined">search</span>
     </button>
-    <button type="button" class="header-icon-btn" id="lang-btn" hidden aria-label="${t("lang")}">
-      ${t("lang")}
+    <button type="button" class="header-icon-btn header-icon-btn--lang" id="lang-btn" aria-label="${t("lang_switch")}">
+      <span id="lang-btn-label">${langToggleLabel()}</span>
     </button>
   `;
-  root.prepend(header);
+  pageRoot.prepend(header);
 
   header.querySelector("#menu-btn")?.addEventListener("click", () => {
-    navigate("/orders");
+    navigate("/menu");
   });
 
   header.querySelector("#header-search-btn")?.addEventListener("click", () => {
@@ -37,15 +39,8 @@ export function renderHeader(
     input?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
-  header.querySelector("#lang-btn")?.addEventListener("click", async () => {
-    const next: Lang = getLang() === "ru" ? "en" : "ru";
-    setLang(next);
-    try {
-      await apiPatch("/api/user/language", { language_code: next });
-    } catch {
-      /* offline ok */
-    }
-    window.location.reload();
+  header.querySelector("#lang-btn")?.addEventListener("click", () => {
+    void toggleLanguage();
   });
 
   if (opts?.showSearch) {

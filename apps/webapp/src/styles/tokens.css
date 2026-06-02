@@ -64,39 +64,15 @@
   --tg-content-left: 0px;
   --tg-content-right: 0px;
 
-  --safe-top: max(
-    var(--tg-safe-top),
-    env(safe-area-inset-top, 0px)
-  );
-  --safe-bottom: max(
-    var(--tg-safe-bottom),
-    env(safe-area-inset-bottom, 0px)
-  );
-  --safe-left: max(
-    var(--tg-safe-left),
-    env(safe-area-inset-left, 0px)
-  );
-  --safe-right: max(
-    var(--tg-safe-right),
-    env(safe-area-inset-right, 0px)
-  );
+  --safe-top: max(var(--tg-safe-top), env(safe-area-inset-top, 0px));
+  --safe-bottom: max(var(--tg-safe-bottom), env(safe-area-inset-bottom, 0px));
+  --safe-left: max(var(--tg-safe-left), env(safe-area-inset-left, 0px));
+  --safe-right: max(var(--tg-safe-right), env(safe-area-inset-right, 0px));
 
-  --content-safe-top: max(
-    var(--tg-content-top),
-    var(--safe-top)
-  );
-  --content-safe-bottom: max(
-    var(--tg-content-bottom),
-    var(--safe-bottom)
-  );
-  --content-safe-left: max(
-    var(--tg-content-left),
-    var(--safe-left)
-  );
-  --content-safe-right: max(
-    var(--tg-content-right),
-    var(--safe-right)
-  );
+  --content-safe-top: max(var(--tg-content-top), var(--safe-top));
+  --content-safe-bottom: max(var(--tg-content-bottom), var(--safe-bottom));
+  --content-safe-left: max(var(--tg-content-left), var(--safe-left));
+  --content-safe-right: max(var(--tg-content-right), var(--safe-right));
 
   --header-height: calc(var(--touch-target) + var(--content-safe-top));
   --bottom-nav-height: calc(64px + var(--content-safe-bottom));
@@ -110,6 +86,7 @@ html.tg-main-button-visible {
 
 html.tg-main-button-visible #app {
   padding-bottom: calc(
-    var(--main-button-clearance) + var(--content-safe-bottom)
+    var(--main-button-clearance) +
+    var(--content-safe-bottom)
   );
 }

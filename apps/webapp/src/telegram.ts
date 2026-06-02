@@ -7,7 +7,15 @@ type ThemeParams = Record<string, string | undefined>;
 
 type TgWebApp = {
   initData: string;
-  initDataUnsafe: { user?: { language_code?: string } };
+  initDataUnsafe: {
+    user?: {
+      id?: number;
+      language_code?: string;
+      first_name?: string;
+      last_name?: string;
+      username?: string;
+    };
+  };
   ready: () => void;
   expand: () => void;
   close: () => void;
@@ -51,7 +59,10 @@ let mainButtonHandler: (() => void) | null = null;
 let backButtonHandler: (() => void) | null = null;
 
 function insetPx(value: number | undefined): string {
-  const n = typeof value === "number" && Number.isFinite(value) ? Math.max(0, value) : 0;
+  const n =
+    typeof value === "number" && Number.isFinite(value)
+      ? Math.max(0, value)
+      : 0;
   return `${n}px`;
 }
 
@@ -82,7 +93,6 @@ export function applyTelegramLayout(): void {
   root.style.setProperty("--tg-content-bottom", insetPx(content.bottom));
   root.style.setProperty("--tg-content-left", insetPx(content.left));
   root.style.setProperty("--tg-content-right", insetPx(content.right));
-
 }
 
 function applyTelegramChrome(): void {

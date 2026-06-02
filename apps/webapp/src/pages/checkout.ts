@@ -2,6 +2,7 @@ import { apiPost } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { escapeHtml } from "../lib/escape.js";
 import { goBack, navigate } from "../router.js";
+import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
   hideMainButton,
   setupBackButton,
@@ -14,9 +15,11 @@ let deliveryData = { full_name: "", phone: "", address: "" };
 
 export async function renderCheckout(app: HTMLElement): Promise<void> {
   step = 1;
-  app.innerHTML =
-    '<div class="page page-tg-content" id="checkout"></div>';
-  const page = app.querySelector("#checkout") as HTMLElement;
+  clearPageRoot(app);
+  app.classList.remove("page-with-nav");
+  const pageRoot = ensurePageRoot(app);
+  pageRoot.innerHTML = '<div class="page page-tg-content" id="checkout"></div>';
+  const page = pageRoot.querySelector("#checkout") as HTMLElement;
   setupBackButton(() => {
     if (step === 2) {
       step = 1;

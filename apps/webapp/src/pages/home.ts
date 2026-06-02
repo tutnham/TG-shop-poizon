@@ -3,7 +3,10 @@ import { apiGet } from "../api/client.js";
 import { renderHeader } from "../components/header.js";
 import { renderProductCard } from "../components/product-card.js";
 import { t } from "../i18n/index.js";
+import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
+
+const PENDING_CATEGORY_KEY = "poizon_pending_category";
 
 let page = 1;
 let loading = false;
@@ -11,7 +14,9 @@ let hasMore = true;
 let category = "";
 let search = "";
 
-function badgeForIndex(index: number): { text: string; variant: "top" | "new" } | undefined {
+function badgeForIndex(
+  index: number,
+): { text: string; variant: "top" | "new" } | undefined {
   if (page > 1 || category || search) return undefined;
   if (index === 0) return { text: "Top 1", variant: "top" };
   if (index === 1) return { text: "New", variant: "new" };
@@ -22,14 +27,15 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   hideMainButton();
   hideBackButton();
 
-  app.innerHTML = "";
+  clearPageRoot(app);
   app.classList.add("page-with-nav");
 
   renderHeader(app, { showSearch: true });
 
+  const pageRoot = ensurePageRoot(app);
   const main = document.createElement("main");
   main.className = "home-main";
-  app.appendChild(main);
+  pageRoot.appendChild(main);
 
   const chips = document.createElement("section");
   chips.className = "chips-row hide-scrollbar";
@@ -143,9 +149,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       sk.remove();
       for (const p of res.data) {
         const badge = badgeForIndex(cardIndex);
-        grid.appendChild(
-          renderProductCard(p, badge ? { badge } : undefined),
-        );
+        grid.appendChild(renderProductCard(p, badge ? { badge } : undefined));
         cardIndex++;
       }
       hasMore = page < res.pagination.pages;
@@ -188,5 +192,11 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   main.appendChild(sentinel);
   observer.observe(sentinel);
 
-  await loadMore();
+  const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
+  if (pendingCategory !== null) {
+    sessionStorage.removeItem(PENDING_CATEGORY_KEY);
+    await filterCategory(pendingCategory);
+  } else {
+    await loadMore();
+  }
 }

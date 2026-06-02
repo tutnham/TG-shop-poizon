@@ -3,6 +3,7 @@ import { apiGet, apiPost } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { getRouteParam, goBack } from "../router.js";
+import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
   haptic,
   hideMainButton,
@@ -16,9 +17,12 @@ export async function renderProduct(app: HTMLElement): Promise<void> {
   const id = getRouteParam("id");
   if (!id) return;
 
-  app.innerHTML =
+  clearPageRoot(app);
+  app.classList.remove("page-with-nav");
+  const pageRoot = ensurePageRoot(app);
+  pageRoot.innerHTML =
     '<div class="page page-tg-content" id="product-page"></div>';
-  const page = app.querySelector("#product-page") as HTMLElement;
+  const page = pageRoot.querySelector("#product-page") as HTMLElement;
   page.innerHTML = `<div class="skeleton" style="height:60vh"></div>`;
 
   setupBackButton(() => goBack());

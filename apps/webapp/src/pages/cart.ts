@@ -2,6 +2,7 @@ import { apiDelete, apiGet } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { goBack, navigate } from "../router.js";
+import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
   hideMainButton,
   setupBackButton,
@@ -19,9 +20,11 @@ type CartLine = {
 };
 
 export async function renderCart(app: HTMLElement): Promise<void> {
+  clearPageRoot(app);
   app.classList.add("page-with-nav");
-  app.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("cart")}</h2><div id="cart-list"></div></div>`;
-  const list = app.querySelector("#cart-list") as HTMLElement;
+  const pageRoot = ensurePageRoot(app);
+  pageRoot.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("cart")}</h2><div id="cart-list"></div></div>`;
+  const list = pageRoot.querySelector("#cart-list") as HTMLElement;
 
   setupBackButton(() => goBack());
 

@@ -2,12 +2,15 @@ import type { OrderListItem } from "@poizon-shop/shared";
 import { apiGet } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { goBack, navigate } from "../router.js";
+import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideMainButton, setupBackButton } from "../telegram.js";
 
 export async function renderOrders(app: HTMLElement): Promise<void> {
+  clearPageRoot(app);
   app.classList.add("page-with-nav");
-  app.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("orders")}</h2><div id="orders-list"></div></div>`;
-  const list = app.querySelector("#orders-list") as HTMLElement;
+  const pageRoot = ensurePageRoot(app);
+  pageRoot.innerHTML = `<div class="page page-tg-content"><h2 class="section-title">${t("orders")}</h2><div id="orders-list"></div></div>`;
+  const list = pageRoot.querySelector("#orders-list") as HTMLElement;
   setupBackButton(() => goBack());
   hideMainButton();
 
