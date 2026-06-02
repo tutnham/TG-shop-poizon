@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && mkdir -p dist && cp -r apps/webapp/dist/. dist/",
+  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp",
   "installCommand": "npm ci --workspaces --include-workspace-root",
   "outputDirectory": "dist",
   "framework": null,

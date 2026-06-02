@@ -3,9 +3,12 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
+const outDir = process.env.VERCEL
+  ? path.resolve(rootDir, "../../dist")
+  : path.resolve(rootDir, "dist");
 
 export default defineConfig({
-  root: ".",
+  root: rootDir,
   resolve: {
     alias: {
       "@poizon-shop/shared": path.resolve(
@@ -15,7 +18,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
+    outDir,
     emptyOutDir: true,
   },
   server: {
