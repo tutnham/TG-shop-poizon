@@ -8,6 +8,7 @@ import {
 import { t } from "../i18n/index.js";
 import { getCurrentPath } from "../router.js";
 import { refreshCartBadge } from "./cart-badge.js";
+import { notifyCartChanged } from "./cart-presence.js";
 import { addDemoCartLine } from "./demo-cart.js";
 import { showToast } from "./toast.js";
 
@@ -43,6 +44,7 @@ export async function addProductToCart(
     addDemoCartLine(product, size, quantity);
     refreshCartBadge();
     refreshHomeCartPeek();
+    notifyCartChanged();
     return;
   }
 
@@ -72,6 +74,7 @@ export async function addProductToCart(
 
   refreshCartBadge();
   refreshHomeCartPeek();
+  notifyCartChanged();
 }
 
 function refreshHomeCartPeek(): void {

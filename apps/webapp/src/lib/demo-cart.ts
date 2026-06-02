@@ -91,13 +91,22 @@ export function addDemoCartLine(
   quantity: number,
 ): void {
   const lines = readLines();
-  const existing = lines.find(
+  const idx = lines.findIndex(
     (l) => l.product_id === product.id && l.size === size,
   );
-  if (existing) {
-    existing.quantity = Math.min(10, existing.quantity + quantity);
-  } else {
-    lines.push({
+  if (idx >= 0) {
+    const line = lines[idx];
+    const next = lines.map((l, i) =>
+      i === idx
+        ? { ...l, quantity: Math.min(10, line.quantity + quantity) }
+        : l,
+    );
+    writeLines(next);
+    return;
+  }
+  writeLines([
+    ...lines,
+    {
       id: newLineId(),
       product_id: product.id,
       size,
@@ -107,25 +116,36 @@ export function addDemoCartLine(
       image_url: product.image_url,
       price_rub: product.price_rub,
       price_usdt: product.price_usdt,
-    });
-  }
-  writeLines(lines);
+    },
+  ]);
 }
 
 export function updateDemoCartQuantity(lineId: string, quantity: number): void {
   const lines = readLines();
-  const line = lines.find((l) => l.id === lineId);
-  if (!line) return;
   if (quantity < 1) {
     writeLines(lines.filter((l) => l.id !== lineId));
     return;
   }
-  line.quantity = Math.min(10, quantity);
-  writeLines(lines);
+  const next = lines.map((l) =>
+    l.id === lineId ? { ...l, quantity: Math.min(10, quantity) } : l,
+  );
+  if (!next.some((l) => l.id === lineId)) return;
+  writeLines(next);
 }
 
 export function removeDemoCartLine(lineId: string): void {
   writeLines(readLines().filter((l) => l.id !== lineId));
+}
+
+export function removeDemoCartLineByProduct(
+  productId: string,
+  size: string,
+): void {
+  writeLines(
+    readLines().filter(
+      (l) => !(l.product_id === productId && l.size === size),
+    ),
+  );
 }
 
 export function demoLinesToCartView(): CartLineView[] {

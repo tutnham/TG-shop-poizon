@@ -27,7 +27,16 @@ export async function loadCartSnapshot(): Promise<CartSnapshot> {
       total_usdt?: number;
     }>("/api/cart");
 
-    const apiLines = Array.isArray(res.data) ? res.data : [];
+    const apiLines = (Array.isArray(res.data) ? res.data : [])
+      .filter(
+        (line): line is CartLineView =>
+          Boolean(line?.id && line?.product_id && line?.product?.name),
+      )
+      .map((line) => ({
+        ...line,
+        size: String(line.size ?? ""),
+        quantity: Number(line.quantity) || 1,
+      }));
     const lines = [...apiLines, ...demoLines];
 
     return {

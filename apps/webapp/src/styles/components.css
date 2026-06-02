@@ -417,6 +417,29 @@
   font-size: var(--font-lg);
 }
 
+.product-detail__size-hint {
+  margin-top: 8px;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+}
+
+.product-detail__actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: calc(12px + var(--main-button-clearance, 0px));
+}
+
+.product-detail__add-btn,
+.product-detail__remove-btn {
+  width: 100%;
+}
+
+.product-detail__actions .product-detail__in-cart {
+  margin-top: 0;
+}
+
 .product-detail__note {
   margin: 0 0 16px;
   font-size: var(--font-xs);

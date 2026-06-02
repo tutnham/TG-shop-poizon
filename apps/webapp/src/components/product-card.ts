@@ -1,31 +1,78 @@
 import type { ProductListItem } from "@poizon-shop/shared";
+import { isDemoProductId } from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
-import { addProductToCart } from "../lib/cart-actions.js";
-import {
-  isProductInCart,
-  isProductInCartSync,
-} from "../lib/cart-presence.js";
+import { isProductInCartSync } from "../lib/cart-presence.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { hideKeyboard } from "../lib/keyboard.js";
 import { navigate } from "../router.js";
-import { haptic, hideMainButton } from "../telegram.js";
-import { showToast } from "../lib/toast.js";
 
 export type ProductCardBadge = {
   text: string;
   variant?: "top" | "new";
 };
 
-function markCardInCart(el: HTMLElement): void {
-  const addBtn = el.querySelector(".product-card__add");
-  addBtn?.remove();
-  if (el.querySelector(".product-card__in-cart")) return;
-  const badge = document.createElement("span");
-  badge.className = "product-card__in-cart";
-  badge.setAttribute("aria-label", t("in_cart"));
-  badge.innerHTML = `<span class="material-symbols-outlined">check_circle</span>`;
-  el.querySelector(".product-card__media")?.appendChild(badge);
+function createInCartBadge(): HTMLElement {
+  const mark = document.createElement("span");
+  mark.className = "product-card__in-cart";
+  mark.setAttribute("aria-label", t("in_cart"));
+  mark.innerHTML = `<span class="material-symbols-outlined">check_circle</span>`;
+  return mark;
+}
+
+function createAddButton(): HTMLButtonElement {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "product-card__add";
+  btn.setAttribute("aria-label", t("add_to_cart"));
+  btn.innerHTML = `<span class="material-symbols-outlined">add_shopping_cart</span>`;
+  return btn;
+}
+
+function bindAddButton(
+  el: HTMLElement,
+  p: ProductListItem,
+  addBtn: HTMLButtonElement,
+): void {
+  addBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!p.is_available) return;
+    hideKeyboard();
+    navigate(`/product/${p.id}`);
+  });
+}
+
+function applyCardCartState(
+  el: HTMLElement,
+  p: ProductListItem,
+  inCart: boolean,
+): void {
+  const media = el.querySelector(".product-card__media");
+  if (!media) return;
+
+  const badge = media.querySelector(".product-card__in-cart");
+  let addBtn = media.querySelector(
+    ".product-card__add",
+  ) as HTMLButtonElement | null;
+
+  if (inCart) {
+    addBtn?.remove();
+    if (!badge) media.appendChild(createInCartBadge());
+    return;
+  }
+
+  badge?.remove();
+  if (!p.is_available) {
+    addBtn?.remove();
+    return;
+  }
+  if (!addBtn) {
+    addBtn = createAddButton();
+    media.appendChild(addBtn);
+    bindAddButton(el, p, addBtn);
+  }
+  addBtn.disabled = false;
+  addBtn.classList.remove("product-card__add--loading");
 }
 
 export function renderProductCard(
@@ -33,10 +80,12 @@ export function renderProductCard(
   opts?: { badge?: ProductCardBadge; demo?: boolean },
 ): HTMLElement {
   const el = document.createElement("article");
-  el.className = `product-card${opts?.demo ? " product-card--demo" : ""}`;
-  const alreadyInCart = isProductInCartSync(p.id);
+  const isDemo = Boolean(opts?.demo || isDemoProductId(p.id));
+  el.className = `product-card${isDemo ? " product-card--demo" : ""}`;
+  el.dataset.productId = p.id;
+  const inCart = isProductInCartSync(p.id);
 
-  const badgeHtml = opts?.demo
+  const badgeHtml = isDemo
     ? `<div class="product-card__badge product-card__badge--demo">${escapeHtml(t("demo_badge"))}</div>`
     : opts?.badge
       ? `<div class="product-card__badge${opts.badge.variant === "new" ? " product-card__badge--new" : ""}">${escapeHtml(opts.badge.text)}</div>`
@@ -45,11 +94,13 @@ export function renderProductCard(
   const stockClass = p.is_available ? "badge-success" : "badge-muted";
   const stockText = p.is_available ? t("in_stock") : t("out_of_stock");
 
-  const addButtonHtml = alreadyInCart
+  const mediaActionHtml = inCart
     ? `<span class="product-card__in-cart" aria-label="${t("in_cart")}"><span class="material-symbols-outlined">check_circle</span></span>`
-    : `<button type="button" class="product-card__add" aria-label="${t("add_to_cart")}" ${p.is_available ? "" : "disabled"}>
-        <span class="material-symbols-outlined">add_shopping_cart</span>
-      </button>`;
+    : p.is_available
+      ? `<button type="button" class="product-card__add" aria-label="${t("add_to_cart")}">
+          <span class="material-symbols-outlined">add_shopping_cart</span>
+        </button>`
+      : "";
 
   el.innerHTML = `
     ${badgeHtml}
@@ -58,7 +109,7 @@ export function renderProductCard(
       <button type="button" class="product-card__fav" aria-label="${t("favorite")}">
         <span class="material-symbols-outlined">favorite</span>
       </button>
-      ${addButtonHtml}
+      ${mediaActionHtml}
     </div>
     <div class="product-card__body">
       <div>
@@ -73,6 +124,15 @@ export function renderProductCard(
     </div>
   `;
 
+  const refresh = () => {
+    if (!el.isConnected) {
+      window.removeEventListener("poizon-cart-changed", refresh);
+      return;
+    }
+    applyCardCartState(el, p, isProductInCartSync(p.id));
+  };
+  window.addEventListener("poizon-cart-changed", refresh);
+
   el.querySelector(".product-card__fav")?.addEventListener("click", (e) => {
     e.stopPropagation();
   });
@@ -80,40 +140,12 @@ export function renderProductCard(
   const addBtn = el.querySelector(
     ".product-card__add",
   ) as HTMLButtonElement | null;
-  addBtn?.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (!p.is_available || addBtn.disabled) return;
-    addBtn.disabled = true;
-    addBtn.classList.add("product-card__add--loading");
-    void addProductToCart(p.id, 1)
-      .then(() => {
-        haptic("success");
-        showToast(t("added_to_cart"));
-        hideMainButton();
-        markCardInCart(el);
-        navigate("/cart");
-      })
-      .catch((err) => {
-        haptic("light");
-        window.Telegram?.WebApp?.showAlert(
-          err instanceof Error ? err.message : t("error"),
-        );
-      })
-      .finally(() => {
-        addBtn.classList.remove("product-card__add--loading");
-      });
-  });
+  if (addBtn) bindAddButton(el, p, addBtn);
 
   el.addEventListener("click", () => {
     hideKeyboard();
     navigate(`/product/${p.id}`);
   });
-
-  if (!alreadyInCart) {
-    void isProductInCart(p.id).then((inCart) => {
-      if (inCart) markCardInCart(el);
-    });
-  }
 
   return el;
 }

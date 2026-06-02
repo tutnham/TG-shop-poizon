@@ -1,6 +1,7 @@
 import { apiDelete, apiPatch } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
+import { notifyCartChanged } from "../lib/cart-presence.js";
 import {
   isDemoLine,
   removeDemoCartLine,
@@ -66,18 +67,25 @@ export function renderCartItemCard(
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (demo) {
-        updateDemoCartQuantity(
-          item.id,
-          item.quantity <= 1 ? 0 : item.quantity - 1,
-        );
-      } else if (item.quantity <= 1) {
-        await apiDelete(`/api/cart/${item.id}`);
-      } else {
-        await apiPatch(`/api/cart/${item.id}`, { quantity: item.quantity - 1 });
+      try {
+        if (demo) {
+          updateDemoCartQuantity(
+            item.id,
+            item.quantity <= 1 ? 0 : item.quantity - 1,
+          );
+        } else if (item.quantity <= 1) {
+          await apiDelete(`/api/cart/${item.id}`);
+        } else {
+          await apiPatch(`/api/cart/${item.id}`, {
+            quantity: item.quantity - 1,
+          });
+        }
+        refreshCartBadge();
+        notifyCartChanged();
+        await onChange();
+      } catch {
+        window.Telegram?.WebApp?.showAlert(t("error"));
       }
-      refreshCartBadge();
-      await onChange();
     });
 
   stepper
@@ -86,13 +94,20 @@ export function renderCartItemCard(
       e.preventDefault();
       e.stopPropagation();
       if (item.quantity >= 10) return;
-      if (demo) {
-        updateDemoCartQuantity(item.id, item.quantity + 1);
-      } else {
-        await apiPatch(`/api/cart/${item.id}`, { quantity: item.quantity + 1 });
+      try {
+        if (demo) {
+          updateDemoCartQuantity(item.id, item.quantity + 1);
+        } else {
+          await apiPatch(`/api/cart/${item.id}`, {
+            quantity: item.quantity + 1,
+          });
+        }
+        refreshCartBadge();
+        notifyCartChanged();
+        await onChange();
+      } catch {
+        window.Telegram?.WebApp?.showAlert(t("error"));
       }
-      refreshCartBadge();
-      await onChange();
     });
 
   card
@@ -100,13 +115,18 @@ export function renderCartItemCard(
     ?.addEventListener("click", async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (demo) {
-        removeDemoCartLine(item.id);
-      } else {
-        await apiDelete(`/api/cart/${item.id}`);
+      try {
+        if (demo) {
+          removeDemoCartLine(item.id);
+        } else {
+          await apiDelete(`/api/cart/${item.id}`);
+        }
+        refreshCartBadge();
+        notifyCartChanged();
+        await onChange();
+      } catch {
+        window.Telegram?.WebApp?.showAlert(t("error"));
       }
-      refreshCartBadge();
-      await onChange();
     });
 
   card

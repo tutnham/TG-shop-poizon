@@ -1,20 +1,22 @@
 import { apiGet } from "../api/client.js";
-import { getDemoCartLines } from "./demo-cart.js";
+import { demoCartCount } from "./demo-cart.js";
 
 /** Обновить точку на иконке корзины в нижнем меню. */
 export function refreshCartBadge(): void {
-  const demoLines = getDemoCartLines().length;
+  const demoQty = demoCartCount();
 
-  void apiGet<{ data: unknown[] }>("/api/cart")
+  void apiGet<{ data?: { quantity?: number }[] }>("/api/cart")
     .then((res) => {
       const dot = document.getElementById("cart-nav-dot");
-      if (dot) {
-        const apiCount = res.data?.length ?? 0;
-        dot.hidden = apiCount + demoLines === 0;
-      }
+      if (!dot) return;
+      const apiQty = (res.data ?? []).reduce(
+        (s, l) => s + (Number(l.quantity) || 1),
+        0,
+      );
+      dot.hidden = apiQty + demoQty === 0;
     })
     .catch(() => {
       const dot = document.getElementById("cart-nav-dot");
-      if (dot) dot.hidden = demoLines === 0;
+      if (dot) dot.hidden = demoQty === 0;
     });
 }
