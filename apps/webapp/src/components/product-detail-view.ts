@@ -5,6 +5,7 @@ import { addProductToCart } from "../lib/cart-actions.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { showToast } from "../lib/toast.js";
+import { navigate } from "../router.js";
 import { haptic, showMainButton } from "../telegram.js";
 
 let selectedSize = "";
@@ -70,6 +71,7 @@ export function renderProductDetailView(
       await addProductToCart(p.id, 1, selectedSize);
       haptic("success");
       showToast(t("added_to_cart"));
+      navigate("/cart");
     } catch (e) {
       window.Telegram?.WebApp?.showAlert(
         e instanceof Error ? e.message : t("error"),

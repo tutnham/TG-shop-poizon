@@ -16,10 +16,18 @@ export type DemoCartLine = {
   price_usdt: number;
 };
 
-function readLines(): DemoCartLine[] {
+let memoryLines: DemoCartLine[] | null = null;
+
+function newLineId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `demo-line-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function parseStored(raw: string | null): DemoCartLine[] {
+  if (!raw) return [];
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
     const parsed = JSON.parse(raw) as DemoCartLine[];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -27,8 +35,46 @@ function readLines(): DemoCartLine[] {
   }
 }
 
+function persist(lines: DemoCartLine[]): void {
+  const json = JSON.stringify(lines);
+  try {
+    localStorage.setItem(STORAGE_KEY, json);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.setItem(STORAGE_KEY, json);
+  } catch {
+    /* ignore */
+  }
+}
+
+function readLines(): DemoCartLine[] {
+  if (memoryLines) return memoryLines.map((l) => ({ ...l }));
+
+  let fromStorage: DemoCartLine[] = [];
+  try {
+    fromStorage = parseStored(localStorage.getItem(STORAGE_KEY));
+    if (!fromStorage.length) {
+      fromStorage = parseStored(sessionStorage.getItem(STORAGE_KEY));
+    }
+  } catch {
+    fromStorage = [];
+  }
+
+  memoryLines = fromStorage;
+  return memoryLines.map((l) => ({ ...l }));
+}
+
 function writeLines(lines: DemoCartLine[]): void {
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
+  memoryLines = lines.map((l) => ({ ...l }));
+  persist(memoryLines);
+}
+
+/** Поднять корзину из storage при старте приложения. */
+export function initDemoCart(): void {
+  memoryLines = null;
+  readLines();
 }
 
 export function getDemoCartLines(): DemoCartLine[] {
@@ -52,7 +98,7 @@ export function addDemoCartLine(
     existing.quantity = Math.min(10, existing.quantity + quantity);
   } else {
     lines.push({
-      id: crypto.randomUUID(),
+      id: newLineId(),
       product_id: product.id,
       size,
       quantity,

@@ -9,6 +9,7 @@ import {
   syncBottomNav,
 } from "./components/bottom-nav.js";
 import { detectLang, setLang } from "./i18n/index.js";
+import { initDemoCart } from "./lib/demo-cart.js";
 import { bindKeyboardDismiss } from "./lib/keyboard.js";
 import { isCurrentNavigation } from "./lib/navigation-guard.js";
 import { renderCart } from "./pages/cart.js";
@@ -32,6 +33,7 @@ if (!appEl) throw new Error("#app not found");
 const app: HTMLElement = appEl;
 
 initTelegram();
+initDemoCart();
 setLang(detectLang());
 ensurePageRoot(app);
 initBottomNavShell(app);

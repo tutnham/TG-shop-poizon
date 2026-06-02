@@ -1,15 +1,11 @@
 import { renderCartItemCard } from "../components/cart-item-card.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
-import { loadCartSnapshot } from "../lib/cart-store.js";
+import { cartHasCheckoutItems, loadCartSnapshot } from "../lib/cart-store.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
-import { goBack, navigate } from "../router.js";
+import { navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
-import {
-  hideMainButton,
-  setupBackButton,
-  showMainButton,
-} from "../telegram.js";
+import { hideBackButton, hideMainButton, showMainButton } from "../telegram.js";
 
 export async function renderCart(app: HTMLElement): Promise<void> {
   clearPageRoot(app);
@@ -26,7 +22,7 @@ export async function renderCart(app: HTMLElement): Promise<void> {
   const list = pageRoot.querySelector("#cart-list") as HTMLElement;
   const summary = pageRoot.querySelector("#cart-summary") as HTMLElement;
 
-  setupBackButton(() => goBack());
+  hideBackButton();
   refreshCartBadge();
 
   const rerender = () => renderCart(app);
@@ -68,13 +64,16 @@ export async function renderCart(app: HTMLElement): Promise<void> {
     </div>
   `;
 
-  if (snapshot.apiFailed) {
+  if (snapshot.hasDemoLines && !snapshot.hasApiLines) {
     const note = document.createElement("p");
     note.className = "cart-summary__demo-note";
     note.textContent = t("demo_cart_note");
     summary.appendChild(note);
-    hideMainButton();
-  } else {
+  }
+
+  if (cartHasCheckoutItems(snapshot)) {
     showMainButton(t("proceed_checkout"), () => navigate("/checkout"));
+  } else {
+    hideMainButton();
   }
 }
