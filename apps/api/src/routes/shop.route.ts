@@ -135,8 +135,10 @@ shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
     c.get("userId"),
     c.req.valid("json"),
   );
-  if (!result.ok)
-    return c.json({ error: result.error.message }, result.error.status as 400);
+  if (!result.ok) {
+    const status = (result.error.status ?? 400) as 400 | 404 | 500;
+    return c.json({ error: result.error.message }, status);
+  }
 
   let ton_link: string | undefined;
   if (c.req.valid("json").payment_method === "ton") {

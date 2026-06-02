@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { isAllowedImageUrl } from "../lib/image-proxy.js";
 
-const proxy = Hono();
+const proxy = new Hono();
 
 proxy.get("/", async (c) => {
   const url = c.req.query("url");
