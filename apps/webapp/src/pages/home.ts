@@ -3,6 +3,11 @@ import { apiGet } from "../api/client.js";
 import { renderHeader } from "../components/header.js";
 import { renderProductCard } from "../components/product-card.js";
 import { t } from "../i18n/index.js";
+import {
+  bindKeyboardDismiss,
+  hideKeyboard,
+  wireSearchInput,
+} from "../lib/keyboard.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
@@ -33,6 +38,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   renderHeader(app, { showSearch: true });
 
   const pageRoot = ensurePageRoot(app);
+  bindKeyboardDismiss(pageRoot);
+
   const main = document.createElement("main");
   main.className = "home-main";
   pageRoot.appendChild(main);
@@ -171,6 +178,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const searchInput = document.getElementById(
     "search-input",
   ) as HTMLInputElement | null;
+  if (searchInput) wireSearchInput(searchInput);
+
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
   searchInput?.addEventListener("input", () => {
     clearTimeout(searchTimer);
@@ -180,7 +189,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       hasMore = true;
       cardIndex = 0;
       grid.innerHTML = "";
-      void loadMore();
+      void loadMore().finally(() => hideKeyboard());
     }, 350);
   });
 

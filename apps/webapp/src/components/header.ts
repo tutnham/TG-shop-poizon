@@ -1,5 +1,6 @@
 import { t } from "../i18n/index.js";
 import { langToggleLabel, toggleLanguage } from "../i18n/toggle-language.js";
+import { hideKeyboard } from "../lib/keyboard.js";
 import { navigate } from "../router.js";
 import { ensurePageRoot } from "../shell.js";
 
@@ -35,8 +36,13 @@ export function renderHeader(
     const input = document.getElementById(
       opts?.searchInputId ?? "search-input",
     ) as HTMLInputElement | null;
-    input?.focus();
-    input?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!input) return;
+    if (document.activeElement === input) {
+      hideKeyboard();
+      return;
+    }
+    input.focus();
+    input.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 
   header.querySelector("#lang-btn")?.addEventListener("click", () => {
@@ -50,7 +56,7 @@ export function renderHeader(
     searchSection.innerHTML = `
       <div class="search-bar">
         <span class="material-symbols-outlined search-bar__icon">search</span>
-        <input type="search" id="${inputId}" placeholder="${t("search_placeholder")}" autocomplete="off" />
+        <input type="search" id="${inputId}" placeholder="${t("search_placeholder")}" autocomplete="off" enterkeyhint="search" inputmode="search" />
       </div>
     `;
     header.insertAdjacentElement("afterend", searchSection);

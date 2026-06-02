@@ -1,3 +1,9 @@
+import {
+  beginNavigation,
+  getNavigationGeneration,
+  isCurrentNavigation,
+} from "./lib/navigation-guard.js";
+
 type RouteHandler = () => void | Promise<void>;
 
 const routes: Record<string, RouteHandler> = {};
@@ -19,6 +25,8 @@ export function getCurrentPath(): string {
 
 export function navigate(path: string, replace = false): void {
   const normalized = path.startsWith("/") ? path : `/${path}`;
+  if (getCurrentPath() === normalized) return;
+
   if (!replace && currentRoute) historyStack.push(currentRoute);
   currentRoute = normalized;
   window.location.hash = normalized;
@@ -35,28 +43,34 @@ export function goBack(): void {
 }
 
 export async function handleRoute(): Promise<void> {
+  const generation = beginNavigation();
   currentRoute = getCurrentPath();
+
+  const runHandler = async (handler: RouteHandler) => {
+    await handler();
+    if (!isCurrentNavigation(generation)) return;
+  };
 
   const handler = routes[currentRoute];
   if (handler) {
-    await handler();
+    await runHandler(handler);
     return;
   }
 
   if (currentRoute.match(/^\/product\//)) {
     const h = routes["/product/:id"];
-    if (h) await h();
+    if (h) await runHandler(h);
     return;
   }
 
   if (currentRoute.match(/^\/orders\//)) {
     const h = routes["/orders/:id"];
-    if (h) await h();
+    if (h) await runHandler(h);
     return;
   }
 
   const home = routes["/"];
-  if (home) await home();
+  if (home) await runHandler(home);
 }
 
 export function getRouteParam(name: string): string | null {
@@ -72,3 +86,5 @@ export function startRouter(): void {
   window.addEventListener("hashchange", () => void handleRoute());
   void handleRoute();
 }
+
+export { getNavigationGeneration };

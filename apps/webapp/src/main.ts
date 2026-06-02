@@ -3,8 +3,14 @@ import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
 import "material-symbols/outlined.css";
 import "./styles/base.css";
-import { syncBottomNav } from "./components/bottom-nav.js";
+import {
+  initBottomNavShell,
+  shouldShowBottomNav,
+  syncBottomNav,
+} from "./components/bottom-nav.js";
 import { detectLang, setLang } from "./i18n/index.js";
+import { bindKeyboardDismiss } from "./lib/keyboard.js";
+import { isCurrentNavigation } from "./lib/navigation-guard.js";
 import { renderCart } from "./pages/cart.js";
 import { renderCheckout } from "./pages/checkout.js";
 import { renderHome } from "./pages/home.js";
@@ -12,7 +18,12 @@ import { renderMenu } from "./pages/menu.js";
 import { renderOrders } from "./pages/orders.js";
 import { renderProduct } from "./pages/product.js";
 import { renderProfile } from "./pages/profile.js";
-import { getCurrentPath, registerRoute, startRouter } from "./router.js";
+import {
+  getCurrentPath,
+  getNavigationGeneration,
+  registerRoute,
+  startRouter,
+} from "./router.js";
 import { ensurePageRoot } from "./shell.js";
 import { initTelegram } from "./telegram.js";
 
@@ -23,17 +34,33 @@ const app: HTMLElement = appEl;
 initTelegram();
 setLang(detectLang());
 ensurePageRoot(app);
+initBottomNavShell(app);
+bindKeyboardDismiss(app);
 
-async function dispatch(path: string, handler: () => void | Promise<void>) {
+async function dispatch(
+  generation: number,
+  handler: () => void | Promise<void>,
+): Promise<void> {
+  const path = getCurrentPath();
+  if (shouldShowBottomNav(path)) {
+    syncBottomNav(app, path);
+  }
+
   try {
     await handler();
-  } finally {
+  } catch (err) {
+    if (isCurrentNavigation(generation)) {
+      syncBottomNav(app, getCurrentPath());
+    }
+    throw err;
+  }
+  if (isCurrentNavigation(generation)) {
     syncBottomNav(app, getCurrentPath());
   }
 }
 
 function wrap(handler: () => void | Promise<void>) {
-  return () => dispatch(getCurrentPath(), handler);
+  return () => dispatch(getNavigationGeneration(), handler);
 }
 
 registerRoute("/", () => wrap(() => renderHome(app))());

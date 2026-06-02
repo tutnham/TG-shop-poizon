@@ -1,6 +1,7 @@
 import type { ProductListItem } from "@poizon-shop/shared";
 import { t } from "../i18n/index.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { hideKeyboard } from "../lib/keyboard.js";
 import { navigate } from "../router.js";
 
 export type ProductCardBadge = {
@@ -47,7 +48,10 @@ export function renderProductCard(
     e.stopPropagation();
   });
 
-  el.addEventListener("click", () => navigate(`/product/${p.id}`));
+  el.addEventListener("click", () => {
+    hideKeyboard();
+    navigate(`/product/${p.id}`);
+  });
   return el;
 }
 

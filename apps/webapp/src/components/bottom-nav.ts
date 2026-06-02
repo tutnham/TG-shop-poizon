@@ -1,5 +1,7 @@
 import { apiGet } from "../api/client.js";
 import { t } from "../i18n/index.js";
+import { bindBottomNavToVisualViewport } from "../lib/bottom-nav-viewport.js";
+import { hideKeyboard } from "../lib/keyboard.js";
 import { getCurrentPath, navigate } from "../router.js";
 import { ensurePageRoot } from "../shell.js";
 
@@ -20,6 +22,7 @@ function buildNavItems(path: string): HTMLElement {
   const nav = document.createElement("nav");
   nav.className = "bottom-nav";
   nav.setAttribute("aria-label", t("nav_main"));
+  nav.hidden = true;
 
   const items = [
     {
@@ -68,17 +71,18 @@ function buildNavItems(path: string): HTMLElement {
     }
     a.addEventListener("click", (e) => {
       e.preventDefault();
+      hideKeyboard();
       navigate(item.href);
     });
     nav.appendChild(a);
   }
 
+  bindBottomNavToVisualViewport(nav);
   return nav;
 }
 
 function updateActiveState(nav: HTMLElement, path: string): void {
   const links = nav.querySelectorAll<HTMLAnchorElement>(".bottom-nav__item");
-  const hrefs = ["/", "/orders", "/cart", "/profile"];
   const matchers = [
     (p: string) => p === "/",
     (p: string) => p === "/orders" || p.startsWith("/orders/"),
@@ -104,24 +108,37 @@ function refreshCartDot(): void {
     });
 }
 
-/** Показать или обновить нижнюю навигацию без пересоздания DOM. */
-export function syncBottomNav(app: HTMLElement, path: string): void {
-  if (!shouldShowBottomNav(path)) {
-    hideBottomNav(app);
-    return;
-  }
-
-  app.classList.add("has-bottom-nav");
+function getOrCreateNav(app: HTMLElement, path: string): HTMLElement {
   ensurePageRoot(app);
   let nav = app.querySelector<HTMLElement>(".bottom-nav");
   if (!nav) {
     nav = buildNavItems(path);
     app.appendChild(nav);
     refreshCartDot();
-  } else {
-    updateActiveState(nav, path);
-    app.appendChild(nav);
   }
+  return nav;
+}
+
+/** Один раз создаёт оболочку нижнего меню (без удаления из DOM). */
+export function initBottomNavShell(app: HTMLElement): void {
+  getOrCreateNav(app, getCurrentPath());
+}
+
+/** Показать или обновить нижнюю навигацию (без пересоздания DOM). */
+export function syncBottomNav(app: HTMLElement, path: string): void {
+  const nav = getOrCreateNav(app, path);
+
+  if (!shouldShowBottomNav(path)) {
+    nav.hidden = true;
+    app.classList.remove("has-bottom-nav");
+    return;
+  }
+
+  nav.hidden = false;
+  app.classList.add("has-bottom-nav");
+  updateActiveState(nav, path);
+  app.appendChild(nav);
+  refreshCartDot();
 }
 
 export function renderBottomNav(app: HTMLElement): void {
@@ -129,6 +146,7 @@ export function renderBottomNav(app: HTMLElement): void {
 }
 
 export function hideBottomNav(app: HTMLElement): void {
+  const nav = app.querySelector<HTMLElement>(".bottom-nav");
+  if (nav) nav.hidden = true;
   app.classList.remove("has-bottom-nav");
-  app.querySelector(".bottom-nav")?.remove();
 }

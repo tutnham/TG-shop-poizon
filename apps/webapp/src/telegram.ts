@@ -1,3 +1,5 @@
+import { hideKeyboard } from "./lib/keyboard.js";
+
 /** Фон Mini App — совпадает с --color-bg в tokens.css */
 export const TG_BG = "#111317";
 
@@ -51,6 +53,8 @@ type TgWebApp = {
   };
   showAlert: (msg: string) => void;
   openLink: (url: string) => void;
+  hideKeyboard?: () => void;
+  viewportHeight?: number;
 };
 
 const ZERO_INSET: Inset = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -117,10 +121,18 @@ function bindTelegramEvents(): void {
     applyTelegramLayout();
   };
 
+  const onViewportChanged = () => {
+    relayout();
+    const vv = window.visualViewport;
+    if (vv && vv.height >= window.innerHeight * 0.92) {
+      hideKeyboard();
+    }
+  };
+
   tg.onEvent("themeChanged", onThemeChanged);
   tg.onEvent("safeAreaChanged", relayout);
   tg.onEvent("contentSafeAreaChanged", relayout);
-  tg.onEvent("viewportChanged", relayout);
+  tg.onEvent("viewportChanged", onViewportChanged);
 }
 
 export function getTg(): TgWebApp | undefined {
