@@ -15,11 +15,22 @@ export type CartSnapshot = {
   hasDemoLines: boolean;
 };
 
-/** API-корзина + локальная демо-корзина (всегда мержим демо). */
-export async function loadCartSnapshot(): Promise<CartSnapshot> {
+/** Только локальная демо-корзина (мгновенный рендер без API). */
+export function loadDemoCartSnapshot(): CartSnapshot {
   const demoLines = demoLinesToCartView();
   const demoTotals = demoCartTotals();
+  return {
+    lines: demoLines,
+    total_rub: demoTotals.total_rub,
+    total_usdt: demoTotals.total_usdt,
+    apiFailed: false,
+    hasApiLines: false,
+    hasDemoLines: demoLines.length > 0,
+  };
+}
 
+/** API-корзина + локальная демо-корзина (демо читаем после ответа API). */
+export async function loadCartSnapshot(): Promise<CartSnapshot> {
   try {
     const res = await apiGet<{
       data?: CartLineView[];
@@ -37,6 +48,9 @@ export async function loadCartSnapshot(): Promise<CartSnapshot> {
         size: String(line.size ?? ""),
         quantity: Number(line.quantity) || 1,
       }));
+
+    const demoLines = demoLinesToCartView();
+    const demoTotals = demoCartTotals();
     const lines = [...apiLines, ...demoLines];
 
     return {
@@ -48,14 +62,7 @@ export async function loadCartSnapshot(): Promise<CartSnapshot> {
       hasDemoLines: demoLines.length > 0,
     };
   } catch {
-    return {
-      lines: demoLines,
-      total_rub: demoTotals.total_rub,
-      total_usdt: demoTotals.total_usdt,
-      apiFailed: true,
-      hasApiLines: false,
-      hasDemoLines: demoLines.length > 0,
-    };
+    return loadDemoCartSnapshot();
   }
 }
 

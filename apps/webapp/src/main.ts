@@ -62,7 +62,10 @@ async function dispatch(
 }
 
 function wrap(handler: () => void | Promise<void>) {
-  return () => dispatch(getNavigationGeneration(), handler);
+  return () => {
+    const generation = getNavigationGeneration();
+    return dispatch(generation, handler);
+  };
 }
 
 registerRoute("/", () => wrap(() => renderHome(app))());

@@ -1,34 +1,24 @@
 import { renderCartItemCard } from "../components/cart-item-card.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
-import { cartHasCheckoutItems, loadCartSnapshot } from "../lib/cart-store.js";
+import {
+  cartHasCheckoutItems,
+  loadCartSnapshot,
+  loadDemoCartSnapshot,
+  type CartSnapshot,
+} from "../lib/cart-store.js";
+import { isCurrentNavigation } from "../lib/navigation-guard.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
-import { navigate } from "../router.js";
+import { getNavigationGeneration, navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton, showMainButton } from "../telegram.js";
 
-export async function renderCart(app: HTMLElement): Promise<void> {
-  clearPageRoot(app);
-  app.classList.add("page-with-nav");
-  const pageRoot = ensurePageRoot(app);
-  pageRoot.innerHTML = `
-    <div class="page page-tg-content cart-page">
-      <h2 class="section-title">${t("cart")}</h2>
-      <div id="cart-list" class="cart-page__list"></div>
-      <div id="cart-summary" class="cart-summary" hidden></div>
-    </div>
-  `;
-
-  const list = pageRoot.querySelector("#cart-list") as HTMLElement;
-  const summary = pageRoot.querySelector("#cart-summary") as HTMLElement;
-
-  hideBackButton();
-  refreshCartBadge();
-
-  const rerender = () => renderCart(app);
-
-  const snapshot = await loadCartSnapshot();
-
+function paintCart(
+  list: HTMLElement,
+  summary: HTMLElement,
+  snapshot: CartSnapshot,
+  rerender: () => void,
+): void {
   if (!snapshot.lines.length) {
     list.innerHTML = `
       <div class="empty-state cart-page__empty">
@@ -76,4 +66,40 @@ export async function renderCart(app: HTMLElement): Promise<void> {
   } else {
     hideMainButton();
   }
+}
+
+export async function renderCart(
+  app: HTMLElement,
+  navigationGeneration = getNavigationGeneration(),
+): Promise<void> {
+  clearPageRoot(app);
+  app.classList.add("page-with-nav");
+  const pageRoot = ensurePageRoot(app);
+  pageRoot.innerHTML = `
+    <div class="page page-tg-content cart-page">
+      <h2 class="section-title">${t("cart")}</h2>
+      <div id="cart-list" class="cart-page__list">
+        <div class="skeleton cart-page__loading" style="min-height:120px"></div>
+      </div>
+      <div id="cart-summary" class="cart-summary" hidden></div>
+    </div>
+  `;
+
+  const list = pageRoot.querySelector("#cart-list") as HTMLElement;
+  const summary = pageRoot.querySelector("#cart-summary") as HTMLElement;
+
+  hideBackButton();
+  refreshCartBadge();
+
+  const rerender = () => void renderCart(app, navigationGeneration);
+
+  const demoSnapshot = loadDemoCartSnapshot();
+  if (demoSnapshot.lines.length && isCurrentNavigation(navigationGeneration)) {
+    paintCart(list, summary, demoSnapshot, rerender);
+  }
+
+  const snapshot = await loadCartSnapshot();
+  if (!isCurrentNavigation(navigationGeneration)) return;
+
+  paintCart(list, summary, snapshot, rerender);
 }

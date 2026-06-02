@@ -7,27 +7,46 @@ import {
 type RouteHandler = () => void | Promise<void>;
 
 const routes: Record<string, RouteHandler> = {};
-let currentRoute = "";
+/** Последний валидный маршрут SPA (не сбрасывается при «ломаных» hash от Telegram). */
+let currentRoute = "/";
 const historyStack: string[] = [];
 
 export function registerRoute(path: string, handler: RouteHandler): void {
   routes[path] = handler;
 }
 
-/** Путь SPA из hash (#/cart). Не-маршрутные фрагменты (tgWebAppData) → главная. */
-export function getCurrentPath(): string {
+function parseHashPath(): string | null {
   const raw = window.location.hash.slice(1);
-  if (!raw) return "/";
-  if (!raw.startsWith("/")) return "/";
+  if (!raw) return null;
+  if (!raw.startsWith("/")) return null;
   const pathOnly = raw.split("?")[0]?.split("#")[0] ?? "/";
   return pathOnly || "/";
 }
 
+/** Путь SPA: валидный hash или последний сохранённый маршрут. */
+export function getCurrentPath(): string {
+  const parsed = parseHashPath();
+  if (parsed) {
+    currentRoute = parsed;
+    return parsed;
+  }
+  return currentRoute || "/";
+}
+
+function restoreHashIfNeeded(path: string): void {
+  const want = `#${path}`;
+  if (window.location.hash !== want) {
+    window.history.replaceState(null, "", want);
+  }
+}
+
 export function navigate(path: string, replace = false): void {
   const normalized = path.startsWith("/") ? path : `/${path}`;
-  if (getCurrentPath() === normalized) return;
+  if (currentRoute === normalized && parseHashPath() === normalized) return;
 
-  if (!replace && currentRoute) historyStack.push(currentRoute);
+  if (!replace && currentRoute && currentRoute !== normalized) {
+    historyStack.push(currentRoute);
+  }
   currentRoute = normalized;
   window.location.hash = normalized;
 }
@@ -44,7 +63,9 @@ export function goBack(): void {
 
 export async function handleRoute(): Promise<void> {
   const generation = beginNavigation();
-  currentRoute = getCurrentPath();
+  const path = getCurrentPath();
+  restoreHashIfNeeded(path);
+  currentRoute = path;
 
   const runHandler = async (handler: RouteHandler) => {
     await handler();
@@ -83,6 +104,9 @@ export function getRouteParam(name: string): string | null {
 }
 
 export function startRouter(): void {
+  const parsed = parseHashPath();
+  if (parsed) currentRoute = parsed;
+
   window.addEventListener("hashchange", () => void handleRoute());
   void handleRoute();
 }
