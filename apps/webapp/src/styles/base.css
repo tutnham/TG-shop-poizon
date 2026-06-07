@@ -80,7 +80,7 @@ textarea {
 
 .grid-products {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(var(--grid-columns, 2), 1fr);
   gap: var(--card-gap);
 }
 

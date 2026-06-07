@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && rm -rf dist && cp -r apps/webapp/dist dist",
+  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && rm -rf dist && mkdir -p dist && cp -r apps/webapp/dist/. dist/",
   "installCommand": "npm ci --workspaces --include-workspace-root",
   "outputDirectory": "dist",
   "framework": null,
@@ -11,6 +11,13 @@
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
     { "source": "/webhook/:path*", "destination": "/api" },
+    { "source": "/cron/:path*", "destination": "/api" },
     { "source": "/health", "destination": "/api" }
+  ],
+  "crons": [
+    {
+      "path": "/cron/rates",
+      "schedule": "0 * * * *"
+    }
   ]
 }

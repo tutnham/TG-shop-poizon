@@ -2,6 +2,7 @@ import type { Result } from "@poizon-shop/shared";
 import { getSupabase } from "../db/client.js";
 import { appError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
+import { CACHE_TTL_MS, refreshRates } from "./currency.service.js";
 
 export interface PricingConfig {
   rate_cny_rub: number;
@@ -10,19 +11,48 @@ export interface PricingConfig {
   delivery_fee: number;
 }
 
-export async function getPricingConfig(): Promise<PricingConfig> {
-  const { data } = await getSupabase()
+function isRatesStale(updatedAt: string | null | undefined): boolean {
+  if (!updatedAt) return true;
+  return Date.now() - new Date(updatedAt).getTime() > CACHE_TTL_MS;
+}
+
+export async function getPricingConfig(options?: {
+  skipRatesRefresh?: boolean;
+}): Promise<PricingConfig> {
+  // Single round-trip: read once, decide if we need to refresh, then re-read.
+  let { data } = await getSupabase()
     .from("pricing_config")
-    .select("*")
+    .select(
+      "rate, rate_cny_usdt, markup_percent, delivery_fee, rates_updated_at",
+    )
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
+  if (!options?.skipRatesRefresh && isRatesStale(data?.rates_updated_at)) {
+    await refreshRates();
+    const { data: fresh } = await getSupabase()
+      .from("pricing_config")
+      .select(
+        "rate, rate_cny_usdt, markup_percent, delivery_fee, rates_updated_at",
+      )
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (fresh) data = fresh;
+  }
+
+  const rateCnyRub = Number(
+    data?.rate ?? getEnvOptional("CNY_TO_RUB_RATE", "13.5"),
+  );
+  const rateCnyUsd = Number(
+    data?.rate_cny_usdt ?? getEnvOptional("CNY_TO_USD_RATE", "7.25"),
+  );
   return {
-    rate_cny_rub: Number(
-      data?.rate ?? getEnvOptional("CNY_TO_RUB_RATE", "13.5"),
-    ),
-    rate_cny_usd: Number(getEnvOptional("CNY_TO_USD_RATE", "7.25")),
+    rate_cny_rub:
+      Number.isFinite(rateCnyRub) && rateCnyRub > 0 ? rateCnyRub : 13.5,
+    rate_cny_usd:
+      Number.isFinite(rateCnyUsd) && rateCnyUsd > 0 ? rateCnyUsd : 7.25,
     markup_percent: Number(
       data?.markup_percent ?? getEnvOptional("MARKUP_PERCENT", "25"),
     ),
@@ -81,19 +111,21 @@ export async function setMarkup(
   percent: number,
   deliveryFee?: number,
 ): Promise<void> {
-  const { data } = await getSupabase()
-    .from("pricing_config")
-    .select("id")
-    .limit(1)
-    .maybeSingle();
+  if (!Number.isFinite(percent) || percent < 0 || percent > 1000) {
+    throw new Error("Invalid markup percent");
+  }
+  // Preserve required defaults when inserting a fresh row.
   const patch: Record<string, unknown> = {
     markup_percent: percent,
+    currency_pair: "CNY_RUB",
     updated_at: new Date().toISOString(),
   };
   if (deliveryFee != null) patch.delivery_fee = deliveryFee;
-  if (data?.id) {
-    await getSupabase().from("pricing_config").update(patch).eq("id", data.id);
-  } else {
-    await getSupabase().from("pricing_config").insert(patch);
-  }
+
+  const { error } = await getSupabase()
+    .from("pricing_config")
+    .upsert(patch, { onConflict: "id" })
+    .select("id")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
 }

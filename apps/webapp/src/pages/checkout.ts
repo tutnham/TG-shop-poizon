@@ -36,9 +36,20 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
     if (step === 1) {
       page.innerHTML = `
         <h2 class="section-title">${t("step_delivery")}</h2>
-        <label>${t("full_name")}<input id="name" /></label>
-        <label style="display:block;margin-top:12px">${t("phone")}<input id="phone" type="tel" /></label>
-        <label style="display:block;margin-top:12px">${t("address")}<textarea id="address" rows="3"></textarea></label>
+        <div class="checkout-form">
+          <label class="checkout-form__field">
+            <span class="checkout-form__label">${t("full_name")}</span>
+            <input class="checkout-form__input" id="name" type="text" autocomplete="name" />
+          </label>
+          <label class="checkout-form__field">
+            <span class="checkout-form__label">${t("phone")}</span>
+            <input class="checkout-form__input" id="phone" type="tel" autocomplete="tel" />
+          </label>
+          <label class="checkout-form__field">
+            <span class="checkout-form__label">${t("address")}</span>
+            <textarea class="checkout-form__textarea" id="address" rows="3" autocomplete="street-address"></textarea>
+          </label>
+        </div>
       `;
       showMainButton("→", () => {
         const name = (
@@ -61,7 +72,7 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
     } else if (step === 2) {
       page.innerHTML = `
         <h2 class="section-title">${t("step_payment")}</h2>
-        <div class="pay-options" style="display:flex;flex-direction:column;gap:10px">
+        <div class="pay-options">
           <button type="button" class="chip pay-opt active" data-m="ton">${t("pay_ton")}</button>
           <button type="button" class="chip pay-opt" data-m="rub_manual">${t("pay_rub")}</button>
           <button type="button" class="chip pay-opt" data-m="usdt_manual">${t("pay_usdt")}</button>
@@ -111,7 +122,7 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
           <p><strong>${escapeHtml(d.payment.wallet_comment)}</strong></p>
           <p>TON: ${escapeHtml(d.payment.ton_amount ?? "—")}</p>
           ${d.ton_link ? `<button class="btn-primary" id="open-wallet">${t("open_wallet")}</button>` : ""}
-          <button class="chip" id="to-orders" style="margin-top:16px">${t("orders")}</button>
+          <button class="chip checkout-form__secondary-btn" id="to-orders">${t("orders")}</button>
         `;
         page.querySelector("#open-wallet")?.addEventListener("click", () => {
           if (d.ton_link) window.Telegram?.WebApp?.openLink(d.ton_link);
@@ -122,7 +133,7 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
           <p>${t("manual_instruction")}</p>
           <p><strong>#${escapeHtml(d.short_id)}</strong></p>
           <p>${escapeHtml(d.payment.instructions ?? "")}</p>
-          <button class="chip" id="to-orders" style="margin-top:16px">${t("orders")}</button>
+          <button class="chip checkout-form__secondary-btn" id="to-orders">${t("orders")}</button>
         `;
       }
       page

@@ -1,5 +1,6 @@
 import { getEnvOptional } from "../types/env.types.js";
 import { withCache } from "./cache.service.js";
+import { PoizonOfficialProvider } from "./poizon-official.provider.js";
 import type { IPoisonProvider, PoisonProductRaw } from "./poizon.provider.js";
 
 const BASE_URL = () =>
@@ -172,6 +173,16 @@ export class MockPoisonProvider implements IPoisonProvider {
 }
 
 export function getPoisonProvider(): IPoisonProvider {
-  if (API_KEY()) return new PoparcePoisonProvider();
-  return new MockPoisonProvider();
+  const provider = getEnvOptional("POIZON_PROVIDER", "").toLowerCase();
+  switch (provider) {
+    case "official":
+      return new PoizonOfficialProvider();
+    case "poparce":
+      return new PoparcePoisonProvider();
+    case "mock":
+      return new MockPoisonProvider();
+    default:
+      if (API_KEY()) return new PoparcePoisonProvider();
+      return new MockPoisonProvider();
+  }
 }

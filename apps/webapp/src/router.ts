@@ -10,6 +10,10 @@ const routes: Record<string, RouteHandler> = {};
 /** Последний валидный маршрут SPA (не сбрасывается при «ломаных» hash от Telegram). */
 let currentRoute = "/";
 const historyStack: string[] = [];
+/** Saved scroll positions per route for restoration on back navigation. */
+const scrollPositions: Map<string, number> = new Map();
+/** Whether the next navigation should restore saved scroll position. */
+let restoreScroll = false;
 
 export function registerRoute(path: string, handler: RouteHandler): void {
   routes[path] = handler;
@@ -44,17 +48,26 @@ export function navigate(path: string, replace = false): void {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   if (currentRoute === normalized && parseHashPath() === normalized) return;
 
+  // Save current scroll position before leaving
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  scrollPositions.set(currentRoute, scrollTop);
+
   if (!replace && currentRoute && currentRoute !== normalized) {
     historyStack.push(currentRoute);
   }
   currentRoute = normalized;
+  restoreScroll = false;
   window.location.hash = normalized;
 }
 
 export function goBack(): void {
   const prev = historyStack.pop();
   if (prev) {
+    // Save current scroll before going back
+    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    scrollPositions.set(currentRoute, scrollTop);
     currentRoute = prev;
+    restoreScroll = true;
     window.location.hash = prev;
   } else {
     navigate("/", true);
@@ -70,6 +83,14 @@ export async function handleRoute(): Promise<void> {
   const runHandler = async (handler: RouteHandler) => {
     await handler();
     if (!isCurrentNavigation(generation)) return;
+    // Restore or reset scroll after page renders
+    if (restoreScroll) {
+      const saved = scrollPositions.get(currentRoute) ?? 0;
+      window.scrollTo({ top: saved });
+      restoreScroll = false;
+    } else {
+      window.scrollTo({ top: 0 });
+    }
   };
 
   const handler = routes[currentRoute];

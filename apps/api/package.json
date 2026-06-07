@@ -8,7 +8,9 @@
     "start": "npx tsx src/index.ts",
     "test": "node --import tsx --test src/**/*.test.ts",
     "db:migrate": "bun run scripts/migrate.ts",
-    "webhook:set": "npx tsx scripts/webhook-set.ts"
+    "webhook:set": "npx tsx scripts/webhook-set.ts",
+    "rates:update": "npx tsx scripts/rates-update.ts",
+    "sync:poizon": "npx tsx scripts/poizon-sync.ts"
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.2",

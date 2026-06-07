@@ -20,4 +20,16 @@ describe("PricingService.calculatePrices", () => {
     assert.equal(Number.isNaN(r.rub), false);
     assert.equal(Number.isNaN(r.usdt), false);
   });
+
+  it("USDT uses rate_cny_usd from Binance chain", () => {
+    const binanceConfig = {
+      rate_cny_rub: 13.5,
+      rate_cny_usd: 98 / 13.5,
+      markup_percent: 0,
+      delivery_fee: 0,
+    };
+    const result = calculatePrices(100, binanceConfig);
+    const expectedUsdt = Math.ceil((100 / (98 / 13.5)) * 10) / 10;
+    assert.equal(result.usdt, expectedUsdt);
+  });
 });

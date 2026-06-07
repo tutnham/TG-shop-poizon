@@ -191,6 +191,9 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .search-bar input {
@@ -268,6 +271,18 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Stack trust-banner vertically on very narrow viewports */
+@media (max-width: 359px) {
+  .trust-banner {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .trust-banner__divider {
+    width: 80%;
+    height: 1px;
+  }
 }
 
 .trust-banner::before {
@@ -354,13 +369,25 @@
 .home-main {
   flex: 1;
   width: 100%;
-  max-width: 28rem;
+  max-width: 480px;
   margin: 0 auto;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 600px) {
   .home-main {
-    max-width: none;
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 900px) {
+  .home-main {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .home-main {
+    max-width: 1100px;
   }
 }
 
@@ -1013,4 +1040,188 @@
   color: var(--color-text-faint);
   text-align: center;
   padding: 8px var(--page-padding) 16px;
+}
+
+/* ── Order cards ──────────────────────────────────────────── */
+.order-card {
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.order-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-card__total {
+  margin-top: 8px;
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--color-price-rub);
+  font-variant-numeric: tabular-nums;
+}
+
+.order-card__date {
+  margin-top: 4px;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Checkout form ─────────────────────────────────────────── */
+.checkout-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.checkout-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkout-form__label {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.checkout-form__input,
+.checkout-form__textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--color-surface-base);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  font-size: var(--font-md);
+  outline: none;
+  transition: border-color var(--anim-fast);
+}
+
+.checkout-form__input:focus,
+.checkout-form__textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.checkout-form__textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.checkout-form__secondary-btn {
+  margin-top: 16px;
+  width: 100%;
+  height: var(--touch-target);
+  background: var(--color-surface-overlay);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.pay-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-opt {
+  justify-content: flex-start;
+  width: 100%;
+  height: var(--touch-target);
+}
+
+/* ── Secondary button (used on product detail page) ─────── */
+.btn-secondary {
+  background: var(--color-surface-overlay);
+  color: var(--color-danger);
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-weight: 600;
+  min-height: var(--touch-target);
+  width: 100%;
+  transition: background var(--anim-fast);
+}
+
+.btn-secondary:active {
+  background: var(--color-surface-elevated);
+}
+
+/* ── Page transition (fade-in on route change) ─────────── */
+.page-root--entering {
+  animation: page-enter var(--anim-fast) ease-out both;
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Product card: content-visibility for long lists ───── */
+.product-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 280px 220px;
+}
+
+/* ── Bottom nav: small viewport safety ───────────────────── */
+@media (max-width: 359px) {
+  .bottom-nav__item {
+    width: 52px;
+    padding: 4px 6px;
+  }
+  .bottom-nav__item span:last-child {
+    font-size: 9px;
+    letter-spacing: 0.02em;
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .bottom-nav {
+    background: rgba(30, 32, 36, 0.98);
+  }
+  .cart-peek {
+    background: rgba(30, 32, 36, 0.98);
+  }
+}
+
+/* Non-Telegram browsers: fallback nav height when --content-safe-bottom is 0 */
+@supports not (padding: env(safe-area-inset-bottom)) {
+  :root {
+    --bottom-nav-height: 64px;
+  }
+}
+
+/* ── Pull-to-refresh indicator ─────────────────────────── */
+.ptr-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 0;
+  overflow: hidden;
+  transition: height var(--anim-base);
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+}
+
+.ptr-indicator--visible {
+  height: 48px;
+}
+
+.ptr-indicator .material-symbols-outlined {
+  font-size: 24px;
+  color: var(--color-primary);
+  animation: ptr-spin 0.8s linear infinite;
+}
+
+@keyframes ptr-spin {
+  to { transform: rotate(360deg); }
 }

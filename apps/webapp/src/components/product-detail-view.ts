@@ -171,7 +171,7 @@ export function renderProductDetailView(
   page.innerHTML = `
     ${isDemo ? `<p class="demo-product-banner">${escapeHtml(t("demo_mode_hint"))}</p>` : ""}
     <div class="product-gallery">
-      <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="" class="product-gallery__img" />
+      <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
     </div>
     <p class="product-detail__brand">${escapeHtml(p.brand ?? "")}</p>
     <h2 class="product-detail__title">${escapeHtml(p.name)}</h2>

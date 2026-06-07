@@ -9,7 +9,10 @@
     "build:api": "npm run build -w @poizon-shop/shared && npm run typecheck -w @poizon-shop/api",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "test": "npm run test -w @poizon-shop/api"
+    "test": "npm run test -w @poizon-shop/api",
+    "rates:update": "npm run rates:update -w @poizon-shop/api",
+    "webhook:set": "npm run webhook:set -w @poizon-shop/api",
+    "sync:poizon": "npm run sync:poizon -w @poizon-shop/api"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.5",

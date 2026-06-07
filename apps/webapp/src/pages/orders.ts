@@ -22,15 +22,14 @@ export async function renderOrders(app: HTMLElement): Promise<void> {
     }
     for (const o of data) {
       const card = document.createElement("div");
-      card.style.cssText =
-        "background:var(--color-surface);border-radius:var(--radius-card);padding:14px;margin-bottom:10px";
+      card.className = "order-card";
       card.innerHTML = `
-        <div style="display:flex;justify-content:space-between">
+        <div class="order-card__header">
           <strong>#${o.id.slice(0, 8)}</strong>
           <span class="badge badge-${statusColor(o.status)}">${t(`order_status_${o.status}`)}</span>
         </div>
-        <div class="price-rub" style="margin-top:8px">${o.total_rub} ₽ / ${o.total_usdt} USDT</div>
-        <div style="font-size:var(--font-xs);color:var(--color-text-muted);margin-top:4px">${new Date(o.created_at).toLocaleString()}</div>
+        <div class="order-card__total">${o.total_rub} ₽ / ${o.total_usdt} USDT</div>
+        <div class="order-card__date">${new Date(o.created_at).toLocaleString()}</div>
       `;
       list.appendChild(card);
     }

@@ -2,6 +2,7 @@ import type { OrderStatus, PaymentMethod } from "@poizon-shop/shared";
 import { Bot, InlineKeyboard } from "grammy";
 import { getAdminTelegramIds } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
+import { refreshRates } from "../services/currency.service.js";
 import { notifyOrderStatus } from "../services/notification.service.js";
 import * as orderService from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
@@ -115,9 +116,17 @@ function setupAdminBot(bot: Bot): void {
   });
 
   bot.command("pricing", async (ctx) => {
-    const cfg = await getPricingConfig();
+    const rates = await refreshRates();
+    const cfg = await getPricingConfig({ skipRatesRefresh: true });
     await ctx.reply(
-      `Наценка: ${cfg.markup_percent}%\nДоставка: ${cfg.delivery_fee} ₽`,
+      [
+        `Наценка: ${cfg.markup_percent}%`,
+        `Доставка: ${cfg.delivery_fee} ₽`,
+        `CNY/RUB: ${rates.cny_rub.toFixed(4)}`,
+        `USDT/RUB: ${rates.usdt_rub.toFixed(2)}`,
+        `CNY/USDT: ${rates.cny_per_usdt.toFixed(4)}`,
+        `Курсы: ${rates.fetched_at}`,
+      ].join("\n"),
     );
   });
 
@@ -150,23 +159,68 @@ function setupAdminBot(bot: Bot): void {
   });
 
   bot.callbackQuery("menu:pricing", async (ctx) => {
-    const cfg = await getPricingConfig();
+    const rates = await refreshRates();
+    const cfg = await getPricingConfig({ skipRatesRefresh: true });
     const kb = new InlineKeyboard()
       .text("+5%", "price:+5")
       .text("-5%", "price:-5")
       .row()
+      .text("🔄 Курсы", "price:refresh")
+      .row()
       .text("« Меню", "menu:main");
-    await ctx.editMessageText(`Наценка: ${cfg.markup_percent}%`, {
-      reply_markup: kb,
-    });
+    await ctx.editMessageText(
+      [
+        `Наценка: ${cfg.markup_percent}%`,
+        `Доставка: ${cfg.delivery_fee} ₽`,
+        `CNY/RUB: ${rates.cny_rub.toFixed(4)}`,
+        `USDT/RUB: ${rates.usdt_rub.toFixed(2)}`,
+        `CNY/USDT: ${rates.cny_per_usdt.toFixed(4)}`,
+        `Обновлено: ${rates.fetched_at}`,
+      ].join("\n"),
+      { reply_markup: kb },
+    );
     await ctx.answerCallbackQuery();
+  });
+
+  bot.callbackQuery("price:refresh", async (ctx) => {
+    await ctx.answerCallbackQuery({ text: "Обновление..." });
+    const rates = await refreshRates(true);
+    const cfg = await getPricingConfig({ skipRatesRefresh: true });
+    const kb = new InlineKeyboard()
+      .text("+5%", "price:+5")
+      .text("-5%", "price:-5")
+      .row()
+      .text("🔄 Курсы", "price:refresh")
+      .row()
+      .text("« Меню", "menu:main");
+    await ctx.editMessageText(
+      [
+        `Наценка: ${cfg.markup_percent}%`,
+        `CNY/RUB: ${rates.cny_rub.toFixed(4)}`,
+        `USDT/RUB: ${rates.usdt_rub.toFixed(2)}`,
+        "✅ Курсы обновлены",
+      ].join("\n"),
+      { reply_markup: kb },
+    );
   });
 
   bot.callbackQuery(/^price:(\+5|-5)$/, async (ctx) => {
     const cfg = await getPricingConfig();
     const delta = ctx.match[1] === "+5" ? 5 : -5;
-    const next = Math.max(0, Math.min(200, cfg.markup_percent + delta));
-    await setMarkup(next);
+    const current = Number(cfg.markup_percent);
+    if (!Number.isFinite(current)) {
+      await ctx.answerCallbackQuery({ text: "Ошибка: нет текущей наценки" });
+      return;
+    }
+    const next = Math.max(0, Math.min(200, current + delta));
+    try {
+      await setMarkup(next);
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: `Ошибка: ${e instanceof Error ? e.message : "save failed"}`,
+      });
+      return;
+    }
     await ctx.answerCallbackQuery({ text: `${next}%` });
     await ctx.editMessageText(`Наценка: ${next}%`, {
       reply_markup: mainMenu(),
@@ -176,10 +230,10 @@ function setupAdminBot(bot: Bot): void {
   bot.callbackQuery("menu:sync", async (ctx) => {
     await ctx.answerCallbackQuery({ text: "Sync..." });
     const result = await runFullSync();
-    await ctx.editMessageText(
-      result.ok ? `✅ ${result.items_synced}` : `❌ ${result.error}`,
-      { reply_markup: mainMenu() },
-    );
+    const text = result.ok
+      ? `✅ Синхронизировано: ${result.items_synced}`
+      : `❌ ${result.error ?? "Ошибка синхронизации"}`;
+    await ctx.editMessageText(text, { reply_markup: mainMenu() });
   });
 
   bot.callbackQuery("menu:pending", async (ctx) => {

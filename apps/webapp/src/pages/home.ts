@@ -49,6 +49,51 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   main.className = "home-main";
   pageRoot.appendChild(main);
 
+  // Pull-to-refresh indicator
+  const ptrIndicator = document.createElement("div");
+  ptrIndicator.className = "ptr-indicator";
+  ptrIndicator.innerHTML = `<span class="material-symbols-outlined">refresh</span>`;
+  main.appendChild(ptrIndicator);
+
+  let ptrStartY = 0;
+  let ptrPulling = false;
+
+  main.addEventListener("touchstart", (e) => {
+    if (main.scrollTop <= 0 && !loading) {
+      ptrStartY = e.touches[0]?.clientY ?? 0;
+      ptrPulling = true;
+    }
+  }, { passive: true });
+
+  main.addEventListener("touchmove", (e) => {
+    if (!ptrPulling) return;
+    const clientY = e.touches[0]?.clientY ?? 0;
+    const dy = clientY - ptrStartY;
+    if (dy > 60 && main.scrollTop <= 0) {
+      ptrIndicator.classList.add("ptr-indicator--visible");
+    }
+  }, { passive: true });
+
+  main.addEventListener("touchend", () => {
+    if (!ptrPulling) return;
+    ptrPulling = false;
+    if (ptrIndicator.classList.contains("ptr-indicator--visible")) {
+      doRefresh();
+    }
+  }, { passive: true });
+
+  async function doRefresh() {
+    page = 1;
+    hasMore = true;
+    cardIndex = 0;
+    grid.innerHTML = "";
+    try {
+      await loadMore();
+    } finally {
+      ptrIndicator.classList.remove("ptr-indicator--visible");
+    }
+  }
+
   const chips = document.createElement("section");
   chips.className = "chips-row hide-scrollbar";
   main.appendChild(chips);

@@ -14,6 +14,7 @@ import * as productRepo from "../db/product.repository.js";
 import { getLastSyncTime } from "../db/product.repository.js";
 import { updateUserLanguage } from "../db/user.repository.js";
 import { tmaAuth } from "../middleware/auth.middleware.js";
+import { getExchangeRates } from "../services/currency.service.js";
 import {
   buildTonTransferLink,
   createOrderFromCart,
@@ -32,17 +33,35 @@ shop.get("/config", async (c) => {
     "hide_demo_products",
   ]);
   const last_synced_at = await getLastSyncTime();
-  const str = (v: unknown, fallback: string) => {
-    const s = typeof v === "string" ? v : fallback;
-    return s.replace(/^"|"$/g, "");
-  };
+  const rates_updated_at = await getConfigValue<string | null>(
+    "rates_updated_at",
+    null,
+  );
+  // shop_config.value is JSONB; values come back already typed (string/number/bool).
+  const asString = (v: unknown, fallback: string): string =>
+    typeof v === "string" ? v : fallback;
   return c.json({
-    shop_name: str(cfg.shop_name, "Poizon Shop"),
-    welcome_message: str(cfg.welcome_message, "Welcome"),
-    markup_disclaimer_ru: str(cfg.markup_disclaimer_ru, ""),
-    markup_disclaimer_en: str(cfg.markup_disclaimer_en, ""),
+    shop_name: asString(cfg.shop_name, "Poizon Shop"),
+    welcome_message: asString(cfg.welcome_message, "Welcome"),
+    markup_disclaimer_ru: asString(cfg.markup_disclaimer_ru, ""),
+    markup_disclaimer_en: asString(cfg.markup_disclaimer_en, ""),
     last_synced_at,
+    rates_updated_at:
+      typeof rates_updated_at === "string" ? rates_updated_at : null,
     hide_demo_products: cfg.hide_demo_products === true,
+  });
+});
+
+shop.get("/rates", async (c) => {
+  const rates = await getExchangeRates();
+  return c.json({
+    data: {
+      cny_rub: rates.cny_rub,
+      usdt_rub: rates.usdt_rub,
+      cny_per_usdt: rates.cny_per_usdt,
+      updated_at: rates.fetched_at,
+      sources: rates.sources,
+    },
   });
 });
 
@@ -131,18 +150,16 @@ shop.delete("/cart/:itemId", async (c) => {
 });
 
 shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
-  const result = await createOrderFromCart(
-    c.get("userId"),
-    c.req.valid("json"),
-  );
+  const body = c.req.valid("json");
+  const result = await createOrderFromCart(c.get("userId"), body);
 
   if (result.ok) {
     let ton_link: string | undefined;
-    if (c.req.valid("json").payment_method === "ton") {
+    if (body.payment_method === "ton") {
       const addr = await getConfigValue<string>("ton_wallet_address", "");
       const tonAmount = result.data.payment.ton_amount ?? 0;
       ton_link = buildTonTransferLink(
-        typeof addr === "string" ? addr.replace(/^"|"$/g, "") : "",
+        typeof addr === "string" ? addr : "",
         tonAmount,
         result.data.payment.wallet_comment ?? "",
       );

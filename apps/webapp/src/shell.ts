@@ -1,4 +1,5 @@
 const PAGE_ROOT_ID = "page-root";
+const ENTERING_CLASS = "page-root--entering";
 
 /** Контейнер страницы: нижняя навигация остаётся в #app и не перерисовывается. */
 export function ensurePageRoot(app: HTMLElement): HTMLElement {
@@ -13,7 +14,18 @@ export function ensurePageRoot(app: HTMLElement): HTMLElement {
 }
 
 export function clearPageRoot(app: HTMLElement): void {
-  ensurePageRoot(app).innerHTML = "";
+  const root = ensurePageRoot(app);
+  root.innerHTML = "";
   app.querySelector(".app-header")?.remove();
   app.querySelector(".search-section")?.remove();
+  // Trigger fade-in transition on route change
+  root.classList.remove(ENTERING_CLASS);
+  // Force reflow to restart animation
+  void root.offsetHeight;
+  root.classList.add(ENTERING_CLASS);
+  root.addEventListener(
+    "animationend",
+    () => root.classList.remove(ENTERING_CLASS),
+    { once: true },
+  );
 }

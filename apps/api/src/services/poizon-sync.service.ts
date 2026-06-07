@@ -1,22 +1,41 @@
 import { getSupabase } from "../db/client.js";
 import { setConfigValue } from "../db/config.repository.js";
 import * as productRepo from "../db/product.repository.js";
+import {
+  VERCEL_SYNC_BLOCKED_MESSAGE,
+  isVercelServerless,
+} from "../lib/runtime.js";
+import { refreshRates } from "./currency.service.js";
 import { getPoisonProvider } from "./poizon.service.js";
 import { calculatePricesFromFen, getPricingConfig } from "./pricing.service.js";
 
 const SYNC_KEYWORDS = ["nike", "jordan", "adidas", "yeezy", "new balance"];
+const SYNC_DELAY_BASE_MS = 1100;
+const SYNC_DELAY_JITTER_MS = 200;
 
 export async function runFullSync(): Promise<{
   ok: boolean;
   items_synced: number;
   error?: string;
 }> {
+  if (isVercelServerless()) {
+    return {
+      ok: false,
+      items_synced: 0,
+      error: VERCEL_SYNC_BLOCKED_MESSAGE,
+    };
+  }
+
   const logId = await startSyncLog();
   let items_synced = 0;
 
   try {
-    const config = await getPricingConfig();
+    await refreshRates(true);
+    const config = await getPricingConfig({ skipRatesRefresh: true });
     const provider = getPoisonProvider();
+
+    // Lead with a delay to avoid bursting the upstream on cold cache.
+    await sleep(SYNC_DELAY_BASE_MS);
 
     for (const keyword of SYNC_KEYWORDS) {
       const result = await provider.searchProducts(keyword, 10, 0);
@@ -37,7 +56,7 @@ export async function runFullSync(): Promise<{
           is_available: item.inStock,
         });
         items_synced++;
-        await sleep(1100);
+        await sleep(SYNC_DELAY_BASE_MS + Math.random() * SYNC_DELAY_JITTER_MS);
       }
     }
 
@@ -51,23 +70,24 @@ export async function runFullSync(): Promise<{
   }
 }
 
-async function startSyncLog(): Promise<string> {
+async function startSyncLog(): Promise<string | null> {
   const { data, error } = await getSupabase()
     .from("sync_logs")
     .insert({ status: "running", items_synced: 0 })
     .select("id")
-    .single();
+    .maybeSingle();
   if (error) throw new Error(error.message);
-  return data.id as string;
+  return (data?.id as string | undefined) ?? null;
 }
 
 async function finishSyncLog(
-  id: string,
+  id: string | null,
   status: string,
   items: number,
   error_message?: string,
 ): Promise<void> {
-  await getSupabase()
+  if (!id) return;
+  const { error } = await getSupabase()
     .from("sync_logs")
     .update({
       status,
@@ -76,6 +96,9 @@ async function finishSyncLog(
       finished_at: new Date().toISOString(),
     })
     .eq("id", id);
+  if (error) {
+    console.warn("[poizon-sync] finishSyncLog update error:", error.message);
+  }
 }
 
 function sleep(ms: number): Promise<void> {
