@@ -8,7 +8,6 @@ import {
   shouldShowBottomNav,
   syncBottomNav,
 } from "./components/bottom-nav.js";
-import { detectLang, setLang } from "./i18n/index.js";
 import { initDemoCart } from "./lib/demo-cart.js";
 import { bindKeyboardDismiss } from "./lib/keyboard.js";
 import { isCurrentNavigation } from "./lib/navigation-guard.js";
@@ -27,7 +26,6 @@ const app: HTMLElement = appEl;
 
 initTelegram();
 initDemoCart();
-setLang(detectLang());
 ensurePageRoot(app);
 initBottomNavShell(app);
 bindKeyboardDismiss(app);

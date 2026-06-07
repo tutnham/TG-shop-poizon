@@ -1,5 +1,4 @@
-import { getLang, t } from "../i18n/index.js";
-import { langToggleLabel, toggleLanguage } from "../i18n/toggle-language.js";
+import { t } from "../i18n/index.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { getTg, hideBackButton, hideMainButton } from "../telegram.js";
 
@@ -29,19 +28,6 @@ export async function renderProfile(app: HTMLElement): Promise<void> {
       ${tgUser?.username ? `<p class="profile-card__username">@${tgUser.username}</p>` : ""}
       ${tgUser?.id ? `<p class="profile-card__meta">ID ${tgUser.id}</p>` : ""}
     </section>
-    <section class="profile-settings">
-      <h3 class="section-title">${t("profile_settings")}</h3>
-      <button type="button" class="profile-settings__row" id="profile-lang-btn">
-        <span class="material-symbols-outlined">translate</span>
-        <span class="profile-settings__label">${t("lang_switch")}</span>
-        <span class="profile-settings__value" id="profile-lang-value">${langToggleLabel()}</span>
-      </button>
-      <p class="profile-settings__hint">${t("profile_lang_hint")} · ${getLang().toUpperCase()}</p>
-    </section>
   `;
   pageRoot.appendChild(main);
-
-  main.querySelector("#profile-lang-btn")?.addEventListener("click", () => {
-    void toggleLanguage();
-  });
 }

@@ -1,5 +1,4 @@
 import { t } from "../i18n/index.js";
-import { langToggleLabel, toggleLanguage } from "../i18n/toggle-language.js";
 import { hideKeyboard } from "../lib/keyboard.js";
 import { navigate } from "../router.js";
 import { ensurePageRoot } from "../shell.js";
@@ -22,9 +21,6 @@ export function renderHeader(
     <button type="button" class="header-icon-btn" id="header-search-btn" aria-label="${t("search")}">
       <span class="material-symbols-outlined">search</span>
     </button>
-    <button type="button" class="header-icon-btn header-icon-btn--lang" id="lang-btn" aria-label="${t("lang_switch")}">
-      <span id="lang-btn-label">${langToggleLabel()}</span>
-    </button>
   `;
   pageRoot.prepend(header);
 
@@ -43,10 +39,6 @@ export function renderHeader(
     }
     input.focus();
     input.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
-
-  header.querySelector("#lang-btn")?.addEventListener("click", () => {
-    void toggleLanguage();
   });
 
   if (opts?.showSearch) {

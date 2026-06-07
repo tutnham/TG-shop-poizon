@@ -160,6 +160,16 @@ export function renderProductDetailView(
     adding: false,
   };
 
+  // Подписка на событие изменения корзины для синхронизации UI
+  const cartChangeHandler = () => {
+    if (isStale(state)) {
+      window.removeEventListener("poizon-cart-changed", cartChangeHandler);
+      return;
+    }
+    void syncProductActions(page, p, state);
+  };
+  window.addEventListener("poizon-cart-changed", cartChangeHandler);
+
   const sizes = Object.values(p.sizes ?? {}).flat();
   const stock = p.stock ?? {};
   const isDemo = isDemoProductId(p.id);
