@@ -66,7 +66,7 @@ function setupShopBot(bot: Bot): void {
 export async function handleShopUpdate(update: unknown): Promise<void> {
   const bot = getShopBot();
   if (!bot) {
-    console.log("[shop-bot] no SHOP_BOT_TOKEN");
+    console.warn("[shop-bot] no SHOP_BOT_TOKEN");
     return;
   }
   await bot.handleUpdate(update as Parameters<Bot["handleUpdate"]>[0]);

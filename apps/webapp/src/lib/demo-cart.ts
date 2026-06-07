@@ -142,9 +142,7 @@ export function removeDemoCartLineByProduct(
   size: string,
 ): void {
   writeLines(
-    readLines().filter(
-      (l) => !(l.product_id === productId && l.size === size),
-    ),
+    readLines().filter((l) => !(l.product_id === productId && l.size === size)),
   );
 }
 

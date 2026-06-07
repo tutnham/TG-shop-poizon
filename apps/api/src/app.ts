@@ -9,12 +9,29 @@ import { webhooks } from "./routes/webhooks.route.js";
 import { getRatesHealth } from "./services/currency.service.js";
 import type { AppEnv } from "./types/env.types.js";
 
+function securityHeaders() {
+  return async (
+    c: { res: { headers: Headers } },
+    next: () => Promise<void>,
+  ) => {
+    c.res.headers.set("X-Content-Type-Options", "nosniff");
+    c.res.headers.set("X-Frame-Options", "DENY");
+    c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.res.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload",
+    );
+    await next();
+  };
+}
+
 export function createApp() {
   runStartupChecks();
 
   const app = new Hono<AppEnv>();
 
   app.use("*", createCors());
+  app.use("*", securityHeaders());
 
   app.onError((err, c) => {
     console.error("[api]", err);

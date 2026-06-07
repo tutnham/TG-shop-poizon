@@ -27,8 +27,8 @@ npm run webhook:set
 - [Деплой Vercel](docs/deploy-vercel.md)
 - [Poizon providers](docs/poizon-providers.md)
 - [Security notes](docs/security-scan-notes.md)
-- [CLAUDE.md](CLAUDE.md)
 - [design.md](design.md)
+- [Спецификация](poizon_shop_spec.md)
 
 ## Структура
 

@@ -71,13 +71,13 @@ describe("refreshRates fallback", () => {
   afterEach(() => {
     globalThis.fetch = originalFetch;
     process.env = { ...env };
-    delete process.env.SUPABASE_URL;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_URL = undefined;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = undefined;
   });
 
   it("returns env fallback when live fetch fails and DB is not configured", async () => {
-    delete process.env.SUPABASE_URL;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_URL = undefined;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = undefined;
 
     globalThis.fetch = mock.fn(async () => {
       throw new Error("network down");
@@ -103,8 +103,8 @@ describe("persistRates", () => {
   });
 
   it("no-ops when Supabase is not configured", async () => {
-    delete process.env.SUPABASE_URL;
-    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    process.env.SUPABASE_URL = undefined;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = undefined;
 
     const { persistRates } = await import("./currency.service.js");
     const { buildExchangeRates } = await import("./exchange/types.js");
@@ -114,5 +114,4 @@ describe("persistRates", () => {
     });
     await assert.doesNotReject(() => persistRates(rates));
   });
-
 });

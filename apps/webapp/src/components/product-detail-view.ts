@@ -3,11 +3,8 @@ import { apiDelete } from "../api/client.js";
 import { isDemoProductId } from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
 import { addProductToCart } from "../lib/cart-actions.js";
-import {
-  isProductInCart,
-  loadCartLines,
-} from "../lib/cart-presence.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
+import { isProductInCart, loadCartLines } from "../lib/cart-presence.js";
 import { removeDemoCartLineByProduct } from "../lib/demo-cart.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
@@ -77,8 +74,7 @@ async function handleRemove(
   const lines = await loadCartLines();
   if (isStale(state)) return;
   const line = lines.find(
-    (l) =>
-      l.product_id === p.id && String(l.size) === String(state.size),
+    (l) => l.product_id === p.id && String(l.size) === String(state.size),
   );
   if (!line) {
     window.Telegram?.WebApp?.showAlert(t("error"));
@@ -198,14 +194,15 @@ export function renderProductDetailView(
     </div>
   `;
 
-  const addBtn = page.querySelector(
-    "#product-add-btn",
-  ) as HTMLButtonElement;
+  const addBtn = page.querySelector("#product-add-btn") as HTMLButtonElement;
   const removeBtn = page.querySelector(
     "#product-remove-btn",
   ) as HTMLButtonElement;
 
-  addBtn.addEventListener("click", () => void handleAdd(page, p, state, addBtn));
+  addBtn.addEventListener(
+    "click",
+    () => void handleAdd(page, p, state, addBtn),
+  );
   removeBtn.addEventListener("click", () => void handleRemove(page, p, state));
   page
     .querySelector("#view-cart-link")

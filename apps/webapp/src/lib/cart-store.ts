@@ -39,9 +39,8 @@ export async function loadCartSnapshot(): Promise<CartSnapshot> {
     }>("/api/cart");
 
     const apiLines = (Array.isArray(res.data) ? res.data : [])
-      .filter(
-        (line): line is CartLineView =>
-          Boolean(line?.id && line?.product_id && line?.product?.name),
+      .filter((line): line is CartLineView =>
+        Boolean(line?.id && line?.product_id && line?.product?.name),
       )
       .map((line) => ({
         ...line,

@@ -7,7 +7,7 @@ describe("runFullSync on Vercel", () => {
 
   afterEach(() => {
     process.env = { ...env };
-    delete process.env.VERCEL;
+    process.env.VERCEL = undefined;
   });
 
   it("returns error without starting sync when VERCEL=1", async () => {

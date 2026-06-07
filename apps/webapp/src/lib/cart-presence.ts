@@ -1,6 +1,6 @@
 import type { CartLineView } from "../components/cart-item-card.js";
-import { demoLinesToCartView } from "./demo-cart.js";
 import { loadCartSnapshot } from "./cart-store.js";
+import { demoLinesToCartView } from "./demo-cart.js";
 
 export function isInCartWithSize(
   lines: CartLineView[],
@@ -25,10 +25,7 @@ export function getDemoCartLinesSync(): CartLineView[] {
 }
 
 /** Синхронная проверка только локальной демо-корзины (витрина для заказчика). */
-export function isProductInCartSync(
-  productId: string,
-  size?: string,
-): boolean {
+export function isProductInCartSync(productId: string, size?: string): boolean {
   const lines = getDemoCartLinesSync();
   return size
     ? isInCartWithSize(lines, productId, size)

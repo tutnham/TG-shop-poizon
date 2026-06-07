@@ -2,13 +2,13 @@ import { renderCartItemCard } from "../components/cart-item-card.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
 import {
+  type CartSnapshot,
   cartHasCheckoutItems,
   loadCartSnapshot,
   loadDemoCartSnapshot,
-  type CartSnapshot,
 } from "../lib/cart-store.js";
-import { isCurrentNavigation } from "../lib/navigation-guard.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
+import { isCurrentNavigation } from "../lib/navigation-guard.js";
 import { getNavigationGeneration, navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton, showMainButton } from "../telegram.js";

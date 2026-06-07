@@ -7,6 +7,7 @@ import * as orderRepo from "../db/order.repository.js";
 import * as paymentRepo from "../db/payment.repository.js";
 import { appError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
+import { notifyAdminNewOrder } from "./notification.service.js";
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ["confirmed", "cancelled", "paid"],
@@ -146,6 +147,19 @@ export async function createOrderFromCart(
       ok: false,
       error: appError(e instanceof Error ? e.message : "Order failed", 500),
     };
+  }
+
+  try {
+    await notifyAdminNewOrder({
+      shortId: short_id,
+      customerName: body.delivery_info.full_name,
+      customerPhone: body.delivery_info.phone,
+      items,
+      totalRub: total_rub,
+      paymentMethod: body.payment_method,
+    });
+  } catch (err) {
+    console.error("[order] admin notification failed", err);
   }
 
   return { ok: true, data: { order_id: id, short_id, payment: paymentMeta } };

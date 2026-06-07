@@ -339,7 +339,7 @@ function setupAdminBot(bot: Bot): void {
 export async function handleAdminUpdate(update: unknown): Promise<void> {
   const bot = getAdminBot();
   if (!bot) {
-    console.log("[admin-bot] no ADMIN_BOT_TOKEN");
+    console.warn("[admin-bot] no ADMIN_BOT_TOKEN");
     return;
   }
   await bot.handleUpdate(update as Parameters<Bot["handleUpdate"]>[0]);

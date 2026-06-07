@@ -49,7 +49,8 @@ export function navigate(path: string, replace = false): void {
   if (currentRoute === normalized && parseHashPath() === normalized) return;
 
   // Save current scroll position before leaving
-  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  const scrollTop =
+    document.documentElement.scrollTop || document.body.scrollTop;
   scrollPositions.set(currentRoute, scrollTop);
 
   if (!replace && currentRoute && currentRoute !== normalized) {
@@ -64,7 +65,8 @@ export function goBack(): void {
   const prev = historyStack.pop();
   if (prev) {
     // Save current scroll before going back
-    const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+    const scrollTop =
+      document.documentElement.scrollTop || document.body.scrollTop;
     scrollPositions.set(currentRoute, scrollTop);
     currentRoute = prev;
     restoreScroll = true;

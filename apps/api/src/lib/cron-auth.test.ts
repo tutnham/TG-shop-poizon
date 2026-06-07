@@ -11,7 +11,7 @@ describe("verifyCronAuth", () => {
 
   it("allows requests without secret outside production", () => {
     process.env.NODE_ENV = "development";
-    delete process.env.CRON_SECRET;
+    process.env.CRON_SECRET = undefined;
     assert.equal(verifyCronAuth(undefined), true);
   });
 
