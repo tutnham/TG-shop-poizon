@@ -6,8 +6,23 @@ import { getConfigValue } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
 import * as paymentRepo from "../db/payment.repository.js";
 import { appError } from "../types/app-error.types.js";
+import type { AppError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
 import { notifyAdminNewOrder } from "./notification.service.js";
+
+export type CreateOrderSuccess = {
+  order_id: string;
+  short_id: string;
+  payment: {
+    wallet_comment?: string;
+    ton_amount?: number;
+    instructions?: string;
+  };
+};
+
+export type CreateOrderResult =
+  | { ok: true; data: CreateOrderSuccess }
+  | { ok: false; error: AppError };
 
 const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   pending: ["confirmed", "cancelled", "paid"],
@@ -43,17 +58,7 @@ export async function transitionOrder(
 export async function createOrderFromCart(
   userId: string,
   body: z.infer<typeof CreateOrderSchema>,
-): Promise<
-  Result<{
-    order_id: string;
-    short_id: string;
-    payment: {
-      wallet_comment?: string;
-      ton_amount?: number;
-      instructions?: string;
-    };
-  }>
-> {
+): Promise<CreateOrderResult> {
   const cart = await cartRepo.getCartItems(userId);
   if (cart.length === 0) {
     return { ok: false, error: appError("Cart is empty", 400, "EMPTY_CART") };
