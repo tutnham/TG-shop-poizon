@@ -153,28 +153,28 @@ shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
   const body = c.req.valid("json");
   const result = await createOrderFromCart(c.get("userId"), body);
 
-  if (!result.ok) {
-    const { message, status = 400 } = result.error;
-    return c.json({ error: message }, status as 400 | 404 | 500);
+  if (result.ok) {
+    let ton_link: string | undefined;
+    if (body.payment_method === "ton") {
+      const addr = await getConfigValue<string>("ton_wallet_address", "");
+      const tonAmount = result.data.payment.ton_amount ?? 0;
+      ton_link = buildTonTransferLink(
+        typeof addr === "string" ? addr : "",
+        tonAmount,
+        result.data.payment.wallet_comment ?? "",
+      );
+    }
+
+    return c.json({
+      data: {
+        ...result.data,
+        ton_link,
+      },
+    });
   }
 
-  let ton_link: string | undefined;
-  if (body.payment_method === "ton") {
-    const addr = await getConfigValue<string>("ton_wallet_address", "");
-    const tonAmount = result.data.payment.ton_amount ?? 0;
-    ton_link = buildTonTransferLink(
-      typeof addr === "string" ? addr : "",
-      tonAmount,
-      result.data.payment.wallet_comment ?? "",
-    );
-  }
-
-  return c.json({
-    data: {
-      ...result.data,
-      ton_link,
-    },
-  });
+  const { message, status = 400 } = result.error;
+  return c.json({ error: message }, status as 400 | 404 | 500);
 });
 
 shop.get("/orders", async (c) => {
