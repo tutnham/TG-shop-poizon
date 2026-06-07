@@ -173,7 +173,9 @@ shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
     });
   }
 
-  const { message, status = 400 } = result.error;
+  const { message, status = 400 } = (
+    result as { error: { message: string; code?: string; status?: number } }
+  ).error;
   return c.json({ error: message }, status as 400 | 404 | 500);
 });
 
