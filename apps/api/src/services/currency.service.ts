@@ -1,4 +1,4 @@
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 import { getSupabase, isSupabaseConfigured } from "../db/client.js";
 import { getConfigValue, setConfigValue } from "../db/config.repository.js";
 import { getEnvOptional } from "../types/env.types.js";

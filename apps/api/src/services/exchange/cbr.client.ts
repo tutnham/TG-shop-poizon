@@ -1,4 +1,4 @@
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 import type { ExchangeRate } from "./rate-types.js";
 import { ProviderError } from "./rate-types.js";
 

@@ -1,4 +1,4 @@
-import Decimal from "decimal.js";
+import { Decimal } from "decimal.js";
 import type { Result } from "@poizon-shop/shared";
 import { getSupabase } from "../db/client.js";
 import { appError } from "../types/app-error.types.js";

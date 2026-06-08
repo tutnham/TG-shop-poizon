@@ -1,4 +1,4 @@
-import type Decimal from "decimal.js";
+import type { Decimal } from "decimal.js";
 
 // ── Источники курсов ────────────────────────────────────────────────
 export type RateSourceCnyRub = "cbr-primary" | "cbr-mirror" | "cache" | "env";
