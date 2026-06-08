@@ -10,12 +10,17 @@ export interface ExchangeRates {
     cny_rub: "cbr" | "cache" | "env";
     usdt_rub: "binance" | "cache" | "env";
   };
+  /** true — курс взят из кеша/ENV, а не из живого API */
+  isFallback: boolean;
+  /** true — курс устарел (возраст > TTL) */
+  isStale: boolean;
 }
 
 export function buildExchangeRates(
   cny_rub: number,
   usdt_rub: number,
   sources: ExchangeRates["sources"],
+  opts?: { isFallback?: boolean; isStale?: boolean },
 ): ExchangeRates {
   if (cny_rub <= 0 || usdt_rub <= 0) {
     throw new Error("Invalid exchange rates");
@@ -29,5 +34,7 @@ export function buildExchangeRates(
     rate_cny_usd,
     fetched_at: new Date().toISOString(),
     sources,
+    isFallback: opts?.isFallback ?? false,
+    isStale: opts?.isStale ?? false,
   };
 }

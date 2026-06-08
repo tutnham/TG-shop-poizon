@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { isSupabaseConfigured } from "./db/client.js";
 import { runStartupChecks } from "./lib/startup-checks.js";
 import { createCors } from "./middleware/cors.middleware.js";
+import { admin } from "./routes/admin.route.js";
 import { cron } from "./routes/cron.route.js";
 import { proxy } from "./routes/image-proxy.route.js";
 import { shop } from "./routes/shop.route.js";
@@ -49,6 +50,7 @@ export function createApp() {
     });
   });
 
+  app.route("/api/admin", admin);
   app.route("/api", shop);
   app.route("/cron", cron);
   app.route("/webhook", webhooks);

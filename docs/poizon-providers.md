@@ -12,17 +12,22 @@ The API isolates product sync behind `IPoisonProvider`. Switch providers with `P
 
 Default (empty `POIZON_PROVIDER`): `poparce` if `POIZON_API_KEY` is set, otherwise `mock`.
 
-## Official API (coming soon)
+## Official API (poizon-api.com)
+
+Готово к использованию. Реализован в `PoizonOfficialProvider`.
 
 Set in `.env`:
 
 ```env
 POIZON_PROVIDER=official
-POIZON_OFFICIAL_API_URL=<from Poizon-API docs>
+POIZON_OFFICIAL_API_URL=https://poizon-api.com/api/dewu
 POIZON_OFFICIAL_API_KEY=<your key>
 ```
 
-Implement `PoizonOfficialProvider` in `apps/api/src/services/poizon-official.provider.ts` when credentials are available.
+Эндпоинты (из [OpenAPI-спеки](http://poizon-api.com/api/dewu/api-json)):
+- `GET /searchProducts` — поиск по ключевому слову
+- `GET /productDetailWithPrice` — карточка товара + цена
+- `GET /getCategories` — категории (RU/EN/ZH)
 
 ## Price mapping
 

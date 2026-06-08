@@ -46,7 +46,7 @@ describe("fetchLiveRates integration (mocked fetch)", () => {
         };
       }
       throw new Error(`unexpected fetch: ${url}`);
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     const { fetchCnyRubFromCbr } = await import("./exchange/cbr.client.js");
     const { fetchUsdtRubFromBinance } = await import(
@@ -81,7 +81,7 @@ describe("refreshRates fallback", () => {
 
     globalThis.fetch = mock.fn(async () => {
       throw new Error("network down");
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     process.env.CNY_TO_RUB_RATE = "11";
     process.env.CNY_TO_USD_RATE = "7";
