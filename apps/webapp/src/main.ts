@@ -65,12 +65,6 @@ registerRoute("/", () =>
     return renderHome(app);
   })(),
 );
-registerRoute("/menu", () =>
-  wrap(async () => {
-    const { renderMenu } = await import("./pages/menu.js");
-    return renderMenu(app);
-  })(),
-);
 registerRoute("/profile", () =>
   wrap(async () => {
     const { renderProfile } = await import("./pages/profile.js");

@@ -1,6 +1,4 @@
 import { t } from "../i18n/index.js";
-import { hideKeyboard } from "../lib/keyboard.js";
-import { navigate } from "../router.js";
 import { ensurePageRoot } from "../shell.js";
 
 export function renderHeader(
@@ -12,34 +10,11 @@ export function renderHeader(
   pageRoot.querySelector(".search-section")?.remove();
 
   const header = document.createElement("header");
-  header.className = "app-header";
+  header.className = "app-header app-header--center";
   header.innerHTML = `
-    <button type="button" class="header-icon-btn" id="menu-btn" aria-label="${t("menu")}">
-      <span class="material-symbols-outlined">menu</span>
-    </button>
     <h1 class="app-header__title">${t("shop")}</h1>
-    <button type="button" class="header-icon-btn" id="header-search-btn" aria-label="${t("search")}">
-      <span class="material-symbols-outlined">search</span>
-    </button>
   `;
   pageRoot.prepend(header);
-
-  header.querySelector("#menu-btn")?.addEventListener("click", () => {
-    navigate("/menu");
-  });
-
-  header.querySelector("#header-search-btn")?.addEventListener("click", () => {
-    const input = document.getElementById(
-      opts?.searchInputId ?? "search-input",
-    ) as HTMLInputElement | null;
-    if (!input) return;
-    if (document.activeElement === input) {
-      hideKeyboard();
-      return;
-    }
-    input.focus();
-    input.scrollIntoView({ behavior: "smooth", block: "center" });
-  });
 
   if (opts?.showSearch) {
     const searchSection = document.createElement("section");

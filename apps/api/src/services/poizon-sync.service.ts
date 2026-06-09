@@ -9,7 +9,7 @@ import { refreshRates } from "./currency.service.js";
 import { getPoisonProvider } from "./poizon.service.js";
 import { calculatePricesFromFen, getPricingConfig } from "./pricing.service.js";
 
-const SYNC_KEYWORDS = ["nike", "jordan", "adidas", "yeezy", "new balance"];
+const SYNC_KEYWORDS = ["nike", "jordan", "adidas", "yeezy", "new balance", "asics", "puma", "reebok"];
 const SYNC_DELAY_BASE_MS = 1100;
 const SYNC_DELAY_JITTER_MS = 200;
 

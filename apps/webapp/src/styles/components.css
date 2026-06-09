@@ -39,6 +39,10 @@
   text-overflow: ellipsis;
 }
 
+.app-header--center {
+  justify-content: center;
+}
+
 .header-icon-btn {
   display: flex;
   align-items: center;

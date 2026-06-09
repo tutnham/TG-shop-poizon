@@ -353,7 +353,7 @@ export async function getPricingConfig(options?: {
       data?.markup_percent ?? getEnvOptional("MARKUP_PERCENT", "25"),
     ),
     delivery_fee: Number(
-      data?.delivery_fee ?? getEnvOptional("DELIVERY_RUB", "500"),
+      data?.delivery_fee ?? getEnvOptional("DELIVERY_RUB", "0"),
     ),
   };
 }
