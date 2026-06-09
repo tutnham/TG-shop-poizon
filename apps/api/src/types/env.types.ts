@@ -23,10 +23,6 @@ export function getEnvOptional(key: string, fallback = ""): string {
   return process.env[key] ?? fallback;
 }
 
-export function isDemoMode(): boolean {
-  return process.env.DEMO_MODE === "true";
-}
-
 export function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }

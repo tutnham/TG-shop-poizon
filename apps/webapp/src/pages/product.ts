@@ -1,10 +1,6 @@
 import type { ProductDetail } from "@poizon-shop/shared";
 import { apiGet } from "../api/client.js";
 import { renderProductDetailView } from "../components/product-detail-view.js";
-import {
-  getDemoProductDetail,
-  isDemoProductId,
-} from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
 import { getRouteParam, goBack } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
@@ -25,17 +21,6 @@ export async function renderProduct(app: HTMLElement): Promise<void> {
   setupBackButton(() => goBack());
 
   try {
-    if (isDemoProductId(id)) {
-      const demo = getDemoProductDetail(id);
-      if (!demo) {
-        page.innerHTML = `<div class="empty-state">${t("error")}</div>`;
-        hideMainButton();
-        return;
-      }
-      renderProductDetailView(page, demo);
-      return;
-    }
-
     const { data: p } = await apiGet<{ data: ProductDetail }>(
       `/api/products/${id}`,
     );

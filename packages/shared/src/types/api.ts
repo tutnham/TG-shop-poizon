@@ -20,5 +20,4 @@ export interface ShopConfigPublic {
   markup_disclaimer_ru: string;
   markup_disclaimer_en: string;
   last_synced_at: string | null;
-  hide_demo_products: boolean;
 }

@@ -30,7 +30,6 @@ shop.get("/config", async (c) => {
     "welcome_message",
     "markup_disclaimer_ru",
     "markup_disclaimer_en",
-    "hide_demo_products",
   ]);
   const last_synced_at = await getLastSyncTime();
   const rates_updated_at = await getConfigValue<string | null>(
@@ -48,7 +47,6 @@ shop.get("/config", async (c) => {
     last_synced_at,
     rates_updated_at:
       typeof rates_updated_at === "string" ? rates_updated_at : null,
-    hide_demo_products: cfg.hide_demo_products === true,
   });
 });
 

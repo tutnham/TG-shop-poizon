@@ -1,15 +1,10 @@
 import type { ProductDetail } from "@poizon-shop/shared";
 import { apiGet, apiPost } from "../api/client.js";
 import { mountCartPeek } from "../components/cart-peek.js";
-import {
-  getDemoProductDetail,
-  isDemoProductId,
-} from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
 import { getCurrentPath } from "../router.js";
 import { refreshCartBadge } from "./cart-badge.js";
 import { notifyCartChanged } from "./cart-presence.js";
-import { addDemoCartLine } from "./demo-cart.js";
 import { showToast } from "./toast.js";
 
 export function firstAvailableSize(product: ProductDetail): string | null {
@@ -31,23 +26,6 @@ export async function addProductToCart(
   quantity = 1,
   explicitSize?: string,
 ): Promise<void> {
-  if (isDemoProductId(productId)) {
-    const product = getDemoProductDetail(productId);
-    if (!product?.is_available) {
-      throw new Error(t("out_of_stock"));
-    }
-    const size = explicitSize ?? firstAvailableSize(product);
-    if (!size) throw new Error(t("out_of_stock"));
-    if (product.stock?.[size] === false) {
-      throw new Error(t("out_of_stock"));
-    }
-    addDemoCartLine(product, size, quantity);
-    refreshCartBadge();
-    refreshHomeCartPeek();
-    notifyCartChanged();
-    return;
-  }
-
   let size = explicitSize;
 
   if (!size) {

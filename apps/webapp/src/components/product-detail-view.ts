@@ -1,11 +1,9 @@
 import type { ProductDetail } from "@poizon-shop/shared";
 import { apiDelete } from "../api/client.js";
-import { isDemoProductId } from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
 import { addProductToCart } from "../lib/cart-actions.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
 import { isProductInCart, loadCartLines } from "../lib/cart-presence.js";
-import { removeDemoCartLineByProduct } from "../lib/demo-cart.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { showToast } from "../lib/toast.js";
@@ -61,15 +59,6 @@ async function handleRemove(
   state: ProductDetailState,
 ): Promise<void> {
   if (!state.size || state.adding || isStale(state)) return;
-
-  if (isDemoProductId(p.id)) {
-    removeDemoCartLineByProduct(p.id, state.size);
-    haptic("light");
-    showToast(t("removed_from_cart"));
-    refreshCartBadge();
-    await syncProductActions(page, p, state);
-    return;
-  }
 
   const lines = await loadCartLines();
   if (isStale(state)) return;
@@ -172,10 +161,8 @@ export function renderProductDetailView(
 
   const sizes = Object.values(p.sizes ?? {}).flat();
   const stock = p.stock ?? {};
-  const isDemo = isDemoProductId(p.id);
 
   page.innerHTML = `
-    ${isDemo ? `<p class="demo-product-banner">${escapeHtml(t("demo_mode_hint"))}</p>` : ""}
     <div class="product-gallery">
       <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
     </div>

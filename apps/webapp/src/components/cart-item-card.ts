@@ -2,11 +2,6 @@ import { apiDelete, apiPatch } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
 import { notifyCartChanged } from "../lib/cart-presence.js";
-import {
-  isDemoLine,
-  removeDemoCartLine,
-  updateDemoCartQuantity,
-} from "../lib/demo-cart.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { navigate } from "../router.js";
@@ -31,11 +26,10 @@ export function renderCartItemCard(
   onChange: () => void | Promise<void>,
 ): HTMLElement {
   const card = document.createElement("article");
-  card.className = `cart-item-card${isDemoLine(item) ? " cart-item-card--demo" : ""}`;
+  card.className = "cart-item-card";
 
   const unitRub = item.product.price_rub ?? item.line_rub / item.quantity;
   const unitUsdt = item.product.price_usdt ?? item.line_usdt / item.quantity;
-  const demo = isDemoLine(item);
 
   card.innerHTML = `
     <button type="button" class="cart-item-card__media" data-product-link>
@@ -43,7 +37,7 @@ export function renderCartItemCard(
     </button>
     <div class="cart-item-card__body">
       <h3 class="cart-item-card__name">${escapeHtml(item.product.name)}</h3>
-      <p class="cart-item-card__meta">${escapeHtml(item.size)}${demo ? ` · ${escapeHtml(t("demo_badge"))}` : ""}</p>
+      <p class="cart-item-card__meta">${escapeHtml(item.size)}</p>
       <div class="cart-item-card__prices">
         <span class="price-rub">${formatRub(item.line_rub)}</span>
         <span class="price-usdt">${formatUsdt(item.line_usdt)}</span>
@@ -68,12 +62,7 @@ export function renderCartItemCard(
       e.preventDefault();
       e.stopPropagation();
       try {
-        if (demo) {
-          updateDemoCartQuantity(
-            item.id,
-            item.quantity <= 1 ? 0 : item.quantity - 1,
-          );
-        } else if (item.quantity <= 1) {
+        if (item.quantity <= 1) {
           await apiDelete(`/api/cart/${item.id}`);
         } else {
           await apiPatch(`/api/cart/${item.id}`, {
@@ -95,13 +84,9 @@ export function renderCartItemCard(
       e.stopPropagation();
       if (item.quantity >= 10) return;
       try {
-        if (demo) {
-          updateDemoCartQuantity(item.id, item.quantity + 1);
-        } else {
-          await apiPatch(`/api/cart/${item.id}`, {
-            quantity: item.quantity + 1,
-          });
-        }
+        await apiPatch(`/api/cart/${item.id}`, {
+          quantity: item.quantity + 1,
+        });
         refreshCartBadge();
         notifyCartChanged();
         await onChange();
@@ -116,11 +101,7 @@ export function renderCartItemCard(
       e.preventDefault();
       e.stopPropagation();
       try {
-        if (demo) {
-          removeDemoCartLine(item.id);
-        } else {
-          await apiDelete(`/api/cart/${item.id}`);
-        }
+        await apiDelete(`/api/cart/${item.id}`);
         refreshCartBadge();
         notifyCartChanged();
         await onChange();

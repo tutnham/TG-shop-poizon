@@ -1,35 +1,14 @@
 import { apiGet } from "../api/client.js";
 import type { CartLineView } from "../components/cart-item-card.js";
-import {
-  demoCartTotals,
-  demoLinesToCartView,
-  isDemoLine,
-} from "./demo-cart.js";
 
 export type CartSnapshot = {
   lines: CartLineView[];
   total_rub: number;
   total_usdt: number;
   apiFailed: boolean;
-  hasApiLines: boolean;
-  hasDemoLines: boolean;
 };
 
-/** Только локальная демо-корзина (мгновенный рендер без API). */
-export function loadDemoCartSnapshot(): CartSnapshot {
-  const demoLines = demoLinesToCartView();
-  const demoTotals = demoCartTotals();
-  return {
-    lines: demoLines,
-    total_rub: demoTotals.total_rub,
-    total_usdt: demoTotals.total_usdt,
-    apiFailed: false,
-    hasApiLines: false,
-    hasDemoLines: demoLines.length > 0,
-  };
-}
-
-/** API-корзина + локальная демо-корзина (демо читаем после ответа API). */
+/** Загрузить корзину из API. */
 export async function loadCartSnapshot(): Promise<CartSnapshot> {
   try {
     const res = await apiGet<{
@@ -48,23 +27,18 @@ export async function loadCartSnapshot(): Promise<CartSnapshot> {
         quantity: Number(line.quantity) || 1,
       }));
 
-    const demoLines = demoLinesToCartView();
-    const demoTotals = demoCartTotals();
-    const lines = [...apiLines, ...demoLines];
-
     return {
-      lines,
-      total_rub: (Number(res.total_rub) || 0) + demoTotals.total_rub,
-      total_usdt: (Number(res.total_usdt) || 0) + demoTotals.total_usdt,
+      lines: apiLines,
+      total_rub: Number(res.total_rub) || 0,
+      total_usdt: Number(res.total_usdt) || 0,
       apiFailed: false,
-      hasApiLines: apiLines.length > 0,
-      hasDemoLines: demoLines.length > 0,
     };
   } catch {
-    return loadDemoCartSnapshot();
+    return {
+      lines: [],
+      total_rub: 0,
+      total_usdt: 0,
+      apiFailed: true,
+    };
   }
-}
-
-export function cartHasCheckoutItems(snapshot: CartSnapshot): boolean {
-  return snapshot.lines.some((line) => !isDemoLine(line));
 }

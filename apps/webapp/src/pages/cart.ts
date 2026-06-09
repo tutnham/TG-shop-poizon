@@ -3,9 +3,7 @@ import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
 import {
   type CartSnapshot,
-  cartHasCheckoutItems,
   loadCartSnapshot,
-  loadDemoCartSnapshot,
 } from "../lib/cart-store.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { isCurrentNavigation } from "../lib/navigation-guard.js";
@@ -54,18 +52,7 @@ function paintCart(
     </div>
   `;
 
-  if (snapshot.hasDemoLines && !snapshot.hasApiLines) {
-    const note = document.createElement("p");
-    note.className = "cart-summary__demo-note";
-    note.textContent = t("demo_cart_note");
-    summary.appendChild(note);
-  }
-
-  if (cartHasCheckoutItems(snapshot)) {
-    showMainButton(t("proceed_checkout"), () => navigate("/checkout"));
-  } else {
-    hideMainButton();
-  }
+  showMainButton(t("proceed_checkout"), () => navigate("/checkout"));
 }
 
 export async function renderCart(
@@ -92,11 +79,6 @@ export async function renderCart(
   refreshCartBadge();
 
   const rerender = () => void renderCart(app, navigationGeneration);
-
-  const demoSnapshot = loadDemoCartSnapshot();
-  if (demoSnapshot.lines.length && isCurrentNavigation(navigationGeneration)) {
-    paintCart(list, summary, demoSnapshot, rerender);
-  }
 
   const snapshot = await loadCartSnapshot();
   if (!isCurrentNavigation(navigationGeneration)) return;

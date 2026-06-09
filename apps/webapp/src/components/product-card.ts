@@ -1,5 +1,4 @@
 import type { ProductListItem } from "@poizon-shop/shared";
-import { isDemoProductId } from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
 import { isProductInCartSync } from "../lib/cart-presence.js";
 import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
@@ -77,19 +76,16 @@ function applyCardCartState(
 
 export function renderProductCard(
   p: ProductListItem,
-  opts?: { badge?: ProductCardBadge; demo?: boolean },
+  opts?: { badge?: ProductCardBadge },
 ): HTMLElement {
   const el = document.createElement("article");
-  const isDemo = Boolean(opts?.demo || isDemoProductId(p.id));
-  el.className = `product-card${isDemo ? " product-card--demo" : ""}`;
+  el.className = "product-card";
   el.dataset.productId = p.id;
   const inCart = isProductInCartSync(p.id);
 
-  const badgeHtml = isDemo
-    ? `<div class="product-card__badge product-card__badge--demo">${escapeHtml(t("demo_badge"))}</div>`
-    : opts?.badge
-      ? `<div class="product-card__badge${opts.badge.variant === "new" ? " product-card__badge--new" : ""}">${escapeHtml(opts.badge.text)}</div>`
-      : "";
+  const badgeHtml = opts?.badge
+    ? `<div class="product-card__badge${opts.badge.variant === "new" ? " product-card__badge--new" : ""}">${escapeHtml(opts.badge.text)}</div>`
+    : "";
 
   const stockClass = p.is_available ? "badge-success" : "badge-muted";
   const stockText = p.is_available ? t("in_stock") : t("out_of_stock");

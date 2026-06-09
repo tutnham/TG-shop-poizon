@@ -1,7 +1,6 @@
 import type { ProductDetail, ProductListItem } from "@poizon-shop/shared";
 import { sanitizeSearchQuery } from "../lib/search-sanitize.js";
 import { getSupabase } from "./client.js";
-import { getConfigValue } from "./config.repository.js";
 
 type ProductRow = {
   id: string;
@@ -45,13 +44,10 @@ export async function listProducts(opts: {
   min_price?: number;
   max_price?: number;
 }): Promise<{ items: ProductListItem[]; total: number }> {
-  const hideDemo = await getConfigValue<boolean>("hide_demo_products", false);
   let query = getSupabase()
     .from("products")
     .select("*", { count: "exact" })
     .eq("is_available", true);
-
-  if (hideDemo) query = query.neq("source", "demo");
 
   if (opts.category) {
     const { data: cat } = await getSupabase()

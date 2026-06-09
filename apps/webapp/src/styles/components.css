@@ -397,20 +397,6 @@
   font-weight: 400;
 }
 
-.product-card--demo {
-  outline: 1px dashed rgba(87, 217, 215, 0.35);
-}
-
-.demo-product-banner {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-md);
-  background: rgba(248, 189, 65, 0.12);
-  border: 1px solid rgba(248, 189, 65, 0.35);
-  font-size: var(--font-sm);
-  color: var(--color-secondary);
-}
-
 .product-gallery {
   aspect-ratio: 1 / 1;
   overflow: hidden;
@@ -482,21 +468,6 @@
 .chip--disabled {
   opacity: 0.4;
   text-decoration: line-through;
-}
-
-.cart-item-card--demo {
-  border-style: dashed;
-}
-
-.cart-summary__demo-note {
-  margin: 12px 0 0;
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-  line-height: 1.4;
-}
-
-.product-card__badge--demo {
-  color: var(--color-secondary);
 }
 
 .catalog-section {

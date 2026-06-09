@@ -38,24 +38,34 @@ export async function runFullSync(): Promise<{
     await sleep(SYNC_DELAY_BASE_MS);
 
     for (const keyword of SYNC_KEYWORDS) {
-      const result = await provider.searchProducts(keyword, 10, 0);
+      let result;
+      try {
+        result = await provider.searchProducts(keyword, 10, 0);
+      } catch (e) {
+        console.warn(`[poizon-sync] search failed for "${keyword}":`, (e as Error).message);
+        continue;
+      }
       for (const item of result.items) {
-        const prices = calculatePricesFromFen(item.priceFen, config);
-        await productRepo.upsertProductFromPoizon({
-          poizon_id: String(item.spuId),
-          name: item.title,
-          brand: item.brand,
-          category_id: null,
-          image_urls: item.images,
-          price_cny: prices.cny,
-          price_rub: prices.rub,
-          price_usdt: prices.usdt,
-          sizes: { EU: Object.keys(item.sizes) },
-          stock: item.sizes,
-          sold_count: item.soldCount,
-          is_available: item.inStock,
-        });
-        items_synced++;
+        try {
+          const prices = calculatePricesFromFen(item.priceFen, config);
+          await productRepo.upsertProductFromPoizon({
+            poizon_id: String(item.spuId),
+            name: item.title,
+            brand: item.brand,
+            category_id: null,
+            image_urls: item.images,
+            price_cny: prices.cny,
+            price_rub: prices.rub,
+            price_usdt: prices.usdt,
+            sizes: { EU: Object.keys(item.sizes) },
+            stock: item.sizes,
+            sold_count: item.soldCount,
+            is_available: item.inStock,
+          });
+          items_synced++;
+        } catch (e) {
+          console.warn(`[poizon-sync] upsert failed spuId=${item.spuId}:`, (e as Error).message);
+        }
         await sleep(SYNC_DELAY_BASE_MS + Math.random() * SYNC_DELAY_JITTER_MS);
       }
     }

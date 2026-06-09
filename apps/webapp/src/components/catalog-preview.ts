@@ -1,12 +1,11 @@
-import { DEMO_PRODUCTS } from "../data/demo-products.js";
 import { t } from "../i18n/index.js";
-import { renderProductCard } from "./product-card.js";
 
-/** Блок «как выглядит карточка» на главной. */
+/** Блок-заглушка когда каталог пуст. */
 export function renderCatalogPreview(): HTMLElement {
   const section = document.createElement("section");
   section.className = "catalog-preview";
   section.id = "catalog-preview";
+  section.hidden = true;
 
   section.innerHTML = `
     <div class="section-head catalog-preview__head">
@@ -15,18 +14,6 @@ export function renderCatalogPreview(): HTMLElement {
     </div>
   `;
 
-  const grid = document.createElement("div");
-  grid.className = "grid-products";
-
-  DEMO_PRODUCTS.forEach((p, i) => {
-    const badge =
-      i === 0
-        ? { text: "Top 1", variant: "top" as const }
-        : { text: "New", variant: "new" as const };
-    grid.appendChild(renderProductCard(p, { badge, demo: true }));
-  });
-
-  section.appendChild(grid);
   return section;
 }
 

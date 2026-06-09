@@ -1,14 +1,9 @@
 import {
   getEnvOptional,
-  isDemoMode,
   isProduction,
 } from "../types/env.types.js";
 
 export function runStartupChecks(): void {
-  if (isProduction() && isDemoMode()) {
-    throw new Error("DEMO_MODE must not be enabled in production");
-  }
-
   if (isProduction()) {
     const secret = getEnvOptional("WEBHOOK_SECRET");
     if (!secret || secret.length < 32) {

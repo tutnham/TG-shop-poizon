@@ -1,6 +1,5 @@
 import type { CartLineView } from "../components/cart-item-card.js";
 import { loadCartSnapshot } from "./cart-store.js";
-import { demoLinesToCartView } from "./demo-cart.js";
 
 export function isInCartWithSize(
   lines: CartLineView[],
@@ -20,20 +19,22 @@ export function isInCartAnySize(
   return lines.some((l) => l.product_id === productId);
 }
 
-export function getDemoCartLinesSync(): CartLineView[] {
-  return demoLinesToCartView();
+/** Синхронная проверка корзины (кэш из последнего API-ответа). */
+let cachedLines: CartLineView[] = [];
+
+export function setCachedLines(lines: CartLineView[]): void {
+  cachedLines = lines;
 }
 
-/** Синхронная проверка только локальной демо-корзины (витрина для заказчика). */
 export function isProductInCartSync(productId: string, size?: string): boolean {
-  const lines = getDemoCartLinesSync();
   return size
-    ? isInCartWithSize(lines, productId, size)
-    : isInCartAnySize(lines, productId);
+    ? isInCartWithSize(cachedLines, productId, size)
+    : isInCartAnySize(cachedLines, productId);
 }
 
 export async function loadCartLines(): Promise<CartLineView[]> {
   const snap = await loadCartSnapshot();
+  setCachedLines(snap.lines);
   return snap.lines;
 }
 
