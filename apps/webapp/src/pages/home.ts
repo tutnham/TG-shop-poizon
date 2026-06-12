@@ -257,7 +257,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       const q = new URLSearchParams({
         page: String(page),
         limit: "20",
-        sort: "popular",
+        sort: "new",
       });
       if (category) q.set("category", category);
       if (search) q.set("search", search);

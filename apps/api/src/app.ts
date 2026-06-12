@@ -37,14 +37,9 @@ export function createApp() {
 
   app.onError((err, c) => {
     const msg = err instanceof Error ? err.message : String(err);
-    const stack = err instanceof Error ? err.stack : "no stack";
     console.error("[api]", msg);
-    console.error("[api:stack]", stack);
-    return c.json({
-      error: "Internal server error",
-      detail: msg,
-      stack: stack?.split("\n").slice(0, 3).join(" | "),
-    }, 500);
+    console.error("[api:stack]", err instanceof Error ? err.stack : "no stack");
+    return c.json({ error: "Internal server error" }, 500);
   });
 
   app.get("/health", async (c) => {
