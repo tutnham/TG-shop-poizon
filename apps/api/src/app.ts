@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { isSupabaseConfigured } from "./db/client.js";
+import { getEnvOptional } from "./types/env.types.js";
 import { runStartupChecks } from "./lib/startup-checks.js";
 import { createCors } from "./middleware/cors.middleware.js";
 import { admin } from "./routes/admin.route.js";
@@ -35,18 +36,47 @@ export function createApp() {
   app.use("*", securityHeaders());
 
   app.onError((err, c) => {
-    console.error("[api]", err);
+    console.error("[api]", err instanceof Error ? err.message : err);
+    console.error("[api:stack]", err instanceof Error ? err.stack : "no stack");
     return c.json({ error: "Internal server error" }, 500);
   });
 
   app.get("/health", async (c) => {
     const rates = await getRatesHealth();
+
+    // Diagnostic: прямой запрос к PostgREST без supabase-js
+    const sbUrl = getEnvOptional("SUPABASE_URL");
+    const sbKey = getEnvOptional("SUPABASE_SERVICE_ROLE_KEY");
+    let rawError = "";
+    let rawStatus = 0;
+    if (sbUrl && sbKey) {
+      try {
+        const url = `${sbUrl.replace(/\/+$/, "")}/rest/v1/shop_config?key=eq.rates_updated_at&select=value&limit=1`;
+        console.error("[health:url]", url.slice(0, 120));
+        const res = await fetch(url, {
+          headers: {
+            apikey: sbKey,
+            Authorization: `Bearer ${sbKey}`,
+          },
+        });
+        rawStatus = res.status;
+        const text = await res.text();
+        rawError = text.slice(0, 200);
+        console.error("[health:raw]", res.status, text.slice(0, 120));
+      } catch (e) {
+        rawError = e instanceof Error ? e.message : String(e);
+        console.error("[health:raw:err]", rawError);
+      }
+    }
+
     return c.json({
       ok: true,
       supabase: isSupabaseConfigured(),
       ts: new Date().toISOString(),
       last_rates_at: rates.last_rates_at,
       rates_stale: rates.rates_stale,
+      raw_status: rawStatus,
+      raw_error: rawError,
     });
   });
 

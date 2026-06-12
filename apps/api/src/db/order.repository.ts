@@ -59,13 +59,14 @@ export async function listOrdersByUser(
   const { data, error } = await getSupabase()
     .from("orders")
     .select(
-      "id, status, total_rub, total_usdt, payment_method, created_at, items",
+      "id, short_id, status, total_rub, total_usdt, payment_method, created_at, items",
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return (data ?? []).map((o) => ({
     id: o.id as string,
+    short_id: o.short_id as string,
     status: o.status as OrderListItem["status"],
     total_rub: Number(o.total_rub),
     total_usdt: Number(o.total_usdt),
@@ -87,6 +88,7 @@ export async function getOrderById(
   const items = data.items as OrderDetail["items"];
   return {
     id: data.id,
+    short_id: data.short_id,
     status: data.status,
     total_rub: Number(data.total_rub),
     total_usdt: Number(data.total_usdt),

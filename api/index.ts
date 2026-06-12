@@ -69,7 +69,8 @@ export default async function handler(
     const response = await app.fetch(request);
     await writeWebResponse(res, response);
   } catch (err) {
-    console.error("[api] handler error", err);
+    console.error("[api] handler error", err instanceof Error ? err.message : err);
+    console.error("[api:handler:stack]", err instanceof Error ? err.stack : "no stack");
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader("Content-Type", "application/json");

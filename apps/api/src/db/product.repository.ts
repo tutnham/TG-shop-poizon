@@ -162,6 +162,52 @@ export async function upsertProductFromPoizon(row: {
   if (error) throw new Error(error.message);
 }
 
+/** Пакетный upsert товаров чанками по BATCH_SIZE для обработки 9000+ записей */
+const UPSERT_BATCH_SIZE = 100;
+
+export async function upsertProductsBatch(
+  rows: Array<{
+    poizon_id: string;
+    name: string;
+    brand: string | null;
+    category_id: string | null;
+    image_urls: string[];
+    price_cny: number;
+    price_rub: number;
+    price_usdt: number;
+    sizes: Record<string, string[]>;
+    stock: Record<string, boolean>;
+    sold_count: number;
+    is_available: boolean;
+  }>,
+): Promise<{ inserted: number; errors: number }> {
+  let inserted = 0;
+  let errors = 0;
+  const now = new Date().toISOString();
+
+  for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
+    const chunk = rows.slice(i, i + UPSERT_BATCH_SIZE).map((row) => ({
+      ...row,
+      source: "poizon",
+      synced_at: now,
+      updated_at: now,
+    }));
+
+    const { error } = await getSupabase()
+      .from("products")
+      .upsert(chunk, { onConflict: "poizon_id" });
+
+    if (error) {
+      errors += chunk.length;
+      console.warn(`[product-repo] batch upsert chunk ${i / UPSERT_BATCH_SIZE} failed:`, error.message);
+    } else {
+      inserted += chunk.length;
+    }
+  }
+
+  return { inserted, errors };
+}
+
 export async function getLastSyncTime(): Promise<string | null> {
   const { data } = await getSupabase()
     .from("sync_logs")

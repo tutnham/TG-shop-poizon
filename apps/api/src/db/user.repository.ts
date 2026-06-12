@@ -4,23 +4,43 @@ import { getSupabase } from "./client.js";
 export async function upsertTelegramUser(
   tg: TelegramUserContext,
 ): Promise<string> {
-  const { data, error } = await getSupabase()
+  const db = getSupabase();
+  const payload = {
+    telegram_id: tg.id,
+    username: tg.username ?? null,
+    first_name: tg.first_name ?? null,
+    last_name: tg.last_name ?? null,
+    language_code: tg.language_code ?? "ru",
+    last_seen_at: new Date().toISOString(),
+  };
+
+  // Проверяем, существует ли пользователь
+  const { data: existing, error: findErr } = await db
     .from("users")
-    .upsert(
-      {
-        telegram_id: tg.id,
-        username: tg.username ?? null,
-        first_name: tg.first_name ?? null,
-        last_name: tg.last_name ?? null,
-        language_code: tg.language_code ?? "ru",
-        last_seen_at: new Date().toISOString(),
-      },
-      { onConflict: "telegram_id" },
-    )
+    .select("id")
+    .eq("telegram_id", tg.id)
+    .maybeSingle();
+
+  if (findErr) throw new Error(findErr.message);
+
+  if (existing) {
+    // Обновляем существующего
+    const { error: updErr } = await db
+      .from("users")
+      .update(payload)
+      .eq("id", existing.id);
+    if (updErr) throw new Error(updErr.message);
+    return existing.id;
+  }
+
+  // Создаём нового
+  const { data: created, error: insErr } = await db
+    .from("users")
+    .insert(payload)
     .select("id")
     .single();
-  if (error) throw new Error(error.message);
-  return data.id as string;
+  if (insErr) throw new Error(insErr.message);
+  return created!.id;
 }
 
 export async function updateUserLanguage(

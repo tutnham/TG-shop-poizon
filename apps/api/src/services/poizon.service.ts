@@ -74,18 +74,35 @@ export class PoparcePoisonProvider implements IPoisonProvider {
       15 * 60,
       async () => {
         const data = await poisonFetch<{
-          spuList: Array<{
+          spuList?: Array<{
             spuId: number;
             title: string;
             logoUrl: string;
             price: number;
             soldCountText?: string;
           }>;
-          hasMore: boolean;
-          total: number;
+          productList?: Array<{
+            spuId: number;
+            title: string;
+            logoUrl: string;
+            price: number;
+            soldCountText?: string;
+          }>;
+          list?: Array<{
+            spuId: number;
+            title: string;
+            logoUrl: string;
+            price: number;
+            soldCountText?: string;
+          }>;
+          hasMore?: boolean;
+          total?: number;
         }>("/searchProducts", { keyword, limit, page });
 
-        const items = data.spuList.map((s) => ({
+        // Автоопределение формата ответа: spuList | productList | list
+        const sourceList = data.spuList ?? data.productList ?? data.list ?? [];
+
+        const items = sourceList.map((s) => ({
           spuId: s.spuId,
           title: s.title,
           brand: s.title.split(" ")[0] ?? "Unknown",
@@ -96,7 +113,10 @@ export class PoparcePoisonProvider implements IPoisonProvider {
           sizes: {},
           soldCount: Number.parseInt(s.soldCountText ?? "0", 10) || 0,
         }));
-        return { items, hasMore: data.hasMore, total: data.total };
+
+        const total = data.total ?? items.length;
+        const hasMore = data.hasMore ?? ((page + 1) * limit < total);
+        return { items, hasMore, total };
       },
     );
   }

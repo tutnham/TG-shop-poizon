@@ -5,6 +5,7 @@ import {
   type CartSnapshot,
   loadCartSnapshot,
 } from "../lib/cart-store.js";
+import { setCachedLines } from "../lib/cart-presence.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { isCurrentNavigation } from "../lib/navigation-guard.js";
 import { getNavigationGeneration, navigate } from "../router.js";
@@ -81,6 +82,7 @@ export async function renderCart(
   const rerender = () => void renderCart(app, navigationGeneration);
 
   const snapshot = await loadCartSnapshot();
+  setCachedLines(snapshot.lines);
   if (!isCurrentNavigation(navigationGeneration)) return;
 
   paintCart(list, summary, snapshot, rerender);

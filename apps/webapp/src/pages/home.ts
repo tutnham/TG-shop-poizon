@@ -18,6 +18,11 @@ import { hideBackButton, hideMainButton } from "../telegram.js";
 
 const PENDING_CATEGORY_KEY = "poizon_pending_category";
 
+// ── Конфигурация DOM-рециклинга для 9000+ товаров ──
+const MAX_VISIBLE_CARDS = 120; // Максимум карточек в DOM одновременно
+const RECYCLE_VIEWPORT_MULTIPLIER = 3; // Удалять карточки дальше 3 экранов от viewport
+const LOAD_MORE_THRESHOLD = 60; // После 60 карточек показываем кнопку «Загрузить ещё»
+
 let page = 1;
 let loading = false;
 let hasMore = true;
@@ -98,6 +103,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     page = 1;
     hasMore = true;
     cardIndex = 0;
+    allCards.length = 0;
     grid.innerHTML = "";
     try {
       await loadMore();
@@ -185,12 +191,52 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   let cardIndex = 0;
+  const allCards: HTMLElement[] = [];
+
+  /** Удаляет карточки далеко за пределами viewport для экономии DOM */
+  function recycleCards(): void {
+    if (allCards.length < MAX_VISIBLE_CARDS) return;
+    const vpTop = main.scrollTop;
+    const thr = window.innerHeight * RECYCLE_VIEWPORT_MULTIPLIER;
+    let removed = 0;
+    while (allCards.length > 0 && removed < 20) {
+      const c = allCards[0];
+      if (!c?.isConnected) { allCards.shift(); continue; }
+      const cb = c.getBoundingClientRect().bottom + main.scrollTop;
+      if (cb < vpTop - thr) { c.remove(); allCards.shift(); removed++; }
+      else break;
+    }
+  }
+
+  function updateLoadTrigger(): void {
+    const btn = main.querySelector("#load-more-btn") as HTMLButtonElement | null;
+    if (allCards.length >= LOAD_MORE_THRESHOLD) {
+      observer.unobserve(sentinel);
+      sentinel.hidden = true;
+      if (!btn) {
+        const nb = document.createElement("button");
+        nb.id = "load-more-btn";
+        nb.type = "button";
+        nb.className = "btn-primary load-more-btn";
+        nb.textContent = t("load_more");
+        nb.addEventListener("click", () => {
+          if (!loading) void loadMore().then(() => updateLoadTrigger());
+        });
+        main.appendChild(nb);
+      } else { btn.hidden = false; }
+    } else {
+      observer.observe(sentinel);
+      sentinel.hidden = false;
+      btn?.remove();
+    }
+  }
 
   async function filterCategory(slug: string) {
     category = slug;
     page = 1;
     hasMore = true;
     cardIndex = 0;
+    allCards.length = 0;
     grid.innerHTML = "";
     for (const c of chips.querySelectorAll(".chip")) {
       const chipSlug = (c as HTMLElement).dataset.slug ?? "";
@@ -222,12 +268,16 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       sk.remove();
       for (const p of res.data) {
         const badge = badgeForIndex(cardIndex);
-        grid.appendChild(renderProductCard(p, badge ? { badge } : undefined));
+        const card = renderProductCard(p, badge ? { badge } : undefined);
+        grid.appendChild(card);
+        allCards.push(card);
         cardIndex++;
       }
       setCatalogPreviewVisible(page === 1 && res.data.length === 0);
       hasMore = page < res.pagination.pages;
       page++;
+      recycleCards();
+      updateLoadTrigger();
     } catch {
       sk.remove();
       setCatalogPreviewVisible(true);
@@ -236,6 +286,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         page = 1;
         hasMore = true;
         cardIndex = 0;
+        allCards.length = 0;
         grid.innerHTML = "";
         void loadMore();
       });
@@ -256,6 +307,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       page = 1;
       hasMore = true;
       cardIndex = 0;
+      allCards.length = 0;
       grid.innerHTML = "";
       void loadMore().finally(() => hideKeyboard());
     }, 350);
@@ -268,6 +320,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   sentinel.style.height = "1px";
   main.appendChild(sentinel);
   observer.observe(sentinel);
+
+  // Рециклинг DOM при скролле: удаляем карточки далеко за пределами viewport
+  main.addEventListener("scroll", () => recycleCards(), { passive: true });
 
   const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
   if (pendingCategory !== null) {

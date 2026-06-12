@@ -93,5 +93,11 @@ registerRoute("/orders", () =>
     return renderOrders(app);
   })(),
 );
+registerRoute("/orders/:id", () =>
+  wrap(async () => {
+    const { renderOrderDetail } = await import("./pages/orders.js");
+    return renderOrderDetail(app);
+  })(),
+);
 
 startRouter();

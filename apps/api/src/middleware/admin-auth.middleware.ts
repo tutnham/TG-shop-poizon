@@ -18,7 +18,7 @@ export const adminAuth = createMiddleware<AppEnv>(async (c, next) => {
   }
 
   // Используем ADMIN_BOT_TOKEN для проверки подписи initData.
-  // Fallback на SHOP_BOT_TOKEN если ADMIN_BOT_TOKEN не задан (dev/demo).
+  // Fallback на SHOP_BOT_TOKEN если ADMIN_BOT_TOKEN не задан.
   const token =
     getEnvOptional("ADMIN_BOT_TOKEN") || getEnvOptional("SHOP_BOT_TOKEN");
   if (!token || !validateInitData(initData, token)) {

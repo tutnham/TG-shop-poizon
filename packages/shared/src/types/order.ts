@@ -29,6 +29,7 @@ export interface DeliveryInfo {
 
 export interface OrderListItem {
   id: string;
+  short_id: string;
   status: OrderStatus;
   total_rub: number;
   total_usdt: number;
