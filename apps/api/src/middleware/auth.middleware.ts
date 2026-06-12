@@ -22,7 +22,11 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
     c.req.header("x-telegram-init-data");
 
   if (!initData) {
-    return c.json({ error: "Unauthorized" }, 401);
+    // Guest mode: allow browsing without Telegram initData
+    // Use a deterministic guest ID so cart can work across page reloads
+    c.set("userId", "guest-" + crypto.createHash("md5").update("guest-browser").digest("hex").slice(0, 12));
+    await next();
+    return;
   }
 
   const token = getEnvOptional("SHOP_BOT_TOKEN")?.trim().replace(/^["']|["']$/g, "");
