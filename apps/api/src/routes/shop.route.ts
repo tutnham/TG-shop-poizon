@@ -7,6 +7,7 @@ import {
   UpdateLanguageSchema,
 } from "@poizon-shop/shared";
 import { Hono } from "hono";
+import { getSupabase } from "../db/client.js";
 import * as cartRepo from "../db/cart.repository.js";
 import { getConfigValue, getConfigValues } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
@@ -20,12 +21,33 @@ import {
   createOrderFromCart,
 } from "../services/order.service.js";
 import type { AppEnv } from "../types/env.types.js";
+import { getEnvOptional } from "../types/env.types.js";
 
 const shop = new Hono<AppEnv>();
 shop.use("*", tmaAuth);
 
 shop.get("/ping", async (c) => {
-  return c.json({ ok: true, userId: c.get("userId") });
+  const sbUrl = getEnvOptional("SUPABASE_URL");
+  try {
+    const { data, error } = await getSupabase()
+      .from("shop_config")
+      .select("key")
+      .limit(1);
+    return c.json({
+      ok: true,
+      userId: c.get("userId"),
+      sb_url_prefix: typeof sbUrl === "string" ? sbUrl.slice(0, 60) : null,
+      sb_error: error?.message ?? null,
+      sb_data: data,
+    });
+  } catch (e) {
+    return c.json({
+      ok: false,
+      userId: c.get("userId"),
+      error: e instanceof Error ? e.message : String(e),
+      sb_url_prefix: typeof sbUrl === "string" ? sbUrl.slice(0, 60) : null,
+    });
+  }
 });
 
 shop.get("/config", async (c) => {
