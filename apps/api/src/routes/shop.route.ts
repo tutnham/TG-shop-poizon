@@ -7,15 +7,16 @@ import {
   UpdateLanguageSchema,
 } from "@poizon-shop/shared";
 import { Hono } from "hono";
-import { getSupabase, isSupabaseConfigured } from "../db/client.js";
 import * as cartRepo from "../db/cart.repository.js";
+import { getSupabase, isSupabaseConfigured } from "../db/client.js";
 import { getConfigValue, getConfigValues } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
 import * as productRepo from "../db/product.repository.js";
 import { getLastSyncTime } from "../db/product.repository.js";
-import { updateUserLanguage } from "../db/user.repository.js";
+import { getUserById, updateUserLanguage } from "../db/user.repository.js";
 import { tmaAuth } from "../middleware/auth.middleware.js";
 import { getExchangeRates } from "../services/currency.service.js";
+import { notifyCartUpdate } from "../services/notification.service.js";
 import {
   buildTonTransferLink,
   createOrderFromCart,
@@ -26,14 +27,37 @@ import { getEnvOptional } from "../types/env.types.js";
 const shop = new Hono<AppEnv>();
 shop.use("*", tmaAuth);
 
+// Вспомогательная функция: отправляет уведомление о корзине fire-and-forget
+async function fireCartNotification(userId: string): Promise<void> {
+  try {
+    const [cart, user] = await Promise.all([
+      cartRepo.getCartItems(userId),
+      getUserById(userId),
+    ]);
+    if (!user?.telegram_id) return;
+    const items = cart.map((item) => ({
+      name: item.product.name_ru ?? item.product.name,
+      brand: item.product.brand,
+      size: item.size,
+      quantity: item.quantity,
+      price_rub: Number(item.product.price_rub) * item.quantity,
+    }));
+    const totalRub = items.reduce((s, i) => s + i.price_rub, 0);
+    const totalUsdt = cart.reduce(
+      (s, i) => s + Number(i.product.price_usdt) * i.quantity,
+      0,
+    );
+    await notifyCartUpdate(user.telegram_id, items, totalRub, totalUsdt);
+  } catch (err) {
+    console.error("[cart-notify] failed", err);
+  }
+}
+
 shop.get("/ping", async (c) => {
   const sbUrl = getEnvOptional("SUPABASE_URL");
   try {
     const sb = getSupabase();
-    const { data, error } = await sb
-      .from("shop_config")
-      .select("key")
-      .limit(1);
+    const { data, error } = await sb.from("shop_config").select("key").limit(1);
     return c.json({
       ok: true,
       userId: c.get("userId"),
@@ -52,7 +76,6 @@ shop.get("/ping", async (c) => {
     });
   }
 });
-
 
 shop.get("/config", async (c) => {
   const cfg = await getConfigValues([
@@ -150,12 +173,9 @@ shop.post("/cart", zValidator("json", AddToCartSchema), async (c) => {
   if (stock[body.size] === false) {
     return c.json({ error: "Size unavailable" }, 400);
   }
-  await cartRepo.addCartItem(
-    c.get("userId"),
-    body.product_id,
-    body.size,
-    body.quantity,
-  );
+  const userId = c.get("userId");
+  await cartRepo.addCartItem(userId, body.product_id, body.size, body.quantity);
+  fireCartNotification(userId);
   return c.json({ ok: true });
 });
 
@@ -163,17 +183,21 @@ shop.patch(
   "/cart/:itemId",
   zValidator("json", UpdateCartItemSchema),
   async (c) => {
+    const userId = c.get("userId");
     await cartRepo.updateCartItem(
       c.req.param("itemId"),
-      c.get("userId"),
+      userId,
       c.req.valid("json"),
     );
+    fireCartNotification(userId);
     return c.json({ ok: true });
   },
 );
 
 shop.delete("/cart/:itemId", async (c) => {
-  await cartRepo.deleteCartItem(c.req.param("itemId"), c.get("userId"));
+  const userId = c.get("userId");
+  await cartRepo.deleteCartItem(c.req.param("itemId"), userId);
+  fireCartNotification(userId);
   return c.json({ ok: true });
 });
 

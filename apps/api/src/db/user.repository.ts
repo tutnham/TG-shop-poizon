@@ -54,6 +54,21 @@ export async function updateUserLanguage(
   if (error) throw new Error(error.message);
 }
 
+export async function getUserById(userId: string): Promise<{
+  id: string;
+  telegram_id: number;
+  username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+} | null> {
+  const { data } = await getSupabase()
+    .from("users")
+    .select("id, telegram_id, username, first_name, last_name")
+    .eq("id", userId)
+    .maybeSingle();
+  return data;
+}
+
 export async function getUserByTelegramId(telegramId: number): Promise<{
   id: string;
   telegram_id: number;

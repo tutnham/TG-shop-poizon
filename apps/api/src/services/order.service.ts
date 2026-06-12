@@ -5,6 +5,7 @@ import * as cartRepo from "../db/cart.repository.js";
 import { getConfigValue } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
 import * as paymentRepo from "../db/payment.repository.js";
+import { getUserById } from "../db/user.repository.js";
 import { appError } from "../types/app-error.types.js";
 import type { AppError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
@@ -155,13 +156,18 @@ export async function createOrderFromCart(
   }
 
   try {
+    // Получаем данные пользователя для уведомления админа
+    const user = await getUserById(userId);
     await notifyAdminNewOrder({
       shortId: short_id,
       customerName: body.delivery_info.full_name,
       customerPhone: body.delivery_info.phone,
+      customerTelegramId: user?.telegram_id,
+      customerUsername: user?.username ?? undefined,
       items,
       totalRub: total_rub,
       paymentMethod: body.payment_method,
+      deliveryAddress: body.delivery_info.address,
     });
   } catch (err) {
     console.error("[order] admin notification failed", err);

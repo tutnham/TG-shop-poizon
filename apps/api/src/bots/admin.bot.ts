@@ -334,6 +334,28 @@ function setupAdminBot(bot: Bot): void {
     await applyStatus(ctx.match[1] ?? "", "delivered", ctx.from.id);
     await ctx.answerCallbackQuery({ text: "OK" });
   });
+
+  // Обработчики из уведомления о новом заказе (callback_data содержит short_id)
+  bot.callbackQuery(/^ord:cf:byshort:(.+)$/, async (ctx) => {
+    const shortId = ctx.match[1] ?? "";
+    const row = await orderRepo.getOrderByShortId(shortId);
+    if (!row) {
+      await ctx.answerCallbackQuery({ text: "Не найден", show_alert: true });
+      return;
+    }
+    await applyStatus(row.id, "confirmed", ctx.from.id);
+    await ctx.answerCallbackQuery({ text: `✅ #${shortId} подтверждён` });
+  });
+  bot.callbackQuery(/^ord:cx:byshort:(.+)$/, async (ctx) => {
+    const shortId = ctx.match[1] ?? "";
+    const row = await orderRepo.getOrderByShortId(shortId);
+    if (!row) {
+      await ctx.answerCallbackQuery({ text: "Не найден", show_alert: true });
+      return;
+    }
+    await applyStatus(row.id, "cancelled", ctx.from.id);
+    await ctx.answerCallbackQuery({ text: `❌ #${shortId} отменён` });
+  });
 }
 
 export async function handleAdminUpdate(update: unknown): Promise<void> {
