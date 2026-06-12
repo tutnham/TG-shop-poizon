@@ -24,6 +24,10 @@ import type { AppEnv } from "../types/env.types.js";
 const shop = new Hono<AppEnv>();
 shop.use("*", tmaAuth);
 
+shop.get("/ping", async (c) => {
+  return c.json({ ok: true, userId: c.get("userId") });
+});
+
 shop.get("/config", async (c) => {
   const cfg = await getConfigValues([
     "shop_name",
