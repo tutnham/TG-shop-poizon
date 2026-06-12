@@ -23,8 +23,7 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
 
   if (!initData) {
     // Guest mode: allow browsing without Telegram initData
-    // Use a deterministic guest ID so cart can work across page reloads
-    c.set("userId", "guest-" + crypto.createHash("md5").update("guest-browser").digest("hex").slice(0, 12));
+    c.set("userId", "00000000-0000-0000-0000-000000000000");
     await next();
     return;
   }
