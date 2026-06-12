@@ -168,5 +168,9 @@ export async function handleShopUpdate(update: unknown): Promise<void> {
     console.warn("[shop-bot] no SHOP_BOT_TOKEN");
     return;
   }
-  await bot.handleUpdate(update as Parameters<Bot["handleUpdate"]>[0]);
+  try {
+    await bot.handleUpdate(update as Parameters<Bot["handleUpdate"]>[0]);
+  } catch (err) {
+    console.error("[shop-bot] handleUpdate error:", err);
+  }
 }

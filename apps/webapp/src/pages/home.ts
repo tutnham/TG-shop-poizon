@@ -16,7 +16,7 @@ import {
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
-const PENDING_CATEGORY_KEY = "poizon_pending_category";
+const PENDING_BRAND_KEY = "poizon_pending_brand";
 
 // ── Конфигурация DOM-рециклинга для 9000+ товаров ──
 const MAX_VISIBLE_CARDS = 120; // Максимум карточек в DOM одновременно
@@ -26,13 +26,13 @@ const LOAD_MORE_THRESHOLD = 60; // После 60 карточек показыв
 let page = 1;
 let loading = false;
 let hasMore = true;
-let category = "";
+let activeBrand = "";
 let search = "";
 
 function badgeForIndex(
   index: number,
 ): { text: string; variant: "top" | "new" } | undefined {
-  if (page > 1 || category || search) return undefined;
+  if (page > 1 || activeBrand || search) return undefined;
   if (index === 0) return { text: "Top 1", variant: "top" };
   if (index === 1) return { text: "New", variant: "new" };
   return undefined;
@@ -161,22 +161,22 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const allChip = document.createElement("button");
   allChip.type = "button";
   allChip.className = "chip active";
-  allChip.dataset.slug = "";
+  allChip.dataset.brand = "";
   allChip.textContent = t("chip_all");
-  allChip.onclick = () => filterCategory("");
+  allChip.onclick = () => filterBrand("");
   chips.appendChild(allChip);
 
   try {
-    const { data: cats } = await apiGet<{
-      data: { slug: string; name_ru: string }[];
-    }>("/api/categories");
-    for (const c of cats) {
+    const { data: brands } = await apiGet<{
+      data: string[];
+    }>("/api/brands");
+    for (const brandName of brands) {
       const chip = document.createElement("button");
       chip.type = "button";
       chip.className = "chip";
-      chip.dataset.slug = c.slug;
-      chip.textContent = c.name_ru;
-      chip.onclick = () => filterCategory(c.slug);
+      chip.dataset.brand = brandName;
+      chip.textContent = brandName;
+      chip.onclick = () => filterBrand(brandName);
       chips.appendChild(chip);
     }
   } catch {
@@ -231,16 +231,16 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     }
   }
 
-  async function filterCategory(slug: string) {
-    category = slug;
+  async function filterBrand(brand: string) {
+    activeBrand = brand;
     page = 1;
     hasMore = true;
     cardIndex = 0;
     allCards.length = 0;
     grid.innerHTML = "";
     for (const c of chips.querySelectorAll(".chip")) {
-      const chipSlug = (c as HTMLElement).dataset.slug ?? "";
-      c.classList.toggle("active", chipSlug === slug);
+      const chipBrand = (c as HTMLElement).dataset.brand ?? "";
+      c.classList.toggle("active", chipBrand === brand);
     }
     await loadMore();
   }
@@ -259,7 +259,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         limit: "20",
         sort: "new",
       });
-      if (category) q.set("category", category);
+      if (activeBrand) q.set("brand", activeBrand);
       if (search) q.set("search", search);
       const res = await apiGet<{
         data: ProductListItem[];
@@ -324,10 +324,10 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   // Рециклинг DOM при скролле: удаляем карточки далеко за пределами viewport
   main.addEventListener("scroll", () => recycleCards(), { passive: true });
 
-  const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
-  if (pendingCategory !== null) {
-    sessionStorage.removeItem(PENDING_CATEGORY_KEY);
-    await filterCategory(pendingCategory);
+  const pendingBrand = sessionStorage.getItem(PENDING_BRAND_KEY);
+  if (pendingBrand !== null) {
+    sessionStorage.removeItem(PENDING_BRAND_KEY);
+    await filterBrand(pendingBrand);
   } else {
     await loadMore();
   }

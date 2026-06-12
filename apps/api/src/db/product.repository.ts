@@ -123,6 +123,20 @@ export async function listCategories(): Promise<
   return data ?? [];
 }
 
+export async function listBrands(): Promise<string[]> {
+  const { data, error } = await getSupabase()
+    .from("products")
+    .select("brand")
+    .eq("is_available", true)
+    .not("brand", "is", null);
+  if (error) throw new Error(error.message);
+  const brands = new Set<string>();
+  for (const row of data ?? []) {
+    if (row.brand) brands.add(row.brand);
+  }
+  return Array.from(brands).sort((a, b) => a.localeCompare(b));
+}
+
 export async function setProductVisibility(
   id: string,
   visible: boolean,

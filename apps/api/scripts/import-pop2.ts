@@ -293,8 +293,8 @@ async function main() {
       price_cny: priceCny,
       price_rub: priceRub,
       price_usdt: priceUsdt,
-      sizes: {},
-      stock: {},
+      sizes: p.sizes && p.sizes.length > 0 ? { EU: p.sizes } : {},
+      stock: p.sizes && p.sizes.length > 0 ? Object.fromEntries(p.sizes.map((s) => [s, true])) : {},
       sold_count: p.favoriteCount || 0,
       is_available: p.price > 0,
     });

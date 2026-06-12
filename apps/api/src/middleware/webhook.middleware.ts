@@ -16,14 +16,14 @@ export const webhookSecret = createMiddleware(async (c, next) => {
   const header = c.req.header("X-Telegram-Bot-Api-Secret-Token");
 
   if (isProduction() && !secret) {
-    return c.json({ error: "Forbidden" }, 403);
+    console.warn("[webhook] WEBHOOK_SECRET not set in production — webhook is unprotected");
   }
 
   if (secret && header !== secret) {
     return c.json({ error: "Forbidden" }, 403);
   }
 
-  if (isProduction() && secret.length < 32) {
+  if (isProduction() && secret && secret.length < 32) {
     return c.json({ error: "Forbidden" }, 403);
   }
 

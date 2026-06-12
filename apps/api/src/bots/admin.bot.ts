@@ -364,5 +364,9 @@ export async function handleAdminUpdate(update: unknown): Promise<void> {
     console.warn("[admin-bot] no ADMIN_BOT_TOKEN");
     return;
   }
-  await bot.handleUpdate(update as Parameters<Bot["handleUpdate"]>[0]);
+  try {
+    await bot.handleUpdate(update as Parameters<Bot["handleUpdate"]>[0]);
+  } catch (err) {
+    console.error("[admin-bot] handleUpdate error:", err);
+  }
 }

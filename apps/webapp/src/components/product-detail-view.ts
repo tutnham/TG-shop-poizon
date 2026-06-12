@@ -159,7 +159,8 @@ export function renderProductDetailView(
   };
   window.addEventListener("poizon-cart-changed", cartChangeHandler);
 
-  const sizes = Object.values(p.sizes ?? {}).flat();
+  const rawSizes = Object.values(p.sizes ?? {}).flat();
+  const sizes = rawSizes.length > 0 ? rawSizes : (p.is_available ? ["OS"] : []);
   const stock = p.stock ?? {};
 
   page.innerHTML = `

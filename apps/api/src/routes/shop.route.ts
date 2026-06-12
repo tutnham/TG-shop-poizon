@@ -134,6 +134,11 @@ shop.get("/categories", async (c) => {
   return c.json({ data: categories });
 });
 
+shop.get("/brands", async (c) => {
+  const brands = await productRepo.listBrands();
+  return c.json({ data: brands });
+});
+
 shop.get("/cart", async (c) => {
   const userId = c.get("userId");
   const items = await cartRepo.getCartItems(userId);
