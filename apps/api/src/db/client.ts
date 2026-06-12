@@ -20,17 +20,8 @@ export function getSupabase(): SupabaseClient {
   if (!url || !key) {
     throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required");
   }
-  console.error("[db] Supabase URL len:", url.length, "first/last:", JSON.stringify(url.slice(0, 8)), "/", JSON.stringify(url.slice(-8)));
   client = createClient(url, key, {
     auth: { persistSession: false },
-    global: {
-      fetch: ((...args: Parameters<typeof fetch>) => {
-        const [input] = args;
-        const urlStr = typeof input === "string" ? input : (input as Request).url;
-        console.error("[db:fetch]", urlStr.slice(0, 200));
-        return fetch(...args);
-      }) as typeof fetch,
-    },
   });
   return client;
 }

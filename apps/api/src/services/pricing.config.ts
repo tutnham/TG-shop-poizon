@@ -18,6 +18,13 @@ export interface PricingModuleConfig {
   fxBufferPct: number;
 }
 
+function envNumber(key: string, fallback: number): number {
+  const raw = getEnvOptional(key);
+  if (!raw) return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
 /** Значения по умолчанию */
 const DEFAULTS: PricingModuleConfig = {
   publicRatePolicy: "ALLOW_FALLBACK",
@@ -51,18 +58,10 @@ export function getPricingModuleConfig(): PricingModuleConfig {
         "PRICING_ROUNDING_MODE",
         DEFAULTS.roundingMode,
       ) as PricingModuleConfig["roundingMode"]) ?? DEFAULTS.roundingMode,
-    roundingScale:
-      Number(getEnvOptional("PRICING_ROUNDING_SCALE", String(DEFAULTS.roundingScale))) ??
-      DEFAULTS.roundingScale,
-    cnyRubTtlMs:
-      Number(getEnvOptional("PRICING_CNY_RUB_TTL_MS", String(DEFAULTS.cnyRubTtlMs))) ??
-      DEFAULTS.cnyRubTtlMs,
-    usdtRubTtlMs:
-      Number(getEnvOptional("PRICING_USDT_RUB_TTL_MS", String(DEFAULTS.usdtRubTtlMs))) ??
-      DEFAULTS.usdtRubTtlMs,
-    fxBufferPct:
-      Number(getEnvOptional("PRICING_FX_BUFFER_PCT", String(DEFAULTS.fxBufferPct))) ??
-      DEFAULTS.fxBufferPct,
+    roundingScale: envNumber("PRICING_ROUNDING_SCALE", DEFAULTS.roundingScale),
+    cnyRubTtlMs: envNumber("PRICING_CNY_RUB_TTL_MS", DEFAULTS.cnyRubTtlMs),
+    usdtRubTtlMs: envNumber("PRICING_USDT_RUB_TTL_MS", DEFAULTS.usdtRubTtlMs),
+    fxBufferPct: envNumber("PRICING_FX_BUFFER_PCT", DEFAULTS.fxBufferPct),
   };
 
   return _config;

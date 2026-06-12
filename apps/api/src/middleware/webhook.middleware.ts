@@ -3,6 +3,14 @@ import { getEnvOptional, isProduction } from "../types/env.types.js";
 
 const hits = new Map<string, { count: number; reset: number }>();
 
+// Периодическая очистка устаревших записей для предотвращения утечки памяти
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of hits) {
+    if (now > entry.reset) hits.delete(ip);
+  }
+}, 120000);
+
 export const webhookSecret = createMiddleware(async (c, next) => {
   const secret = getEnvOptional("WEBHOOK_SECRET");
   const header = c.req.header("X-Telegram-Bot-Api-Secret-Token");

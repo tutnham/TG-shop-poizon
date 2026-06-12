@@ -108,7 +108,10 @@ admin.patch(
   async (c) => {
     const id = c.req.param("id");
     const { tracking_number } = c.req.valid("json");
-    await orderRepo.updateOrderStatus(id, undefined as unknown as OrderStatus, {
+    // Get current order status to preserve it
+    const order = await orderRepo.getOrderById(id);
+    if (!order) return c.json({ error: "Not found" }, 404);
+    await orderRepo.updateOrderStatus(id, order.status, {
       tracking_number,
     });
     return c.json({ ok: true });
@@ -221,9 +224,11 @@ admin.get("/config", async (c) => {
   return c.json({ data: cfg });
 });
 
+const PROTECTED_CONFIG_KEYS = new Set(["admin_telegram_ids"]);
+
 const UpdateConfigSchema = z.object({
   key: z.string().min(1).max(100),
-  value: z.unknown(),
+  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown()), z.record(z.unknown())]),
 });
 
 admin.patch(
@@ -231,6 +236,9 @@ admin.patch(
   zValidator("json", UpdateConfigSchema),
   async (c) => {
     const { key, value } = c.req.valid("json");
+    if (PROTECTED_CONFIG_KEYS.has(key)) {
+      return c.json({ error: "Cannot modify protected config key" }, 403);
+    }
     await setConfigValue(key, value);
     return c.json({ ok: true });
   },

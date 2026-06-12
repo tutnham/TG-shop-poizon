@@ -1,4 +1,5 @@
 import { Bot, InlineKeyboard } from "grammy";
+import { getSupabase } from "../db/client.js";
 import * as orderRepo from "../db/order.repository.js";
 import { getEnvOptional } from "../types/env.types.js";
 
@@ -83,12 +84,34 @@ function setupShopBot(bot: Bot): void {
     await ctx.answerCallbackQuery({ url: webappUrl });
   });
 
-  // Callback: статус заказа
+  // Callback: статус заказа (только если пользователь — владелец заказа)
   bot.callbackQuery(/^track_order:(.+)$/, async (ctx) => {
     const orderId = ctx.match[1] ?? "";
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.answerCallbackQuery({ text: "Ошибка авторизации", show_alert: true });
+      return;
+    }
+    // Получаем заказ с проверкой владельца
     const order = await orderRepo.getOrderById(orderId);
     if (!order) {
       await ctx.answerCallbackQuery({ text: "Заказ не найден", show_alert: true });
+      return;
+    }
+    // Проверяем, что пользователь — владелец заказа (по telegram_id)
+    // Для этого нужна доп. проверка через БД
+    const { data: orderUser } = await getSupabase()
+      .from("orders")
+      .select("user_id")
+      .eq("id", orderId)
+      .maybeSingle();
+    const { data: tgUser } = await getSupabase()
+      .from("users")
+      .select("id")
+      .eq("telegram_id", userId)
+      .maybeSingle();
+    if (!orderUser || !tgUser || orderUser.user_id !== tgUser.id) {
+      await ctx.answerCallbackQuery({ text: "Нет доступа к этому заказу", show_alert: true });
       return;
     }
     const statusLabels: Record<string, string> = {
@@ -101,7 +124,7 @@ function setupShopBot(bot: Bot): void {
       cancelled: "❌ Отменён",
     };
     const status = statusLabels[order.status] ?? order.status;
-    let text = `Заказ #${order.id.slice(0, 8)}\nСтатус: ${status}`;
+    let text = `Заказ #${order.short_id ?? order.id.slice(0, 8)}\nСтатус: ${status}`;
     if (order.tracking_number) {
       text += `\nТрек-номер: ${order.tracking_number}`;
     }

@@ -22,7 +22,6 @@ import {
   createOrderFromCart,
 } from "../services/order.service.js";
 import type { AppEnv } from "../types/env.types.js";
-import { getEnvOptional } from "../types/env.types.js";
 
 const shop = new Hono<AppEnv>();
 shop.use("*", tmaAuth);
@@ -54,24 +53,18 @@ async function fireCartNotification(userId: string): Promise<void> {
 }
 
 shop.get("/ping", async (c) => {
-  const sbUrl = getEnvOptional("SUPABASE_URL");
   try {
     const sb = getSupabase();
-    const { data, error } = await sb.from("shop_config").select("key").limit(1);
+    const { error } = await sb.from("shop_config").select("key").limit(1);
     return c.json({
-      ok: true,
+      ok: !error,
       userId: c.get("userId"),
-      sb_url_raw: typeof sbUrl === "string" ? sbUrl.slice(0, 80) : null,
       sb_configured: isSupabaseConfigured(),
-      sb_error: error?.message ?? null,
-      sb_data: data,
     });
-  } catch (e) {
+  } catch {
     return c.json({
       ok: false,
       userId: c.get("userId"),
-      error: e instanceof Error ? e.message : String(e),
-      sb_url_raw: typeof sbUrl === "string" ? sbUrl.slice(0, 80) : null,
       sb_configured: isSupabaseConfigured(),
     });
   }

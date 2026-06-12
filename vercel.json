@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && rm -rf dist && mkdir -p dist && cp -r apps/webapp/dist/. dist/",
+  "buildCommand": "npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && node scripts/build-vercel.js",
   "installCommand": "npm ci --workspaces --include-workspace-root",
   "outputDirectory": "dist",
   "framework": null,

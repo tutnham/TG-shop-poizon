@@ -38,3 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_products_brand_trgm
 CREATE INDEX IF NOT EXISTS idx_products_keyset
   ON products (sold_count DESC, id DESC)
   WHERE is_available = TRUE;
+
+-- Индекс для сортировки заказов по дате создания (админ-панель)
+CREATE INDEX IF NOT EXISTS idx_orders_created_at
+  ON orders (created_at DESC);
