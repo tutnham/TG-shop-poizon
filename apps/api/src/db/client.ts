@@ -9,6 +9,7 @@ function cleanEnv(value: string | undefined): string | undefined {
     .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width chars, BOM
     .trim()
     .replace(/^["']|["']$/g, "")  // wrapping quotes
+    .replace(/\/rest\/v1\/?$/, "") // strip /rest/v1 suffix (supabase-js adds it back)
     .replace(/\/+$/, "");           // trailing slashes
 }
 

@@ -7,7 +7,7 @@ import {
   UpdateLanguageSchema,
 } from "@poizon-shop/shared";
 import { Hono } from "hono";
-import { getSupabase } from "../db/client.js";
+import { getSupabase, isSupabaseConfigured } from "../db/client.js";
 import * as cartRepo from "../db/cart.repository.js";
 import { getConfigValue, getConfigValues } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
@@ -29,14 +29,16 @@ shop.use("*", tmaAuth);
 shop.get("/ping", async (c) => {
   const sbUrl = getEnvOptional("SUPABASE_URL");
   try {
-    const { data, error } = await getSupabase()
+    const sb = getSupabase();
+    const { data, error } = await sb
       .from("shop_config")
       .select("key")
       .limit(1);
     return c.json({
       ok: true,
       userId: c.get("userId"),
-      sb_url_prefix: typeof sbUrl === "string" ? sbUrl.slice(0, 60) : null,
+      sb_url_raw: typeof sbUrl === "string" ? sbUrl.slice(0, 80) : null,
+      sb_configured: isSupabaseConfigured(),
       sb_error: error?.message ?? null,
       sb_data: data,
     });
@@ -45,10 +47,12 @@ shop.get("/ping", async (c) => {
       ok: false,
       userId: c.get("userId"),
       error: e instanceof Error ? e.message : String(e),
-      sb_url_prefix: typeof sbUrl === "string" ? sbUrl.slice(0, 60) : null,
+      sb_url_raw: typeof sbUrl === "string" ? sbUrl.slice(0, 80) : null,
+      sb_configured: isSupabaseConfigured(),
     });
   }
 });
+
 
 shop.get("/config", async (c) => {
   const cfg = await getConfigValues([
