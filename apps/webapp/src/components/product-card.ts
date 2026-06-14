@@ -101,7 +101,7 @@ export function renderProductCard(
   el.innerHTML = `
     ${badgeHtml}
     <div class="product-card__media">
-      <img src="${escapeAttrUrl(p.image_url)}" alt="" width="400" height="400" loading="lazy" decoding="async" />
+      <img src="${escapeAttrUrl(p.image_url)}" alt="${escapeHtml(p.name)}" width="400" height="400" loading="lazy" decoding="async" />
       <button type="button" class="product-card__fav" aria-label="${t("favorite")}">
         <span class="material-symbols-outlined">favorite</span>
       </button>

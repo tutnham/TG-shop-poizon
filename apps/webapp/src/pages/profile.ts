@@ -1,4 +1,5 @@
 import { t } from "../i18n/index.js";
+import { escapeHtml } from "../lib/escape.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { getTg, hideBackButton, hideMainButton } from "../telegram.js";
 
@@ -24,9 +25,9 @@ export async function renderProfile(app: HTMLElement): Promise<void> {
       <div class="profile-card__avatar" aria-hidden="true">
         <span class="material-symbols-outlined">person</span>
       </div>
-      <h2 class="profile-card__name">${displayName}</h2>
-      ${tgUser?.username ? `<p class="profile-card__username">@${tgUser.username}</p>` : ""}
-      ${tgUser?.id ? `<p class="profile-card__meta">ID ${tgUser.id}</p>` : ""}
+      <h2 class="profile-card__name">${escapeHtml(displayName)}</h2>
+      ${tgUser?.username ? `<p class="profile-card__username">@${escapeHtml(tgUser.username)}</p>` : ""}
+      ${tgUser?.id ? `<p class="profile-card__meta">ID ${escapeHtml(String(tgUser.id))}</p>` : ""}
     </section>
   `;
   pageRoot.appendChild(main);

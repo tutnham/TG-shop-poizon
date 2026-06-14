@@ -173,7 +173,9 @@ shop.post("/cart", zValidator("json", AddToCartSchema), async (c) => {
   }
   const userId = c.get("userId");
   await cartRepo.addCartItem(userId, body.product_id, body.size, body.quantity);
-  fireCartNotification(userId);
+  fireCartNotification(userId).catch((e) =>
+    console.error("[cart-notify] POST /cart failed:", e),
+  );
   return c.json({ ok: true });
 });
 
@@ -187,7 +189,9 @@ shop.patch(
       userId,
       c.req.valid("json"),
     );
-    fireCartNotification(userId);
+    fireCartNotification(userId).catch((e) =>
+      console.error("[cart-notify] PATCH /cart failed:", e),
+    );
     return c.json({ ok: true });
   },
 );
@@ -195,7 +199,9 @@ shop.patch(
 shop.delete("/cart/:itemId", async (c) => {
   const userId = c.get("userId");
   await cartRepo.deleteCartItem(c.req.param("itemId"), userId);
-  fireCartNotification(userId);
+  fireCartNotification(userId).catch((e) =>
+    console.error("[cart-notify] DELETE /cart failed:", e),
+  );
   return c.json({ ok: true });
 });
 

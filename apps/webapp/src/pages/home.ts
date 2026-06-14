@@ -18,6 +18,7 @@ import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
 const PENDING_BRAND_KEY = "poizon_pending_brand";
+const PENDING_CATEGORY_KEY = "poizon_pending_category";
 
 // ── Конфигурация DOM-рециклинга для 9000+ товаров ──
 const MAX_VISIBLE_CARDS = 120; // Максимум карточек в DOM одновременно
@@ -194,6 +195,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   let cardIndex = 0;
   const allCards: HTMLElement[] = [];
+  let activeCategory = "";
 
   /** Удаляет карточки далеко за пределами viewport для экономии DOM */
   function recycleCards(): void {
@@ -272,6 +274,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         sort: "new",
       });
       if (activeBrand) q.set("brand", activeBrand);
+      if (activeCategory) q.set("category", activeCategory);
       if (search) q.set("search", search);
       const res = await apiGet<{
         data: ProductListItem[];
@@ -333,11 +336,22 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   main.appendChild(sentinel);
   observer.observe(sentinel);
 
+  const cleanupObserver = () => {
+    observer.disconnect();
+    window.removeEventListener("hashchange", cleanupObserver);
+  };
+  window.addEventListener("hashchange", cleanupObserver, { once: true });
+
   // Рециклинг DOM при скролле: удаляем карточки далеко за пределами viewport
   main.addEventListener("scroll", () => recycleCards(), { passive: true });
 
   const pendingBrand = sessionStorage.getItem(PENDING_BRAND_KEY);
-  if (pendingBrand !== null) {
+  const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
+  if (pendingCategory !== null) {
+    sessionStorage.removeItem(PENDING_CATEGORY_KEY);
+    activeCategory = pendingCategory;
+    await loadMore();
+  } else if (pendingBrand !== null) {
     sessionStorage.removeItem(PENDING_BRAND_KEY);
     await filterBrand(pendingBrand);
   } else {

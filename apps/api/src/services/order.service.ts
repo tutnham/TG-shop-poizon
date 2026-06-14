@@ -212,7 +212,7 @@ export async function confirmManualPayment(
     return { ok: false, error: appError("Order cancelled", 400) };
   }
   if (order.status === "paid") {
-    return { ok: true, data: undefined };
+    return { ok: false, error: appError("Order already marked as paid", 400) };
   }
 
   if (!canTransition(order.status, "paid")) {

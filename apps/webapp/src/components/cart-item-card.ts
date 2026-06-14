@@ -33,7 +33,7 @@ export function renderCartItemCard(
 
   card.innerHTML = `
     <button type="button" class="cart-item-card__media" data-product-link>
-      <img src="${escapeAttrUrl(item.product.image_url)}" alt="" loading="lazy" />
+      <img src="${escapeAttrUrl(item.product.image_url)}" alt="${escapeHtml(item.product.name)}" loading="lazy" />
     </button>
     <div class="cart-item-card__body">
       <h3 class="cart-item-card__name">${escapeHtml(item.product.name)}</h3>
@@ -47,7 +47,7 @@ export function renderCartItemCard(
         <div class="qty-stepper" data-id="${escapeHtml(item.id)}">
           <button type="button" class="qty-stepper__btn" data-action="dec" aria-label="-">−</button>
           <span class="qty-stepper__value">${item.quantity}</span>
-          <button type="button" class="qty-stepper__btn" data-action="inc" aria-label="+">+</button>
+          <button type="button" class="qty-stepper__btn" data-action="inc" aria-label="+"${item.quantity >= 10 ? " disabled" : ""}>+</button>
         </div>
         <button type="button" class="cart-item-card__remove" data-action="remove">${t("cart_remove")}</button>
       </div>

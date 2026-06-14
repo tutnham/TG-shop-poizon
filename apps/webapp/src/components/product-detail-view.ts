@@ -170,7 +170,7 @@ export function renderProductDetailView(
 
   page.innerHTML = `
     <div class="product-gallery">
-      <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
+      <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="${escapeHtml(p.name)}" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
     </div>
     <p class="product-detail__brand">${escapeHtml(p.brand ?? "")}</p>
     <h2 class="product-detail__title">${escapeHtml(p.name)}</h2>

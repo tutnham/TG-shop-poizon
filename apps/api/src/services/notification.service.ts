@@ -1,5 +1,13 @@
 import { getEnvOptional } from "../types/env.types.js";
 
+/** Экранирует спецсимволы HTML в пользовательских строках перед вставкой в Telegram HTML-сообщения. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export async function sendShopMessage(
   telegramId: number,
   text: string,
@@ -25,7 +33,9 @@ export async function sendShopMessage(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return res.ok;
+  if (!res.ok) return false;
+  const data = (await res.json()) as { ok?: boolean };
+  return data.ok === true;
 }
 
 export async function sendAdminMessage(
@@ -53,7 +63,9 @@ export async function sendAdminMessage(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  return res.ok;
+  if (!res.ok) return false;
+  const data = (await res.json()) as { ok?: boolean };
+  return data.ok === true;
 }
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -197,9 +209,9 @@ export async function notifyUserOrderCreated(params: {
     `<b>Итого:</b> ${totalRub} ₽ / ${totalUsdt} USDT`,
     `<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`,
     "",
-    `<b>Получатель:</b> ${deliveryInfo.full_name}`,
-    `<b>Телефон:</b> ${deliveryInfo.phone}`,
-    `<b>Адрес:</b> ${deliveryInfo.address}`,
+    `<b>Получатель:</b> ${escapeHtml(deliveryInfo.full_name)}`,
+    `<b>Телефон:</b> ${escapeHtml(deliveryInfo.phone)}`,
+    `<b>Адрес:</b> ${escapeHtml(deliveryInfo.address)}`,
   );
 
   const keyboard = {
@@ -251,8 +263,8 @@ export async function notifyAdminNewOrder(params: {
   const lines: string[] = [
     `<b>🛍 Новый заказ #${shortId}</b>`,
     "",
-    `<b>Покупатель:</b> ${customerName}`,
-    `<b>Телефон:</b> ${customerPhone}`,
+    `<b>Покупатель:</b> ${escapeHtml(customerName)}`,
+    `<b>Телефон:</b> ${escapeHtml(customerPhone)}`,
   ];
 
   // Telegram контакт для связи менеджера
@@ -263,7 +275,7 @@ export async function notifyAdminNewOrder(params: {
   }
 
   if (deliveryAddress) {
-    lines.push(`<b>Адрес:</b> ${deliveryAddress}`);
+    lines.push(`<b>Адрес:</b> ${escapeHtml(deliveryAddress)}`);
   }
 
   lines.push("", "<b>Товары:</b>");

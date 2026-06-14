@@ -40,7 +40,7 @@ async function toWebRequest(req: IncomingMessage): Promise<Request> {
   const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
     // Vercel may expose body as req.body (object) or as readable stream
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: IncomingMessage has no typed body property
     const rawBody = (req as any).body;
     if (rawBody && typeof rawBody === "object" && !Buffer.isBuffer(rawBody)) {
       // Body already parsed by runtime (e.g. JSON object)

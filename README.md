@@ -10,14 +10,14 @@
 - [Структура проекта](#структура-проекта)
 - [Быстрый старт](#быстрый-старт)
 - [Переменные окружения](#переменные-окружения)
+- [База данных](#база-данных)
 - [Работа с проектом](#работа-с-проектом)
 - [API](#api)
 - [Telegram боты](#telegram-боты)
-- [Poizen-провайдеры](#poizen-провайдеры)
+- [Poizon-провайдеры](#poizon-провайдеры)
 - [Деплой на Vercel](#деплой-на-vercel)
 - [Безопасность](#безопасность)
 - [Тестирование](#тестирование)
-- [Документация](#документация)
 
 ---
 
@@ -74,13 +74,14 @@ WebApp (Vite)         Supabase Cloud
 
 | Компонент | Технология |
 |-----------|------------|
-| Backend API | [Hono](https://hono.dev) (Node.js/TS) |
+| Backend API | [Hono](https://hono.dev) (Node.js/TypeScript) |
 | Frontend | Vanilla TypeScript + [Vite](https://vitejs.dev) |
-| Database | [Supabase](https://supabase.com) (PostgreSQL) |
+| Database | [Supabase](https://supabase.com) Cloud (PostgreSQL) |
 | Bots | [Grammy](https://grammy.dev) |
 | Validation | [Zod](https://zod.dev) |
 | Lint/Format | [Biome](https://biomejs.dev) |
 | Deployment | [Vercel](https://vercel.com) |
+| Runtime | Node.js 18+ (не Bun) |
 
 ---
 
@@ -107,55 +108,28 @@ poizon-shop/
 │   │   │   ├── app.ts          # Конфигурация Hono
 │   │   │   └── index.ts        # Точка входа
 │   │   ├── scripts/            # CLI-скрипты
-│   │   │   ├── migrate.ts
-│   │   │   ├── webhook-set.ts
-│   │   │   ├── rates-update.ts
-│   │   │   ├── poizon-sync.ts
-│   │   │   ├── import-pop2.ts
-│   │   │   └── delete-demo.ts
-│   │   ├── package.json
-│   │   └── tsconfig.json
+│   │   └── package.json
 │   └── webapp/                 # Telegram Mini App
 │       ├── src/
 │       │   ├── api/            # API клиент
 │       │   ├── components/     # UI компоненты
-│       │   ├── data/           # Данные/конфигурация
 │       │   ├── i18n/           # Локализация
 │       │   ├── lib/            # Утилиты
 │       │   ├── pages/          # Страницы приложения
 │       │   ├── styles/         # CSS
 │       │   ├── main.ts         # Точка входа
 │       │   ├── router.ts       # SPA роутер
-│       │   ├── shell.ts        # Шелл-приложения
 │       │   └── telegram.ts     # Telegram WebApp SDK
 │       ├── index.html
-│       ├── package.json
 │       └── vite.config.ts
 ├── packages/
 │   └── shared/                 # Общие типы и Zod-схемы
-│       ├── src/
-│       │   ├── schemas/
-│       │   ├── types/
-│       │   │   ├── api.ts
-│       │   │   ├── order.ts
-│       │   │   └── product.ts
-│       │   └── index.ts
-│       ├── package.json
-│       └── tsconfig.json
 ├── infra/
-│   └── supabase/migrations/    # SQL-миграции
-│       ├── 001_init.sql
-│       ├── 002_demo_seed.sql
-│       ├── 003_exchange_rates.sql
-│       └── 004_perf_indexes.sql
-├── docs/
-│   ├── deploy-vercel.md
-│   ├── poizon-providers.md
-│   └── security-scan-notes.md
+│   └── supabase/migrations/    # SQL-миграции (выполнять по порядку)
+├── scripts/
+│   └── build-vercel.js         # Сборка webapp → dist для Vercel
 ├── vercel.json                 # Конфигурация Vercel
 ├── biome.json                  # Конфигурация Biome
-├── design.md                   # Визуальная спецификация
-├── poizon_shop_spec.md         # Полная спецификация проекта
 └── package.json                # Root workspaces
 ```
 
@@ -165,20 +139,15 @@ poizon-shop/
 
 ### Требования
 
-- Node.js 18+ (или Bun)
+- **Node.js 18+** (Bun не поддерживается в Vercel-деплое)
 - npm 9+ (с поддержкой workspaces)
 
 ### Установка
 
 ```bash
-# Клонирование репозитория
 git clone <repo-url>
 cd poizon-shop
-
-# Установка зависимостей
 npm install
-
-# Копирование шаблона переменных окружения
 cp .env.example .env
 ```
 
@@ -189,11 +158,7 @@ cp .env.example .env
 ### База данных
 
 1. Создайте проект на [Supabase](https://supabase.com)
-2. В SQL Editor выполните миграции по порядку:
-   - `infra/supabase/migrations/001_init.sql`
-   - `infra/supabase/migrations/002_demo_seed.sql`
-   - `infra/supabase/migrations/003_exchange_rates.sql`
-   - `infra/supabase/migrations/004_perf_indexes.sql`
+2. В SQL Editor выполните миграции по порядку (см. [База данных](#база-данных))
 3. Скопируйте URL и `service_role` key в `.env`
 
 ### Локальная разработка
@@ -216,55 +181,74 @@ npm run webhook:set
 
 ## Переменные окружения
 
-```env
-# Telegram Bots (получить у @BotFather)
-SHOP_BOT_TOKEN=               # Токен клиентского бота
-ADMIN_BOT_TOKEN=              # Токен админ-бота
-WEBHOOK_SECRET=               # Случайная строка ≥32 символов
+Полный шаблон — в `.env.example`.
 
-# Server
-PORT=3000                     # Порт API сервера
-DEMO_MODE=false               # true — UI без Telegram (только для разработки)
-NODE_ENV=development
+### Обязательные (production)
 
-# URLs (после деплоя)
-WEBAPP_URL=https://your-project.vercel.app
-API_URL=https://your-project.vercel.app
+| Переменная | Описание | Требование |
+|-----------|----------|------------|
+| `SHOP_BOT_TOKEN` | Токен клиентского бота (@BotFather) | Обязательно |
+| `ADMIN_BOT_TOKEN` | Токен админ-бота (@BotFather) | Обязательно |
+| `WEBHOOK_SECRET` | Секрет для webhook верификации | ≥32 символа в production |
+| `SUPABASE_URL` | URL проекта Supabase | Без `/rest/v1/` суффикса |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key | Не anon key! |
+| `WEBAPP_URL` | URL деплоя Mini App | После деплоя на Vercel |
+| `API_URL` | URL API | После деплоя на Vercel |
+| `CRON_SECRET` | Секрет для Vercel Cron | ≥32 символа в production |
 
-# Supabase Cloud
-SUPABASE_URL=https://xxxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=    # Service role key (не anon!)
-SUPABASE_ANON_KEY=
+### Poizon провайдер
 
-# Vercel Cron
-CRON_SECRET=                  # Случайная строка ≥32 символов
+| Переменная | Описание |
+|-----------|----------|
+| `POIZON_PROVIDER` | `mock` \| `poparce` \| `official` |
+| `POIZON_API_KEY` | Ключ для poparce |
+| `POIZON_API_BASE_URL` | URL poparce API |
+| `POIZON_OFFICIAL_API_KEY` | Ключ для official (нужен `POIZON_PROVIDER=official`) |
+| `POIZON_OFFICIAL_API_URL` | URL official API |
 
-# Poizon провайдер: mock | poparce | official
-POIZON_PROVIDER=mock
-POIZON_API_KEY=               # Ключ Poparce (для poparce)
-POIZON_API_BASE_URL=https://poparce.ru/api/dewu
-POIZON_OFFICIAL_API_URL=https://poizon-api.com/api/dewu
-POIZON_OFFICIAL_API_KEY=      # Ключ official API
+### Опциональные
 
-# Курсы валют (fallback при недоступности CBR/Binance)
-CNY_TO_RUB_RATE=13.5
-CNY_TO_USD_RATE=7.25
-MARKUP_PERCENT=25             # Наценка в процентах
-DELIVERY_RUB=0                # Фикс. доставка в рублях
+| Переменная | По умолчанию | Описание |
+|-----------|-------------|----------|
+| `PORT` | 3000 | Порт для локальной разработки |
+| `DEMO_MODE` | false | UI без Telegram (только разработка) |
+| `NODE_ENV` | development | — |
+| `SUPABASE_ANON_KEY` | — | Не используется сервером |
+| `CNY_TO_RUB_RATE` | 13.5 | Fallback курса CNY→RUB |
+| `CNY_TO_USD_RATE` | 7.25 | Fallback курса CNY→USD |
+| `MARKUP_PERCENT` | 25 | Наценка в % |
+| `DELIVERY_RUB` | 0 | Фиксированная доставка (₽) |
+| `TON_WALLET_ADDRESS` | — | TON кошелёк для оплат |
+| `TON_RATE_USD` | 2.5 | Курс TON/USD |
+| `VERCEL_AUTOMATION_BYPASS_SECRET` | — | Bypass Deployment Protection |
+| `CORS_ORIGINS` | — | Дополнительные CORS origins (через запятую) |
+| `IMAGE_PROXY_ALLOWED_HOSTS` | — | Дополнительные хосты для image proxy |
 
-# TON платежи (опционально)
-TON_WALLET_ADDRESS=
-TON_RATE_USD=2.5
+### Pricing module (продвинутые)
 
-# Vercel Deployment Protection (опционально)
-VERCEL_AUTOMATION_BYPASS_SECRET=
+| Переменная | По умолчанию | Описание |
+|-----------|-------------|----------|
+| `PRICING_PUBLIC_RATE_POLICY` | ALLOW_FALLBACK | `STRICT` \| `ALLOW_FALLBACK` |
+| `PRICING_INTERNAL_RATE_POLICY` | ALLOW_FALLBACK | `STRICT` \| `ALLOW_FALLBACK` |
+| `PRICING_ROUNDING_MODE` | ROUND_CEIL | `ROUND_HALF_UP` \| `ROUND_CEIL` |
+| `PRICING_ROUNDING_SCALE` | 0 | Знаки после запятой |
+| `PRICING_CNY_RUB_TTL_MS` | 86400000 | TTL кеша CNY→RUB (24ч) |
+| `PRICING_USDT_RUB_TTL_MS` | 300000 | TTL кеша USDT→RUB (5мин) |
+| `PRICING_FX_BUFFER_PCT` | 0.03 | Буфер волатильности USDT (3%) |
 
-# CORS (опционально, через запятую)
-CORS_ORIGINS=
+---
 
-# Image proxy (опционально)
-IMAGE_PROXY_ALLOWED_HOSTS=
-```
+## База данных
+
+Миграции находятся в `infra/supabase/migrations/`. Выполнять **строго по порядку** в SQL Editor Supabase:
+
+| Файл | Описание |
+|------|----------|
+| `001_init.sql` | Таблицы, RLS, базовая структура |
+| `002_demo_seed.sql` | Демо-данные для разработки |
+| `003_exchange_rates.sql` | Таблица курсов валют |
+| `004_perf_indexes.sql` | Индексы для производительности |
+| `005_constraints.sql` | CHECK-ограничения и дополнительные индексы |
 
 ---
 
@@ -334,7 +318,7 @@ IMAGE_PROXY_ALLOWED_HOSTS=
 
 ### Admin API
 
-Защищен проверкой Telegram ID администратора.
+Защищен проверкой Telegram ID администратора из белого списка.
 
 | Метод | Путь | Описание |
 |-------|------|----------|
@@ -396,16 +380,16 @@ IMAGE_PROXY_ALLOWED_HOSTS=
 - `/config` — настройки магазина
 
 **Inline-меню:**
-- 📦 Новые заказы
-- 📋 Все заказы
-- 💰 Настройки цен
-- 🔄 Синхронизация
-- ⚙️ Настройки
-- 📊 Статистика
+- Новые заказы
+- Все заказы
+- Настройки цен
+- Синхронизация
+- Настройки
+- Статистика
 
 ---
 
-## Poizen-провайдеры
+## Poizon-провайдеры
 
 Переключение провайдеров через переменную `POIZON_PROVIDER`:
 
@@ -413,14 +397,14 @@ IMAGE_PROXY_ALLOWED_HOSTS=
 |-----------|----------|----------|
 | Mock | `mock` | Локальная разработка без ключей |
 | Poparce | `poparce` | Сторонний DEWU API (`POIZON_API_KEY`) |
-| Official | `official` | [Poizon-API/public-api](https://github.com/Poizon-API/public-api) |
+| Official | `official` | Poizon-API/public-api (`POIZON_OFFICIAL_API_KEY`) |
 
-По умолчанию: `poparce` если задан `POIZON_API_KEY`, иначе `mock`.
+По умолчанию: `mock`.
 
 **Ценообразование:**
 - Цены с Poizon приходят в **фенях** (1 CNY = 100 фень)
 - Пересчет: `price_rub = (price_cny * rate_cny_rub) * (1 + markup/100) + delivery_fee`
-- Курсы обновляются из ЦБ РФ + Binance каждый час
+- Курсы обновляются из ЦБ РФ + Binance через Vercel Cron
 
 ---
 
@@ -429,7 +413,7 @@ IMAGE_PROXY_ALLOWED_HOSTS=
 ### 1. Подготовка Supabase
 
 - Создайте проект на [Supabase](https://supabase.com)
-- Выполните миграции из `infra/supabase/migrations/`
+- Выполните миграции из `infra/supabase/migrations/` **по порядку** (001 → 005)
 - Скопируйте URL и `service_role` key
 
 ### 2. Telegram боты
@@ -440,18 +424,17 @@ IMAGE_PROXY_ALLOWED_HOSTS=
 
 ### 3. Настройка Vercel
 
-**Важно — Root Directory:**
-- **Settings → General → Root Directory** = пусто (корень репозитория)
-- Build Command и Install Command — Override **выключен**
-- Output Directory — Override **выключен**
+**Root Directory:** пусто (корень репозитория). Build Command и Output Directory — не переопределять (управляются `vercel.json`).
 
 ### 4. Переменные окружения Vercel
 
-Добавьте все переменные из `.env.example` в Vercel → Settings → Environment Variables.
+Добавьте все обязательные переменные из `.env.example` в Vercel → Settings → Environment Variables.
 
 ### 5. Деплой
 
-Подключите репозиторий к Vercel. Деплой запустится автоматически.
+Подключите репозиторий к Vercel. Деплой запустится автоматически. Сборка:
+1. `npm ci --workspaces --include-workspace-root`
+2. `npm run build -w @poizon-shop/shared && npm run build -w @poizon-shop/webapp && node scripts/build-vercel.js`
 
 ### 6. Webhooks
 
@@ -480,7 +463,6 @@ curl -X POST "https://api.telegram.org/bot<ADMIN_TOKEN>/setWebhook" \
 ### 8. Проверка
 
 - `GET https://your-app.vercel.app/health` — health check
-- `GET https://your-app.vercel.app/cron/rates` (с Bearer CRON_SECRET) — ручное обновление курсов
 - Откройте Mini App из Telegram
 - Оформите тестовый заказ → Admin Bot → подтвердите
 
@@ -490,10 +472,11 @@ curl -X POST "https://api.telegram.org/bot<ADMIN_TOKEN>/setWebhook" \
 
 - Все API-запросы от Mini App валидируют `X-Telegram-Init-Data` через HMAC-подпись
 - Admin API защищен проверкой Telegram ID из белого списка
-- Webhook секреты должны быть ≥32 символов в production
+- `WEBHOOK_SECRET` и `CRON_SECRET` должны быть ≥32 символов в production
 - `service_role` key никогда не передается на клиент
 - Bot tokens только в переменных окружения
 - Cron endpoint требует `Authorization: Bearer $CRON_SECRET`
+- Статические ассеты (/assets/*) кешируются на 1 год с immutable
 
 ---
 
@@ -506,16 +489,6 @@ npm test
 # Тесты API
 npm run test -w @poizon-shop/api
 ```
-
----
-
-## Документация
-
-- [Деплой Vercel](docs/deploy-vercel.md) — Подробная инструкция по деплою
-- [Poizon провайдеры](docs/poizon-providers.md) — Интеграция с Poizon API
-- [Security notes](docs/security-scan-notes.md) — Заметки по безопасности
-- [design.md](design.md) — Визуальная и UX-спецификация
-- [poizon_shop_spec.md](poizon_shop_spec.md) — Полная спецификация проекта
 
 ---
 

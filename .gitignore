@@ -10,3 +10,10 @@ dist
 
 .vercel
 .env*
+
+# Temporary debug/test files
+pop2*.json
+temp_*.json
+tmp_*.json
+tmp_*.js
+count_products.js

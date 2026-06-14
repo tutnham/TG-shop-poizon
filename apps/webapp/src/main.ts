@@ -99,5 +99,11 @@ registerRoute("/orders/:id", () =>
     return renderOrderDetail(app);
   })(),
 );
+registerRoute("/menu", () =>
+  wrap(async () => {
+    const { renderMenu } = await import("./pages/menu.js");
+    return renderMenu(app);
+  })(),
+);
 
 startRouter();
