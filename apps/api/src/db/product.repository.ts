@@ -1,4 +1,8 @@
 import type { ProductDetail, ProductListItem } from "@poizon-shop/shared";
+import {
+  dedupeByNameRu,
+  dedupeDisplayLabels,
+} from "../lib/dedupe-labels.js";
 import { sanitizeSearchQuery } from "../lib/search-sanitize.js";
 import { getSupabase } from "./client.js";
 
@@ -57,8 +61,10 @@ export async function listProducts(opts: {
       .maybeSingle();
     if (cat) query = query.eq("category_id", cat.id);
   }
-  if (opts.brand)
-    query = query.ilike("brand", `%${sanitizeSearchQuery(opts.brand)}%`);
+  if (opts.brand) {
+    const brand = sanitizeSearchQuery(opts.brand);
+    if (brand) query = query.ilike("brand", brand);
+  }
   if (opts.search) {
     const term = sanitizeSearchQuery(opts.search);
     if (term) query = query.or(`name.ilike.%${term}%,name_ru.ilike.%${term}%`);
@@ -120,7 +126,7 @@ export async function listCategories(): Promise<
     .from("categories")
     .select("id, name, name_ru, slug");
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return dedupeByNameRu(data ?? []);
 }
 
 export async function listBrands(): Promise<string[]> {
@@ -130,11 +136,10 @@ export async function listBrands(): Promise<string[]> {
     .eq("is_available", true)
     .not("brand", "is", null);
   if (error) throw new Error(error.message);
-  const brands = new Set<string>();
-  for (const row of data ?? []) {
-    if (row.brand) brands.add(row.brand);
-  }
-  return Array.from(brands).sort((a, b) => a.localeCompare(b));
+  const brands = (data ?? [])
+    .map((row) => row.brand)
+    .filter((b): b is string => Boolean(b));
+  return dedupeDisplayLabels(brands);
 }
 
 export async function setProductVisibility(
