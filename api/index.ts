@@ -44,7 +44,9 @@ async function toWebRequest(req: IncomingMessage): Promise<Request> {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
     const bodyBuf = Buffer.concat(chunks);
-    init.body = new Uint8Array(bodyBuf);
+    const bodyStr = bodyBuf.toString("utf-8");
+    console.log("[adapter] body length:", bodyBuf.length, "preview:", bodyStr.slice(0, 200));
+    init.body = bodyStr;
   }
   return new Request(url, init);
 }
