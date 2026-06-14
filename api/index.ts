@@ -39,14 +39,26 @@ async function toWebRequest(req: IncomingMessage): Promise<Request> {
   const method = (req.method ?? "GET").toUpperCase();
   const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    // Vercel may expose body as req.body (object) or as readable stream
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawBody = (req as any).body;
+    if (rawBody && typeof rawBody === "object" && !Buffer.isBuffer(rawBody)) {
+      // Body already parsed by runtime (e.g. JSON object)
+      init.body = JSON.stringify(rawBody);
+    } else if (Buffer.isBuffer(rawBody)) {
+      init.body = rawBody.toString("utf-8");
+    } else if (typeof rawBody === "string") {
+      init.body = rawBody;
+    } else {
+      // Fall back to reading the stream
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+      }
+      const bodyBuf = Buffer.concat(chunks);
+      init.body = bodyBuf.toString("utf-8");
     }
-    const bodyBuf = Buffer.concat(chunks);
-    const bodyStr = bodyBuf.toString("utf-8");
-    console.log("[adapter] body length:", bodyBuf.length, "preview:", bodyStr.slice(0, 200));
-    init.body = bodyStr;
+    console.log("[adapter] body type:", typeof init.body, "length:", String(init.body).length);
   }
   return new Request(url, init);
 }
