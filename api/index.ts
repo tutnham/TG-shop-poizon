@@ -21,8 +21,14 @@ async function toWebRequest(req: IncomingMessage): Promise<Request> {
   const url = `${protocol}://${host}${req.url ?? "/"}`;
 
   const headers = new Headers();
+  const skipHeaders = new Set([
+    "transfer-encoding",
+    "content-length",
+    "connection",
+    "keep-alive",
+  ]);
   for (const [key, value] of Object.entries(req.headers)) {
-    if (value == null) continue;
+    if (value == null || skipHeaders.has(key)) continue;
     if (Array.isArray(value)) {
       for (const v of value) headers.append(key, v);
     } else {
