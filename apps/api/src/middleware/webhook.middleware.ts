@@ -1,15 +1,17 @@
 import { createMiddleware } from "hono/factory";
+import { verifySecretToken } from "../lib/verify-secret.js";
 import { getEnvOptional, isProduction } from "../types/env.types.js";
 
 const hits = new Map<string, { count: number; reset: number }>();
 
 // Периодическая очистка устаревших записей для предотвращения утечки памяти
-setInterval(() => {
+const webhookRateLimitCleanup = setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of hits) {
     if (now > entry.reset) hits.delete(ip);
   }
 }, 120000);
+webhookRateLimitCleanup.unref();
 
 export const webhookSecret = createMiddleware(async (c, next) => {
   const secret = getEnvOptional("WEBHOOK_SECRET");
@@ -21,7 +23,7 @@ export const webhookSecret = createMiddleware(async (c, next) => {
     );
   }
 
-  if (secret && header !== secret) {
+  if (secret && !verifySecretToken(header, secret)) {
     return c.json({ error: "Forbidden" }, 403);
   }
 

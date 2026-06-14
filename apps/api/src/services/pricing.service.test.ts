@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it, mock } from "node:test";
+import { afterEach, describe, it } from "node:test";
 import Decimal from "decimal.js";
-import { resetExchangeRateService } from "./currency.service.js";
-import { InMemoryExchangeRateCacheRepository } from "./exchange/cache.repository.js";
+import {
+  resetExchangeRateService,
+  seedExchangeRateCacheForTests,
+} from "./currency.service.js";
 import { resetPricingModuleConfig } from "./pricing.config.js";
 import {
   PriceCalculator,
@@ -20,46 +22,7 @@ const originalFetch = globalThis.fetch;
 
 function setupMockRates(cnyRub: number, usdtRub: number): void {
   resetExchangeRateService();
-  const cache = new InMemoryExchangeRateCacheRepository();
-  const now = new Date();
-  const ttl = 24 * 60 * 60 * 1000;
-  cache.setCnyRub({
-    rate: d(cnyRub),
-    source: "cbr-mirror",
-    fetchedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + ttl).toISOString(),
-    isFallback: false,
-    isStale: false,
-  });
-  cache.setUsdtRub({
-    rate: d(usdtRub),
-    source: "binance",
-    fetchedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + 5 * 60 * 1000).toISOString(),
-    isFallback: false,
-    isStale: false,
-  });
-  // Подменяем сервис так, чтобы он использовал наш кеш
-  // Используем reset и подмену fetch для контроля
-  globalThis.fetch = mock.fn(async (input: RequestInfo | URL) => {
-    const url = String(input);
-    if (url.includes("daily_json")) {
-      return {
-        ok: true,
-        json: async () => ({
-          Date: now.toISOString().slice(0, 10),
-          Valute: { CNY: { Value: cnyRub, Nominal: 1 } },
-        }),
-      };
-    }
-    if (url.includes("USDTRUB")) {
-      return {
-        ok: true,
-        json: async () => ({ symbol: "USDTRUB", price: String(usdtRub) }),
-      };
-    }
-    throw new Error(`unexpected fetch: ${url}`);
-  }) as unknown as typeof fetch;
+  seedExchangeRateCacheForTests(cnyRub, usdtRub);
 }
 
 afterEach(() => {

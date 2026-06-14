@@ -1,37 +1,30 @@
-import crypto from "node:crypto";
 import { createMiddleware } from "hono/factory";
-import { ensureGuestUser, upsertTelegramUser } from "../db/user.repository.js";
+import type { Context } from "hono";
+import { upsertTelegramUser } from "../db/user.repository.js";
 import { parseTelegramUser, validateInitData } from "../lib/telegram-auth.js";
 import { getEnvOptional } from "../types/env.types.js";
 import type { AppEnv } from "../types/env.types.js";
 
-function fallbackUserId(telegramId: number): string {
-  const hash = crypto.createHash("sha256").update(String(telegramId)).digest();
-  return [
-    Buffer.from(hash.subarray(0, 4)).toString("hex"),
-    Buffer.from(hash.subarray(4, 6)).toString("hex"),
-    Buffer.from(hash.subarray(6, 8)).toString("hex"),
-    Buffer.from(hash.subarray(8, 10)).toString("hex"),
-    Buffer.from(hash.subarray(10, 16)).toString("hex"),
-  ].join("-");
-}
-
-export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
-  const initData =
+function getInitDataHeader(c: Context<AppEnv>): string | undefined {
+  const value =
     c.req.header("X-Telegram-Init-Data") ??
     c.req.header("x-telegram-init-data");
+  return value?.trim() || undefined;
+}
 
-  if (!initData) {
-    // Guest mode: ensure guest user exists in DB, then allow browsing
-    const guestId = await ensureGuestUser();
-    c.set("userId", guestId);
-    await next();
-    return;
-  }
+function getShopBotToken(): string | undefined {
+  const raw = getEnvOptional("SHOP_BOT_TOKEN");
+  const token = raw?.trim().replace(/^["']|["']$/g, "");
+  return token || undefined;
+}
 
-  const token = getEnvOptional("SHOP_BOT_TOKEN")
-    ?.trim()
-    .replace(/^["']|["']$/g, "");
+type AuthResult = "ok" | Response;
+
+async function authenticateTelegramUser(
+  c: Context<AppEnv>,
+  initData: string,
+): Promise<AuthResult> {
+  const token = getShopBotToken();
   if (!token || !validateInitData(initData, token)) {
     return c.json({ error: "Invalid initData" }, 403);
   }
@@ -42,6 +35,7 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
   }
 
   c.set("telegramUser", user);
+
   try {
     const userId = await upsertTelegramUser(user);
     c.set("userId", userId);
@@ -54,14 +48,36 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
       "[auth:stack]",
       err instanceof Error ? err.stack : "no stack",
     );
-    // Fallback: ensure a user row exists so cart FK does not fail
-    const fbId = fallbackUserId(user.id);
-    try {
-      const ensuredId = await ensureGuestUser(fbId, user.id);
-      c.set("userId", ensuredId);
-    } catch {
-      c.set("userId", fbId);
-    }
+    return c.json({ error: "User session unavailable" }, 503);
   }
+
+  return "ok";
+}
+
+/** Sets userId when valid initData is present; public catalog works without it. */
+export const optionalTmaAuth = createMiddleware<AppEnv>(async (c, next) => {
+  const initData = getInitDataHeader(c);
+  if (!initData) {
+    await next();
+    return;
+  }
+
+  const result = await authenticateTelegramUser(c, initData);
+  if (result !== "ok") return result;
   await next();
 });
+
+/** Requires valid Telegram Mini App initData — for cart, orders, profile. */
+export const requireTmaAuth = createMiddleware<AppEnv>(async (c, next) => {
+  const initData = getInitDataHeader(c);
+  if (!initData) {
+    return c.json({ error: "Unauthorized — Telegram initData required" }, 401);
+  }
+
+  const result = await authenticateTelegramUser(c, initData);
+  if (result !== "ok") return result;
+  await next();
+});
+
+/** @deprecated Use requireTmaAuth or optionalTmaAuth */
+export const tmaAuth = requireTmaAuth;

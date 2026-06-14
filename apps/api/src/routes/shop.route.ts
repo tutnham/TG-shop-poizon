@@ -14,7 +14,7 @@ import * as orderRepo from "../db/order.repository.js";
 import * as productRepo from "../db/product.repository.js";
 import { getLastSyncTime } from "../db/product.repository.js";
 import { getUserById, updateUserLanguage } from "../db/user.repository.js";
-import { tmaAuth } from "../middleware/auth.middleware.js";
+import { optionalTmaAuth, requireTmaAuth } from "../middleware/auth.middleware.js";
 import { getExchangeRates } from "../services/currency.service.js";
 import { notifyCartUpdate } from "../services/notification.service.js";
 import {
@@ -24,8 +24,26 @@ import {
 import type { AppEnv } from "../types/env.types.js";
 
 const shop = new Hono<AppEnv>();
-shop.use("*", tmaAuth);
 
+shop.get("/ping", optionalTmaAuth, async (c) => {
+  try {
+    const sb = getSupabase();
+    const { error } = await sb.from("shop_config").select("key").limit(1);
+    return c.json({
+      ok: !error,
+      authenticated: Boolean(c.get("userId")),
+      userId: c.get("userId") ?? null,
+      sb_configured: isSupabaseConfigured(),
+    });
+  } catch {
+    return c.json({
+      ok: false,
+      authenticated: Boolean(c.get("userId")),
+      userId: c.get("userId") ?? null,
+      sb_configured: isSupabaseConfigured(),
+    });
+  }
+});
 // Вспомогательная функция: отправляет уведомление о корзине fire-and-forget
 async function fireCartNotification(userId: string): Promise<void> {
   try {
@@ -51,24 +69,6 @@ async function fireCartNotification(userId: string): Promise<void> {
     console.error("[cart-notify] failed", err);
   }
 }
-
-shop.get("/ping", async (c) => {
-  try {
-    const sb = getSupabase();
-    const { error } = await sb.from("shop_config").select("key").limit(1);
-    return c.json({
-      ok: !error,
-      userId: c.get("userId"),
-      sb_configured: isSupabaseConfigured(),
-    });
-  } catch {
-    return c.json({
-      ok: false,
-      userId: c.get("userId"),
-      sb_configured: isSupabaseConfigured(),
-    });
-  }
-});
 
 shop.get("/config", async (c) => {
   const cfg = await getConfigValues([
@@ -139,8 +139,14 @@ shop.get("/brands", async (c) => {
   return c.json({ data: brands });
 });
 
+shop.use("/cart", requireTmaAuth);
+shop.use("/cart/*", requireTmaAuth);
+shop.use("/orders", requireTmaAuth);
+shop.use("/orders/*", requireTmaAuth);
+shop.use("/user/*", requireTmaAuth);
+
 shop.get("/cart", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.get("userId") as string;
   const items = await cartRepo.getCartItems(userId);
   const mapped = items.map((item) => ({
     id: item.id,
@@ -171,7 +177,7 @@ shop.post("/cart", zValidator("json", AddToCartSchema), async (c) => {
   if (stock[body.size] === false) {
     return c.json({ error: "Size unavailable" }, 400);
   }
-  const userId = c.get("userId");
+  const userId = c.get("userId") as string;
   await cartRepo.addCartItem(userId, body.product_id, body.size, body.quantity);
   fireCartNotification(userId).catch((e) =>
     console.error("[cart-notify] POST /cart failed:", e),
@@ -183,7 +189,7 @@ shop.patch(
   "/cart/:itemId",
   zValidator("json", UpdateCartItemSchema),
   async (c) => {
-    const userId = c.get("userId");
+    const userId = c.get("userId") as string;
     await cartRepo.updateCartItem(
       c.req.param("itemId"),
       userId,
@@ -197,7 +203,7 @@ shop.patch(
 );
 
 shop.delete("/cart/:itemId", async (c) => {
-  const userId = c.get("userId");
+  const userId = c.get("userId") as string;
   await cartRepo.deleteCartItem(c.req.param("itemId"), userId);
   fireCartNotification(userId).catch((e) =>
     console.error("[cart-notify] DELETE /cart failed:", e),
@@ -207,7 +213,7 @@ shop.delete("/cart/:itemId", async (c) => {
 
 shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
   const body = c.req.valid("json");
-  const result = await createOrderFromCart(c.get("userId"), body);
+  const result = await createOrderFromCart(c.get("userId") as string, body);
 
   if (result.ok) {
     let ton_link: string | undefined;
@@ -236,14 +242,14 @@ shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
 });
 
 shop.get("/orders", async (c) => {
-  const orders = await orderRepo.listOrdersByUser(c.get("userId"));
+  const orders = await orderRepo.listOrdersByUser(c.get("userId") as string);
   return c.json({ data: orders });
 });
 
 shop.get("/orders/:id", async (c) => {
   const order = await orderRepo.getOrderById(
     c.req.param("id"),
-    c.get("userId"),
+    c.get("userId") as string,
   );
   if (!order) return c.json({ error: "Not found" }, 404);
   return c.json({ data: order });
@@ -254,7 +260,7 @@ shop.patch(
   zValidator("json", UpdateLanguageSchema),
   async (c) => {
     await updateUserLanguage(
-      c.get("userId"),
+      c.get("userId") as string,
       c.req.valid("json").language_code,
     );
     return c.json({ ok: true });

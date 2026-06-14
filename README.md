@@ -470,10 +470,12 @@ curl -X POST "https://api.telegram.org/bot<ADMIN_TOKEN>/setWebhook" \
 
 ## Безопасность
 
-- Все API-запросы от Mini App валидируют `X-Telegram-Init-Data` через HMAC-подпись
-- Admin API защищен проверкой Telegram ID из белого списка
-- `WEBHOOK_SECRET` и `CRON_SECRET` должны быть ≥32 символов в production
-- `service_role` key никогда не передается на клиент
+- **Каталог (read-only):** `GET /api/products`, `/categories`, `/rates`, `/config` — доступны без аккаунта; guest-пользователь в БД не создаётся
+- **Личные действия (write):** корзина, заказы, профиль — только с валидным `X-Telegram-Init-Data` (HMAC-подпись Telegram Mini App); без initData → `401`
+- **Image proxy:** `/api/image-proxy` — только для авторизованных клиентов Mini App (initData обязателен)
+- Admin API защищён проверкой Telegram ID из белого списка
+- `WEBHOOK_SECRET` и `CRON_SECRET` должны быть ≥32 символов в production; сравнение секретов — constant-time
+- `service_role` key никогда не передаётся на клиент
 - Bot tokens только в переменных окружения
 - Cron endpoint требует `Authorization: Bearer $CRON_SECRET`
 - Статические ассеты (/assets/*) кешируются на 1 год с immutable

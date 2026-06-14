@@ -74,6 +74,14 @@ export class ExchangeRateService {
   async getCnyRubRate(): Promise<ExchangeRate> {
     const config = getPricingModuleConfig();
 
+    const freshCached = this.cacheRepo.getCnyRub();
+    if (freshCached) {
+      const checked = markStaleness(freshCached, config.cnyRubTtlMs);
+      if (!checked.isStale && !checked.isFallback) {
+        return checked;
+      }
+    }
+
     try {
       const live = await fetchCnyRubRateFromCbr();
       const checked = markStaleness(live, config.cnyRubTtlMs);
@@ -107,6 +115,14 @@ export class ExchangeRateService {
   /** Получить «живой» курс USDT→RUB с fallback-цепочкой */
   async getUsdtRubRate(): Promise<ExchangeRate> {
     const config = getPricingModuleConfig();
+
+    const freshCached = this.cacheRepo.getUsdtRub();
+    if (freshCached) {
+      const checked = markStaleness(freshCached, config.usdtRubTtlMs);
+      if (!checked.isStale && !checked.isFallback) {
+        return checked;
+      }
+    }
 
     try {
       const live = await fetchUsdtRubRateFromBinance();
@@ -295,6 +311,30 @@ export function getExchangeRateService(): ExchangeRateService {
 export function resetExchangeRateService(): void {
   _service = null;
   cache.invalidate();
+}
+
+/** Seed in-memory rates for tests (avoids slow live fetch fallbacks). */
+export function seedExchangeRateCacheForTests(
+  cnyRub: number,
+  usdtRub: number,
+): void {
+  const now = new Date();
+  cache.setCnyRub({
+    rate: new Decimal(cnyRub),
+    source: "cbr-mirror",
+    fetchedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + CBR_CNY_RUB_TTL_MS).toISOString(),
+    isFallback: false,
+    isStale: false,
+  });
+  cache.setUsdtRub({
+    rate: new Decimal(usdtRub),
+    source: "binance",
+    fetchedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + BINANCE_USDT_RUB_TTL_MS).toISOString(),
+    isFallback: false,
+    isStale: false,
+  });
 }
 
 // ── Обратная совместимость: старые функции ──────────────────────────

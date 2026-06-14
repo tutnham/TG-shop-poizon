@@ -1,7 +1,10 @@
 import { Hono } from "hono";
 import { isAllowedImageUrl } from "../lib/image-proxy.js";
+import { requireTmaAuth } from "../middleware/auth.middleware.js";
+import type { AppEnv } from "../types/env.types.js";
 
-const proxy = new Hono();
+const proxy = new Hono<AppEnv>();
+proxy.use("*", requireTmaAuth);
 
 proxy.get("/", async (c) => {
   const url = c.req.query("url");

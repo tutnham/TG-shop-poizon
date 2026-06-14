@@ -1,7 +1,7 @@
 export interface AppEnv {
   Variables: {
-    telegramUser: TelegramUserContext;
-    userId: string;
+    telegramUser?: TelegramUserContext;
+    userId?: string;
   };
 }
 

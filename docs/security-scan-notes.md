@@ -1,9 +1,16 @@
 # Security scan notes
 
-## Local checks (2026-06-02)
+## Local checks (2026-06-15)
 
-- `npm audit --audit-level=high`: **0 vulnerabilities**
-- No hardcoded production secrets in `apps/` (test-only bot token in auth middleware test)
+- `npm audit --audit-level=high`: 2 high in dev dependency `esbuild` via `vite` (dev server only)
+- No hardcoded production secrets in `apps/`
+
+## Auth model (Phase 1)
+
+- **Public read:** catalog, config, rates — no DB guest user
+- **Protected write:** cart, orders, user language — require valid `X-Telegram-Init-Data`
+- **Image proxy:** requires initData
+- **Upsert failure:** returns `503` (fail closed), no synthetic user IDs
 
 ## Hardcoded credentials check
 

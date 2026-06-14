@@ -1,12 +1,42 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { Hono } from "hono";
 import {
   buildTestInitData,
   parseTelegramUser,
   validateInitData,
 } from "../lib/telegram-auth.js";
+import { requireTmaAuth } from "./auth.middleware.js";
 
 const BOT_TOKEN = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11";
+
+describe("requireTmaAuth middleware", () => {
+  const app = new Hono();
+  app.use("/cart", requireTmaAuth);
+  app.get("/cart", (c) => c.json({ userId: c.get("userId") }));
+  app.post("/cart", (c) => c.json({ ok: true }));
+
+  it("returns 401 without initData", async () => {
+    const res = await app.request("/cart");
+    assert.equal(res.status, 401);
+    const body = (await res.json()) as { error?: string };
+    assert.match(body.error ?? "", /initData/i);
+  });
+
+  it("returns 401 on POST without initData", async () => {
+    const res = await app.request("/cart", { method: "POST" });
+    assert.equal(res.status, 401);
+  });
+
+  it("returns 403 when initData signature is invalid", async () => {
+    process.env.SHOP_BOT_TOKEN = BOT_TOKEN;
+    const res = await app.request("/cart", {
+      headers: { "X-Telegram-Init-Data": "user=%7B%22id%22%3A1%7D&hash=bad" },
+    });
+    assert.equal(res.status, 403);
+    delete process.env.SHOP_BOT_TOKEN;
+  });
+});
 
 describe("validateInitData", () => {
   it("valid initData returns true", () => {
