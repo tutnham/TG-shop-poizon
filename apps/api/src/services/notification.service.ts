@@ -56,6 +56,12 @@ export async function sendAdminMessage(
   return res.ok;
 }
 
+const PAYMENT_LABELS: Record<string, string> = {
+  ton: "TON",
+  rub_manual: "RUB (вручную)",
+  usdt_manual: "USDT (вручную)",
+};
+
 const STATUS_MESSAGES: Record<string, { ru: string; en: string }> = {
   confirmed: {
     ru: "✅ Заказ подтверждён",
@@ -138,6 +144,78 @@ export async function notifyCartUpdate(
   await sendShopMessage(telegramId, lines.join("\n"), keyboard);
 }
 
+export async function notifyUserOrderCreated(params: {
+  telegramId: number;
+  shortId: string;
+  items: Array<{
+    product_id: string;
+    name: string;
+    brand?: string | null;
+    size: string;
+    quantity: number;
+    price_rub: number;
+  }>;
+  totalRub: number;
+  totalUsdt: number;
+  paymentMethod: string;
+  deliveryInfo: {
+    full_name: string;
+    phone: string;
+    address: string;
+  };
+}): Promise<void> {
+  const {
+    telegramId,
+    shortId,
+    items,
+    totalRub,
+    totalUsdt,
+    paymentMethod,
+    deliveryInfo,
+  } = params;
+
+  const webappUrl = getEnvOptional("WEBAPP_URL", "https://example.com");
+
+  const lines: string[] = [
+    "<b>✅ Заказ оформлен</b>",
+    "",
+    `<b>Заказ #${shortId}</b>`,
+    "<b>Статус:</b> ⏳ Ожидает подтверждения",
+    "",
+    "<b>Товары:</b>",
+  ];
+
+  for (const item of items) {
+    const brand = item.brand ? ` (${item.brand})` : "";
+    lines.push(
+      `• ${item.name}${brand} — размер ${item.size}, кол-во ${item.quantity}, ${item.price_rub} ₽`,
+    );
+  }
+
+  lines.push(
+    "",
+    `<b>Итого:</b> ${totalRub} ₽ / ${totalUsdt} USDT`,
+    `<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`,
+    "",
+    `<b>Получатель:</b> ${deliveryInfo.full_name}`,
+    `<b>Телефон:</b> ${deliveryInfo.phone}`,
+    `<b>Адрес:</b> ${deliveryInfo.address}`,
+  );
+
+  const keyboard = {
+    inline_keyboard: [
+      [
+        {
+          text: "📋 Мои заказы",
+          web_app: { url: `${webappUrl}/#/orders` },
+        },
+      ],
+    ],
+  };
+
+  await sendShopMessage(telegramId, lines.join("\n"), keyboard);
+}
+
 export async function notifyAdminNewOrder(params: {
   shortId: string;
   customerName: string;
@@ -167,12 +245,6 @@ export async function notifyAdminNewOrder(params: {
     paymentMethod,
     deliveryAddress,
   } = params;
-
-  const PAYMENT_LABELS: Record<string, string> = {
-    ton: "TON",
-    rub_manual: "RUB (вручную)",
-    usdt_manual: "USDT (вручную)",
-  };
 
   const webappUrl = getEnvOptional("WEBAPP_URL", "https://example.com");
 

@@ -895,6 +895,11 @@
   margin-top: 4px;
 }
 
+.cart-summary__checkout {
+  width: 100%;
+  margin-top: 16px;
+}
+
 .cart-peek {
   display: flex;
   align-items: center;

@@ -9,7 +9,10 @@ import { getUserById } from "../db/user.repository.js";
 import { appError } from "../types/app-error.types.js";
 import type { AppError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
-import { notifyAdminNewOrder } from "./notification.service.js";
+import {
+  notifyAdminNewOrder,
+  notifyUserOrderCreated,
+} from "./notification.service.js";
 
 export type CreateOrderSuccess = {
   order_id: string;
@@ -155,9 +158,30 @@ export async function createOrderFromCart(
     };
   }
 
+  let user: Awaited<ReturnType<typeof getUserById>> = null;
   try {
-    // Получаем данные пользователя для уведомления админа
-    const user = await getUserById(userId);
+    user = await getUserById(userId);
+  } catch (err) {
+    console.error("[order] failed to load user for notification", err);
+  }
+
+  if (user?.telegram_id) {
+    try {
+      await notifyUserOrderCreated({
+        telegramId: user.telegram_id,
+        shortId: short_id,
+        items,
+        totalRub: total_rub,
+        totalUsdt: total_usdt,
+        paymentMethod: body.payment_method,
+        deliveryInfo: body.delivery_info,
+      });
+    } catch (err) {
+      console.error("[order] user notification failed", err);
+    }
+  }
+
+  try {
     await notifyAdminNewOrder({
       shortId: short_id,
       customerName: body.delivery_info.full_name,
