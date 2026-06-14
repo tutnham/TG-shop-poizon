@@ -37,7 +37,8 @@ async function toWebRequest(req: IncomingMessage): Promise<Request> {
     for await (const chunk of req) {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
     }
-    init.body = Buffer.concat(chunks).toString("utf-8");
+    const bodyBuf = Buffer.concat(chunks);
+    init.body = new Uint8Array(bodyBuf);
   }
   return new Request(url, init);
 }
