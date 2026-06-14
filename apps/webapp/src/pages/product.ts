@@ -4,18 +4,21 @@ import { renderProductDetailView } from "../components/product-detail-view.js";
 import { t } from "../i18n/index.js";
 import { getRouteParam, goBack } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
-import { hideMainButton, setupBackButton } from "../telegram.js";
+import { hideBackButton, hideMainButton, setupBackButton } from "../telegram.js";
+import { hideBottomNav } from "../components/bottom-nav.js";
+
+const PRODUCT_PAGE_ID = "product-page";
 
 export async function renderProduct(app: HTMLElement): Promise<void> {
   const id = getRouteParam("id");
   if (!id) return;
 
+  hideBottomNav(app);
   clearPageRoot(app);
   app.classList.remove("page-with-nav");
   const pageRoot = ensurePageRoot(app);
-  pageRoot.innerHTML =
-    '<div class="page page-tg-content" id="product-page"></div>';
-  const page = pageRoot.querySelector("#product-page") as HTMLElement;
+  pageRoot.innerHTML = `<div class="page page-tg-content page-tg-content--scroll" id="${PRODUCT_PAGE_ID}"></div>`;
+  const page = pageRoot.querySelector<HTMLElement>("#" + PRODUCT_PAGE_ID) as HTMLElement;
   page.innerHTML = `<div class="skeleton" style="height:60vh"></div>`;
 
   setupBackButton(() => goBack());

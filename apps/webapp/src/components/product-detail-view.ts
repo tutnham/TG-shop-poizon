@@ -160,8 +160,11 @@ export function renderProductDetailView(
   window.addEventListener("poizon-cart-changed", cartChangeHandler);
 
   const rawSizes = Object.values(p.sizes ?? {}).flat();
-  const sizes = rawSizes.length > 0 ? rawSizes : (p.is_available ? ["OS"] : []);
-  const stock = p.stock ?? {};
+  const DEFAULT_EU_SIZES = ["39", "40", "41", "42", "43", "44", "45", "46"];
+  const sizes = rawSizes.length > 0 ? rawSizes : (p.is_available ? DEFAULT_EU_SIZES : []);
+  const stock = rawSizes.length > 0
+    ? (p.stock ?? {})
+    : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
 
   page.innerHTML = `
     <div class="product-gallery">
@@ -173,7 +176,7 @@ export function renderProductDetailView(
       <div class="price-rub product-detail__price-rub">${formatRub(p.price_rub)}</div>
       <div class="price-usdt">${formatUsdt(p.price_usdt)}</div>
     </div>
-    <p class="product-detail__note">${t("markup_note")}</p>
+
     <h3 class="section-title">${t("select_size")}</h3>
     <div class="size-grid" id="sizes"></div>
     <p class="product-detail__size-hint" id="size-hint">${t("select_size_hint")}</p>

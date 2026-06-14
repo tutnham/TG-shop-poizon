@@ -16,6 +16,9 @@ const SYNC_DELAY_BETWEEN_PAGES_MS = 1200;
 const SYNC_DELAY_JITTER_MS = 300;
 const UPSERT_BATCH_SIZE = 100; // Размер пакета для upsert в БД
 
+/** Стандартные EU размеры кроссовок, используемые когда API не возвращает размеры */
+const DEFAULT_EU_SIZES = ["39", "40", "41", "42", "43", "44", "45", "46"];
+
 export async function runFullSync(): Promise<{
   ok: boolean;
   items_synced: number;
@@ -64,6 +67,7 @@ export async function runFullSync(): Promise<{
         for (const item of result.items) {
           try {
             const prices = calculatePricesFromFen(item.priceFen, config);
+            const hasSizes = Object.keys(item.sizes).length > 0;
             batch.push({
               poizon_id: String(item.spuId),
               name: item.title,
@@ -73,8 +77,12 @@ export async function runFullSync(): Promise<{
               price_cny: prices.cny,
               price_rub: prices.rub,
               price_usdt: prices.usdt,
-              sizes: { EU: Object.keys(item.sizes) },
-              stock: item.sizes,
+              sizes: hasSizes
+                ? { EU: Object.keys(item.sizes) }
+                : { EU: DEFAULT_EU_SIZES },
+              stock: hasSizes
+                ? item.sizes
+                : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true])),
               sold_count: item.soldCount,
               is_available: item.inStock,
             });
@@ -203,6 +211,9 @@ export async function runBulkImport(
 
         const prices = calculatePricesFromFen(priceFen, config);
 
+        const rawSizes = raw.sizes ?? {};
+        const hasSizes = typeof rawSizes === "object" && !Array.isArray(rawSizes) && Object.keys(rawSizes).length > 0;
+
         batch.push({
           poizon_id: spuId,
           name: raw.title,
@@ -212,8 +223,12 @@ export async function runBulkImport(
           price_cny: prices.cny,
           price_rub: prices.rub,
           price_usdt: prices.usdt,
-          sizes: { EU: Object.keys(raw.sizes ?? {}) },
-          stock: raw.sizes ?? {},
+          sizes: hasSizes
+            ? { EU: Object.keys(rawSizes) }
+            : { EU: DEFAULT_EU_SIZES },
+          stock: hasSizes
+            ? rawSizes
+            : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true])),
           sold_count: soldCount,
           is_available: raw.inStock !== false,
         });

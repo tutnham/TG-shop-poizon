@@ -13,6 +13,7 @@ import {
   hideKeyboard,
   wireSearchInput,
 } from "../lib/keyboard.js";
+import { clearCartCache } from "../lib/cart-presence.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
@@ -41,6 +42,7 @@ function badgeForIndex(
 export async function renderHome(app: HTMLElement): Promise<void> {
   hideMainButton();
   hideBackButton();
+  clearCartCache();
 
   clearPageRoot(app);
   app.classList.add("page-with-nav");

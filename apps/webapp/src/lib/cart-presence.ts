@@ -32,6 +32,11 @@ export function isProductInCartSync(productId: string, size?: string): boolean {
     : isInCartAnySize(cachedLines, productId);
 }
 
+/** Сбросить кэш корзины (вызывается при загрузке главной страницы). */
+export function clearCartCache(): void {
+  cachedLines = [];
+}
+
 export async function loadCartLines(): Promise<CartLineView[]> {
   const snap = await loadCartSnapshot();
   setCachedLines(snap.lines);
