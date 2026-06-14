@@ -440,12 +440,20 @@
   color: var(--color-text-muted);
 }
 
+.bottom-nav[hidden] {
+  display: none !important;
+}
+
+.product-detail__in-cart[hidden] {
+  display: none !important;
+}
+
 .product-detail__actions {
   margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-bottom: calc(12px + var(--main-button-clearance, 0px));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
 }
 
 .product-detail__add-btn,
