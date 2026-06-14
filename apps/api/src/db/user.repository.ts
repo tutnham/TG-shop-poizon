@@ -1,6 +1,45 @@
 import type { TelegramUserContext } from "../types/env.types.js";
 import { getSupabase } from "./client.js";
 
+const GUEST_TELEGRAM_ID = 0;
+const GUEST_USERNAME = "guest";
+
+/** Ensure a guest user exists in the DB and return its id.
+ *  Used when no Telegram initData is provided so that
+ *  cart_items FK constraint does not fail. */
+export async function ensureGuestUser(
+  preferredId?: string,
+  telegramId?: number,
+): Promise<string> {
+  const db = getSupabase();
+  const tgId = telegramId ?? GUEST_TELEGRAM_ID;
+
+  // Try to find by telegram_id first
+  const { data: existing, error: findErr } = await db
+    .from("users")
+    .select("id")
+    .eq("telegram_id", tgId)
+    .maybeSingle();
+
+  if (findErr) throw new Error(findErr.message);
+  if (existing) return existing.id;
+
+  // Create the guest user
+  const { data: created, error: insErr } = await db
+    .from("users")
+    .insert({
+      telegram_id: tgId,
+      username: GUEST_USERNAME,
+      first_name: "Guest",
+      language_code: "ru",
+    })
+    .select("id")
+    .single();
+
+  if (insErr) throw new Error(insErr.message);
+  return created?.id;
+}
+
 export async function upsertTelegramUser(
   tg: TelegramUserContext,
 ): Promise<string> {

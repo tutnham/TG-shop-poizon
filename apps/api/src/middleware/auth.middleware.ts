@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { createMiddleware } from "hono/factory";
-import { upsertTelegramUser } from "../db/user.repository.js";
+import { ensureGuestUser, upsertTelegramUser } from "../db/user.repository.js";
 import { parseTelegramUser, validateInitData } from "../lib/telegram-auth.js";
 import { getEnvOptional } from "../types/env.types.js";
 import type { AppEnv } from "../types/env.types.js";
@@ -22,8 +22,9 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
     c.req.header("x-telegram-init-data");
 
   if (!initData) {
-    // Guest mode: allow browsing without Telegram initData
-    c.set("userId", "00000000-0000-0000-0000-000000000000");
+    // Guest mode: ensure guest user exists in DB, then allow browsing
+    const guestId = await ensureGuestUser();
+    c.set("userId", guestId);
     await next();
     return;
   }
@@ -53,8 +54,14 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
       "[auth:stack]",
       err instanceof Error ? err.stack : "no stack",
     );
-    // Не падаем — используем fallback userId, чтобы каталог работал без БД
-    c.set("userId", fallbackUserId(user.id));
+    // Fallback: ensure a user row exists so cart FK does not fail
+    const fbId = fallbackUserId(user.id);
+    try {
+      const ensuredId = await ensureGuestUser(fbId, user.id);
+      c.set("userId", ensuredId);
+    } catch {
+      c.set("userId", fbId);
+    }
   }
   await next();
 });
