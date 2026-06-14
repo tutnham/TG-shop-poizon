@@ -1118,6 +1118,10 @@
   min-height: 72px;
 }
 
+.checkout-form__continue {
+  margin-top: 8px;
+}
+
 .checkout-form__secondary-btn {
   margin-top: 16px;
   width: 100%;

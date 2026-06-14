@@ -23,10 +23,17 @@ export function hideKeyboard(): void {
 }
 
 export function isEditableElement(el: EventTarget | null): boolean {
-  return (
-    el instanceof HTMLElement &&
-    !!el.closest("input, textarea, select, [contenteditable='true']")
-  );
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.closest("input, textarea, select, [contenteditable='true']")) {
+    return true;
+  }
+  // Тап по <label> или подписи поля не должен закрывать клавиатуру до фокуса на input.
+  const label = el.closest("label");
+  return !!label?.querySelector("input, textarea, select");
+}
+
+function shouldDismissKeyboard(): boolean {
+  return !isEditableElement(document.activeElement);
 }
 
 /** Скрывать клавиатуру при тапе вне полей ввода и при скролле. */
@@ -40,14 +47,16 @@ export function bindKeyboardDismiss(root: HTMLElement): void {
   );
 
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
-  root.addEventListener(
-    "scroll",
-    () => {
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => hideKeyboard(), 80);
-    },
-    { passive: true, capture: true },
-  );
+  const onScroll = (): void => {
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => {
+      if (shouldDismissKeyboard()) hideKeyboard();
+    }, 80);
+  };
+
+  root.addEventListener("scroll", onScroll, { passive: true, capture: true });
+  // Открытие клавиатуры в WebView часто вызывает scroll на window/document.
+  window.addEventListener("scroll", onScroll, { passive: true, capture: true });
 }
 
 export function wireSearchInput(input: HTMLInputElement): void {

@@ -71,5 +71,7 @@
   "open_wallet": "Открыть Wallet",
   "manual_instruction": "После перевода менеджер подтвердит оплату",
   "step_delivery": "Шаг 1 · Доставка",
-  "step_payment": "Шаг 2 · Оплата"
+  "step_payment": "Шаг 2 · Оплата",
+  "continue": "Далее",
+  "fill_all_fields": "Заполните все поля"
 }

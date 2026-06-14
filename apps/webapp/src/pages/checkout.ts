@@ -37,38 +37,69 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
       page.innerHTML = `
         <h2 class="section-title">${t("step_delivery")}</h2>
         <div class="checkout-form">
-          <label class="checkout-form__field">
+          <label class="checkout-form__field" for="checkout-name">
             <span class="checkout-form__label">${t("full_name")}</span>
-            <input class="checkout-form__input" id="name" type="text" autocomplete="name" />
+            <input
+              class="checkout-form__input"
+              id="checkout-name"
+              name="full_name"
+              type="text"
+              autocomplete="name"
+              enterkeyhint="next"
+              value="${escapeHtml(deliveryData.full_name)}"
+            />
           </label>
-          <label class="checkout-form__field">
+          <label class="checkout-form__field" for="checkout-phone">
             <span class="checkout-form__label">${t("phone")}</span>
-            <input class="checkout-form__input" id="phone" type="tel" autocomplete="tel" />
+            <input
+              class="checkout-form__input"
+              id="checkout-phone"
+              name="phone"
+              type="tel"
+              autocomplete="tel"
+              enterkeyhint="next"
+              inputmode="tel"
+              value="${escapeHtml(deliveryData.phone)}"
+            />
           </label>
-          <label class="checkout-form__field">
+          <label class="checkout-form__field" for="checkout-address">
             <span class="checkout-form__label">${t("address")}</span>
-            <textarea class="checkout-form__textarea" id="address" rows="3" autocomplete="street-address"></textarea>
+            <textarea
+              class="checkout-form__textarea"
+              id="checkout-address"
+              name="address"
+              rows="3"
+              autocomplete="street-address"
+              enterkeyhint="done"
+            >${escapeHtml(deliveryData.address)}</textarea>
           </label>
+          <button type="button" class="btn-primary checkout-form__continue" id="checkout-continue">
+            ${t("continue")}
+          </button>
         </div>
       `;
-      showMainButton("→", () => {
+      const goToPayment = (): void => {
         const name = (
-          document.getElementById("name") as HTMLInputElement
+          document.getElementById("checkout-name") as HTMLInputElement
         )?.value.trim();
         const phone = (
-          document.getElementById("phone") as HTMLInputElement
+          document.getElementById("checkout-phone") as HTMLInputElement
         )?.value.trim();
         const address = (
-          document.getElementById("address") as HTMLTextAreaElement
+          document.getElementById("checkout-address") as HTMLTextAreaElement
         )?.value.trim();
         if (!name || !phone || !address) {
-          window.Telegram?.WebApp?.showAlert("Fill all fields");
+          window.Telegram?.WebApp?.showAlert(t("fill_all_fields"));
           return;
         }
         deliveryData = { full_name: name, phone, address };
         step = 2;
         renderStep();
-      });
+      };
+      page
+        .querySelector("#checkout-continue")
+        ?.addEventListener("click", goToPayment);
+      showMainButton(t("continue"), goToPayment);
     } else if (step === 2) {
       page.innerHTML = `
         <h2 class="section-title">${t("step_payment")}</h2>
@@ -94,7 +125,7 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
   async function submitOrder() {
     const { full_name: name, phone, address } = deliveryData;
     if (!name || !phone || !address) {
-      window.Telegram?.WebApp?.showAlert("Fill all fields");
+      window.Telegram?.WebApp?.showAlert(t("fill_all_fields"));
       return;
     }
     try {
