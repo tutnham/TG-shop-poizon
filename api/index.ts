@@ -58,7 +58,6 @@ async function toWebRequest(req: IncomingMessage): Promise<Request> {
       const bodyBuf = Buffer.concat(chunks);
       init.body = bodyBuf.toString("utf-8");
     }
-    console.log("[adapter] body type:", typeof init.body, "length:", String(init.body).length);
   }
   return new Request(url, init);
 }
@@ -86,7 +85,6 @@ export default async function handler(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<void> {
-  console.log("[handler]", req.method, req.url, "content-type:", req.headers["content-type"], "body:", typeof (req as any).body);
   try {
     const request = await toWebRequest(req);
     const response = await app.fetch(request);
