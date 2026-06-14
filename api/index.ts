@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { Readable } from "node:stream";
 import { createApp } from "../apps/api/src/app.js";
 
 const app = createApp();
@@ -9,11 +8,10 @@ const app = createApp();
  * to the default export. Hono's middleware (cors, etc.) expects a Web Request
  * with a Headers object. We bridge the two here.
  *
- * Without this adapter, hono/vercel's `handle` would call `app.fetch(req)`
- * directly on the IncomingMessage, and `c.req.header()` would crash trying to
- * call `.get(...)` on the plain object form of Node headers.
+ * We buffer the entire request body before creating the Web Request to avoid
+ * issues with Readable.toWeb() + duplex:"half" which can hang on Vercel.
  */
-function toWebRequest(req: IncomingMessage): Request {
+async function toWebRequest(req: IncomingMessage): Promise<Request> {
   const protocol =
     (req.headers["x-forwarded-proto"] as string | undefined) ?? "https";
   const host =
@@ -33,10 +31,13 @@ function toWebRequest(req: IncomingMessage): Request {
   }
 
   const method = (req.method ?? "GET").toUpperCase();
-  const init: RequestInit & { duplex?: "half" } = { method, headers };
+  const init: RequestInit = { method, headers };
   if (method !== "GET" && method !== "HEAD") {
-    init.body = Readable.toWeb(req) as unknown as BodyInit;
-    init.duplex = "half";
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) {
+      chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk);
+    }
+    init.body = Buffer.concat(chunks).toString("utf-8");
   }
   return new Request(url, init);
 }
@@ -65,7 +66,7 @@ export default async function handler(
   res: ServerResponse,
 ): Promise<void> {
   try {
-    const request = toWebRequest(req);
+    const request = await toWebRequest(req);
     const response = await app.fetch(request);
     await writeWebResponse(res, response);
   } catch (err) {
