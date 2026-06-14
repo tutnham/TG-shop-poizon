@@ -28,7 +28,9 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
     return;
   }
 
-  const token = getEnvOptional("SHOP_BOT_TOKEN")?.trim().replace(/^["']|["']$/g, "");
+  const token = getEnvOptional("SHOP_BOT_TOKEN")
+    ?.trim()
+    .replace(/^["']|["']$/g, "");
   if (!token || !validateInitData(initData, token)) {
     return c.json({ error: "Invalid initData" }, 403);
   }
@@ -43,8 +45,14 @@ export const tmaAuth = createMiddleware<AppEnv>(async (c, next) => {
     const userId = await upsertTelegramUser(user);
     c.set("userId", userId);
   } catch (err) {
-    console.error("[auth] upsertTelegramUser error", err instanceof Error ? err.message : err);
-    console.error("[auth:stack]", err instanceof Error ? err.stack : "no stack");
+    console.error(
+      "[auth] upsertTelegramUser error",
+      err instanceof Error ? err.message : err,
+    );
+    console.error(
+      "[auth:stack]",
+      err instanceof Error ? err.stack : "no stack",
+    );
     // Не падаем — используем fallback userId, чтобы каталог работал без БД
     c.set("userId", fallbackUserId(user.id));
   }

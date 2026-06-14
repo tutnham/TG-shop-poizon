@@ -32,14 +32,22 @@ function supabaseHeaders(): Record<string, string> {
 }
 
 /** Выполнить fetch с таймаутом и контролем соединения */
-async function safeFetch(url: string, init: RequestInit, timeoutMs = 15000): Promise<Response> {
+async function safeFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 15000,
+): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
     // Отключаем keep-alive чтобы избежать проблем с переиспользованием соединений
     const headers = new Headers(init.headers);
     headers.set("Connection", "close");
-    const res = await fetch(url, { ...init, headers, signal: controller.signal });
+    const res = await fetch(url, {
+      ...init,
+      headers,
+      signal: controller.signal,
+    });
     return res;
   } finally {
     clearTimeout(timeout);
@@ -53,7 +61,10 @@ async function supabaseGet(path: string): Promise<unknown> {
   return res.json();
 }
 
-async function supabaseInsert(table: string, row: Record<string, unknown>): Promise<void> {
+async function supabaseInsert(
+  table: string,
+  row: Record<string, unknown>,
+): Promise<void> {
   const url = `${SUPABASE_URL}/rest/v1/${table}`;
   const res = await safeFetch(url, {
     method: "POST",
@@ -66,9 +77,16 @@ async function supabaseInsert(table: string, row: Record<string, unknown>): Prom
   }
 }
 
-async function supabaseUpsert(table: string, row: Record<string, unknown>, onConflict: string): Promise<void> {
+async function supabaseUpsert(
+  table: string,
+  row: Record<string, unknown>,
+  onConflict: string,
+): Promise<void> {
   const url = `${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`;
-  const headers = { ...supabaseHeaders(), Prefer: "resolution=merge-duplicates" };
+  const headers = {
+    ...supabaseHeaders(),
+    Prefer: "resolution=merge-duplicates",
+  };
   const res = await safeFetch(url, {
     method: "POST",
     headers,
@@ -139,9 +157,9 @@ async function ensureCategories(categories: Pop2Category[]): Promise<void> {
 
   for (const cat of categories) {
     // Проверяем, есть ли уже категория с таким poizon_id
-    const existing = await supabaseGet(
+    const existing = (await supabaseGet(
       `categories?select=id&poizon_id=eq.${cat.id}`,
-    ) as { id: string }[] | null;
+    )) as { id: string }[] | null;
 
     if (existing && existing.length > 0) {
       categoryCache.set(cat.id, existing[0].id);
@@ -156,7 +174,11 @@ async function ensureCategories(categories: Pop2Category[]): Promise<void> {
 
     // Ищем родительскую категорию
     let parentId: string | null = null;
-    if (cat.parentId && cat.parentId !== cat.id && cat.parentId !== cat.rootId) {
+    if (
+      cat.parentId &&
+      cat.parentId !== cat.id &&
+      cat.parentId !== cat.rootId
+    ) {
       parentId = categoryCache.get(cat.parentId) ?? null;
     }
 
@@ -169,14 +191,17 @@ async function ensureCategories(categories: Pop2Category[]): Promise<void> {
         poizon_id: String(cat.id),
       });
       // Получаем id созданной категории
-      const created = await supabaseGet(
+      const created = (await supabaseGet(
         `categories?select=id&poizon_id=eq.${cat.id}`,
-      ) as { id: string }[] | null;
+      )) as { id: string }[] | null;
       if (created && created.length > 0) {
         categoryCache.set(cat.id, created[0].id);
       }
     } catch (e) {
-      console.warn(`[import-pop2] Ошибка создания категории "${cat.name}":`, (e as Error).message);
+      console.warn(
+        `[import-pop2] Ошибка создания категории "${cat.name}":`,
+        (e as Error).message,
+      );
     }
   }
 
@@ -187,14 +212,14 @@ async function ensureCategories(categories: Pop2Category[]): Promise<void> {
 
 function buildProductName(p: Pop2Product): string {
   // Если есть title — используем его
-  if (p.title && p.title.trim()) return p.title.trim();
+  if (p.title?.trim()) return p.title.trim();
 
   // Иначе: серия + артикул
   const parts: string[] = [];
-  if (p.seriesName && p.seriesName.trim()) {
+  if (p.seriesName?.trim()) {
     parts.push(p.seriesName.trim());
   }
-  if (p.vendorCode && p.vendorCode.trim()) {
+  if (p.vendorCode?.trim()) {
     parts.push(p.vendorCode.trim());
   }
   if (parts.length > 0) return parts.join(" ");
@@ -209,7 +234,9 @@ async function main() {
   const filePath = process.argv[2];
 
   if (!filePath) {
-    console.error("Использование: npx tsx scripts/import-pop2.ts <путь-к-pop2.json>");
+    console.error(
+      "Использование: npx tsx scripts/import-pop2.ts <путь-к-pop2.json>",
+    );
     process.exit(1);
   }
 
@@ -239,9 +266,11 @@ async function main() {
   console.log("[import-pop2] Получаем курсы валют...");
   await refreshRates(true);
   const config = await getPricingConfig({ skipRatesRefresh: true });
-  const rateCnyRub = config.rate_cny_rub;   // сколько RUB за 1 CNY
-  const rateCnyUsd = config.rate_cny_usd;   // сколько USD за 1 CNY (≈ кросс-курс)
-  console.log(`[import-pop2] Курсы: CNY→RUB=${rateCnyRub}, CNY→USD=${rateCnyUsd}`);
+  const rateCnyRub = config.rate_cny_rub; // сколько RUB за 1 CNY
+  const rateCnyUsd = config.rate_cny_usd; // сколько USD за 1 CNY (≈ кросс-курс)
+  console.log(
+    `[import-pop2] Курсы: CNY→RUB=${rateCnyRub}, CNY→USD=${rateCnyUsd}`,
+  );
 
   // Нормализуем товары
   const batch: Array<{
@@ -294,7 +323,10 @@ async function main() {
       price_rub: priceRub,
       price_usdt: priceUsdt,
       sizes: p.sizes && p.sizes.length > 0 ? { EU: p.sizes } : {},
-      stock: p.sizes && p.sizes.length > 0 ? Object.fromEntries(p.sizes.map((s) => [s, true])) : {},
+      stock:
+        p.sizes && p.sizes.length > 0
+          ? Object.fromEntries(p.sizes.map((s) => [s, true]))
+          : {},
       sold_count: p.favoriteCount || 0,
       is_available: p.price > 0,
     });
@@ -302,7 +334,7 @@ async function main() {
 
   console.log(
     `[import-pop2] Товаров к импорту: ${batch.length}` +
-    ` (пропущено: без цены=${skippedNoPrice}, без картинок=${skippedNoImages})`,
+      ` (пропущено: без цены=${skippedNoPrice}, без картинок=${skippedNoImages})`,
   );
 
   if (batch.length === 0) {
@@ -321,30 +353,34 @@ async function main() {
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        await supabaseUpsert("products", {
-          poizon_id: product.poizon_id,
-          name: product.name,
-          brand: product.brand,
-          category_id: product.category_id,
-          image_urls: product.image_urls,
-          price_cny: product.price_cny,
-          price_rub: product.price_rub,
-          price_usdt: product.price_usdt,
-          sizes: product.sizes,
-          stock: product.stock,
-          sold_count: product.sold_count,
-          is_available: product.is_available,
-          source: "poizon",
-          synced_at: now,
-          updated_at: now,
-        }, "poizon_id");
+        await supabaseUpsert(
+          "products",
+          {
+            poizon_id: product.poizon_id,
+            name: product.name,
+            brand: product.brand,
+            category_id: product.category_id,
+            image_urls: product.image_urls,
+            price_cny: product.price_cny,
+            price_rub: product.price_rub,
+            price_usdt: product.price_usdt,
+            sizes: product.sizes,
+            stock: product.stock,
+            sold_count: product.sold_count,
+            is_available: product.is_available,
+            source: "poizon",
+            synced_at: now,
+            updated_at: now,
+          },
+          "poizon_id",
+        );
 
         inserted = true;
         break;
       } catch (e) {
         const err = e as Error & { cause?: Error };
         const detail = err.cause?.message ?? err.message;
-        const msg = detail.length > 150 ? detail.slice(0, 150) + "..." : detail;
+        const msg = detail.length > 150 ? `${detail.slice(0, 150)}...` : detail;
         if (attempt < MAX_RETRIES) {
           const waitMs = 1000 * attempt;
           console.warn(
@@ -368,7 +404,7 @@ async function main() {
     if ((i + 1) % 50 === 0 || i === batch.length - 1) {
       console.log(
         `[import-pop2] Прогресс: ${i + 1}/${batch.length} | ` +
-        `вставлено=${totalInserted}, ошибок=${totalErrors}`,
+          `вставлено=${totalInserted}, ошибок=${totalErrors}`,
       );
     }
 
@@ -378,7 +414,7 @@ async function main() {
     }
   }
 
-  console.log(`\n[import-pop2] Импорт завершён!`);
+  console.log("\n[import-pop2] Импорт завершён!");
   console.log(`  Всего в файле: ${data.products.length}`);
   console.log(`  Импортировано: ${totalInserted}`);
   console.log(`  Ошибок: ${totalErrors}`);

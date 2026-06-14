@@ -4,7 +4,7 @@ import { loadDotEnv } from "../src/lib/load-dotenv.js";
 loadDotEnv();
 
 // Remove VERCEL env var to bypass serverless check
-delete process.env.VERCEL;
+process.env.VERCEL = undefined;
 
 // Dynamically import and run the sync
 const { runFullSync } = await import("../src/services/poizon-sync.service.js");

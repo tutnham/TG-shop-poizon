@@ -8,12 +8,12 @@ import {
 import { renderHeader } from "../components/header.js";
 import { renderProductCard } from "../components/product-card.js";
 import { t } from "../i18n/index.js";
+import { clearCartCache } from "../lib/cart-presence.js";
 import {
   bindKeyboardDismiss,
   hideKeyboard,
   wireSearchInput,
 } from "../lib/keyboard.js";
-import { clearCartCache } from "../lib/cart-presence.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
@@ -203,15 +203,23 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     let removed = 0;
     while (allCards.length > 0 && removed < 20) {
       const c = allCards[0];
-      if (!c?.isConnected) { allCards.shift(); continue; }
+      if (!c?.isConnected) {
+        allCards.shift();
+        continue;
+      }
       const cb = c.getBoundingClientRect().bottom + main.scrollTop;
-      if (cb < vpTop - thr) { c.remove(); allCards.shift(); removed++; }
-      else break;
+      if (cb < vpTop - thr) {
+        c.remove();
+        allCards.shift();
+        removed++;
+      } else break;
     }
   }
 
   function updateLoadTrigger(): void {
-    const btn = main.querySelector("#load-more-btn") as HTMLButtonElement | null;
+    const btn = main.querySelector(
+      "#load-more-btn",
+    ) as HTMLButtonElement | null;
     if (allCards.length >= LOAD_MORE_THRESHOLD) {
       observer.unobserve(sentinel);
       sentinel.hidden = true;
@@ -225,7 +233,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
           if (!loading) void loadMore().then(() => updateLoadTrigger());
         });
         main.appendChild(nb);
-      } else { btn.hidden = false; }
+      } else {
+        btn.hidden = false;
+      }
     } else {
       observer.observe(sentinel);
       sentinel.hidden = false;

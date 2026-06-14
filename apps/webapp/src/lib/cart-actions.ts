@@ -11,9 +11,10 @@ export function firstAvailableSize(product: ProductDetail): string | null {
   const rawSizes = Object.values(product.sizes ?? {}).flat();
   const DEFAULT_EU_SIZES = ["39", "40", "41", "42", "43", "44", "45", "46"];
   const sizes = rawSizes.length > 0 ? rawSizes : DEFAULT_EU_SIZES;
-  const stock = rawSizes.length > 0
-    ? (product.stock ?? {})
-    : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
+  const stock =
+    rawSizes.length > 0
+      ? (product.stock ?? {})
+      : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
 
   if (!product.is_available) return null;
 

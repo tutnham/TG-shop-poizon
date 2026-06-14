@@ -40,7 +40,7 @@ export async function upsertTelegramUser(
     .select("id")
     .single();
   if (insErr) throw new Error(insErr.message);
-  return created!.id;
+  return created?.id;
 }
 
 export async function updateUserLanguage(

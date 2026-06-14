@@ -46,7 +46,8 @@ export function getPricingModuleConfig(): PricingModuleConfig {
       (getEnvOptional(
         "PRICING_PUBLIC_RATE_POLICY",
         DEFAULTS.publicRatePolicy,
-      ) as PricingModuleConfig["publicRatePolicy"]) ?? DEFAULTS.publicRatePolicy,
+      ) as PricingModuleConfig["publicRatePolicy"]) ??
+      DEFAULTS.publicRatePolicy,
     internalRatePolicy:
       (getEnvOptional(
         "PRICING_INTERNAL_RATE_POLICY",

@@ -55,7 +55,10 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     headers: headers(),
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error("Request failed");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error((err as { error?: string }).error ?? "Request failed");
+  }
   return res.json() as Promise<T>;
 }
 
@@ -65,5 +68,8 @@ export async function apiDelete(path: string): Promise<void> {
     method: "DELETE",
     headers: headers(),
   });
-  if (!res.ok) throw new Error("Request failed");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error((err as { error?: string }).error ?? "Request failed");
+  }
 }

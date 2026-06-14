@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it, mock } from "node:test";
-import { fetchUsdtRubFromBinance, fetchUsdtRubRateFromBinance } from "./binance.client.js";
+import {
+  fetchUsdtRubFromBinance,
+  fetchUsdtRubRateFromBinance,
+} from "./binance.client.js";
 
 describe("fetchUsdtRubFromBinance (legacy)", () => {
   const originalFetch = globalThis.fetch;
@@ -51,8 +54,7 @@ describe("fetchUsdtRubRateFromBinance (новый API)", () => {
     assert.ok(new Date(rate.expiresAt) > new Date(rate.fetchedAt));
     // TTL = 5 минут
     const ttl =
-      new Date(rate.expiresAt).getTime() -
-      new Date(rate.fetchedAt).getTime();
+      new Date(rate.expiresAt).getTime() - new Date(rate.fetchedAt).getTime();
     assert.ok(
       ttl >= 4 * 60 * 1000 && ttl <= 6 * 60 * 1000,
       `TTL должен быть ~5 мин, получено ${ttl}мс`,

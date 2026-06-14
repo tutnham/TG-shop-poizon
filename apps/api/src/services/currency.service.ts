@@ -3,30 +3,22 @@ import { getSupabase, isSupabaseConfigured } from "../db/client.js";
 import { getConfigValue, setConfigValue } from "../db/config.repository.js";
 import { getEnvOptional } from "../types/env.types.js";
 import {
-  fetchCnyRubRateFromCbr,
-  CBR_CNY_RUB_TTL_MS,
-  fetchCnyRubFromCbr,
-} from "./exchange/cbr.client.js";
-import {
-  fetchUsdtRubRateFromBinance,
   BINANCE_USDT_RUB_TTL_MS,
   fetchUsdtRubFromBinance,
+  fetchUsdtRubRateFromBinance,
 } from "./exchange/binance.client.js";
 import {
-  InMemoryExchangeRateCacheRepository,
   type ExchangeRateCacheRepository,
+  InMemoryExchangeRateCacheRepository,
 } from "./exchange/cache.repository.js";
-import type {
-  ExchangeRate,
-  RateSnapshot,
-} from "./exchange/rate-types.js";
 import {
-  RateUnavailableError,
-  RateStaleError,
-} from "./exchange/rate-types.js";
-import type {
-  ExchangeRates,
-} from "./exchange/types.js";
+  CBR_CNY_RUB_TTL_MS,
+  fetchCnyRubFromCbr,
+  fetchCnyRubRateFromCbr,
+} from "./exchange/cbr.client.js";
+import type { ExchangeRate, RateSnapshot } from "./exchange/rate-types.js";
+import { RateStaleError, RateUnavailableError } from "./exchange/rate-types.js";
+import type { ExchangeRates } from "./exchange/types.js";
 import { buildExchangeRates } from "./exchange/types.js";
 import { getPricingModuleConfig } from "./pricing.config.js";
 
@@ -60,16 +52,23 @@ function envFallbackRates(): ExchangeRates {
   const cny_rub = Number(getEnvOptional("CNY_TO_RUB_RATE", "13.5"));
   const cny_usd_env = Number(getEnvOptional("CNY_TO_USD_RATE", "7.25"));
   const usdt_rub = cny_rub * cny_usd_env;
-  return buildExchangeRates(cny_rub, usdt_rub, {
-    cny_rub: "env",
-    usdt_rub: "env",
-  }, { isFallback: true, isStale: true });
+  return buildExchangeRates(
+    cny_rub,
+    usdt_rub,
+    {
+      cny_rub: "env",
+      usdt_rub: "env",
+    },
+    { isFallback: true, isStale: true },
+  );
 }
 
 // ── ExchangeRateService ─────────────────────────────────────────────
 
 export class ExchangeRateService {
-  constructor(private readonly cacheRepo: ExchangeRateCacheRepository = cache) {}
+  constructor(
+    private readonly cacheRepo: ExchangeRateCacheRepository = cache,
+  ) {}
 
   /** Получить «живой» курс CNY→RUB с fallback-цепочкой */
   async getCnyRubRate(): Promise<ExchangeRate> {
@@ -169,7 +168,10 @@ export class ExchangeRateService {
           rate.fetchedAt,
         );
       }
-      throw new RateUnavailableError("Rate not available for STRICT policy", rateType);
+      throw new RateUnavailableError(
+        "Rate not available for STRICT policy",
+        rateType,
+      );
     }
   }
 
@@ -189,7 +191,11 @@ export class ExchangeRateService {
         .order("updated_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (data?.rate != null && Number.isFinite(Number(data.rate)) && Number(data.rate) > 0) {
+      if (
+        data?.rate != null &&
+        Number.isFinite(Number(data.rate)) &&
+        Number(data.rate) > 0
+      ) {
         const fetchedAt =
           typeof data.rates_updated_at === "string"
             ? data.rates_updated_at
@@ -206,15 +212,23 @@ export class ExchangeRateService {
           isStale: false,
         };
       }
-    } catch { /* DB недоступна — не фатально */ }
+    } catch {
+      /* DB недоступна — не фатально */
+    }
     return null;
   }
 
   private async _loadUsdtRubFromDb(): Promise<ExchangeRate | null> {
     if (!isSupabaseConfigured()) return null;
     try {
-      const usdtFromConfig = await getConfigValue<number | null>("usdt_rub", null);
-      const updatedAt = await getConfigValue<string | null>("rates_updated_at", null);
+      const usdtFromConfig = await getConfigValue<number | null>(
+        "usdt_rub",
+        null,
+      );
+      const updatedAt = await getConfigValue<string | null>(
+        "rates_updated_at",
+        null,
+      );
       if (usdtFromConfig != null && usdtFromConfig > 0) {
         const fetchedAt = updatedAt ?? new Date().toISOString();
         const config = getPricingModuleConfig();
@@ -229,7 +243,9 @@ export class ExchangeRateService {
           isStale: false,
         };
       }
-    } catch { /* DB недоступна — не фатально */ }
+    } catch {
+      /* DB недоступна — не фатально */
+    }
     return null;
   }
 
@@ -240,7 +256,9 @@ export class ExchangeRateService {
       rate: new Decimal(Number.isFinite(rate) && rate > 0 ? rate : 13.5),
       source: "env",
       fetchedAt: now.toISOString(),
-      expiresAt: new Date(now.getTime() + getPricingModuleConfig().cnyRubTtlMs).toISOString(),
+      expiresAt: new Date(
+        now.getTime() + getPricingModuleConfig().cnyRubTtlMs,
+      ).toISOString(),
       isFallback: true,
       isStale: true,
     };
@@ -252,10 +270,14 @@ export class ExchangeRateService {
     const usdt_rub = cny_rub * cny_usd_env;
     const now = new Date();
     return {
-      rate: new Decimal(Number.isFinite(usdt_rub) && usdt_rub > 0 ? usdt_rub : 98),
+      rate: new Decimal(
+        Number.isFinite(usdt_rub) && usdt_rub > 0 ? usdt_rub : 98,
+      ),
       source: "env",
       fetchedAt: now.toISOString(),
-      expiresAt: new Date(now.getTime() + getPricingModuleConfig().usdtRubTtlMs).toISOString(),
+      expiresAt: new Date(
+        now.getTime() + getPricingModuleConfig().usdtRubTtlMs,
+      ).toISOString(),
       isFallback: true,
       isStale: true,
     };
@@ -320,13 +342,21 @@ async function loadRatesFromDb(): Promise<ExchangeRates | null> {
       : new Date().toISOString();
 
   if (cny_rub == null || usdt_rub == null || cny_rub <= 0 || usdt_rub <= 0) {
-    const usdtFromConfig = await getConfigValue<number | null>("usdt_rub", null);
+    const usdtFromConfig = await getConfigValue<number | null>(
+      "usdt_rub",
+      null,
+    );
     if (cny_rub != null && usdtFromConfig != null && usdtFromConfig > 0) {
       return {
-        ...buildExchangeRates(cny_rub, usdtFromConfig, {
-          cny_rub: "cache",
-          usdt_rub: "cache",
-        }, { isFallback: true }),
+        ...buildExchangeRates(
+          cny_rub,
+          usdtFromConfig,
+          {
+            cny_rub: "cache",
+            usdt_rub: "cache",
+          },
+          { isFallback: true },
+        ),
         fetched_at,
       };
     }
@@ -334,10 +364,15 @@ async function loadRatesFromDb(): Promise<ExchangeRates | null> {
   }
 
   return {
-    ...buildExchangeRates(cny_rub, usdt_rub, {
-      cny_rub: "cache",
-      usdt_rub: "cache",
-    }, { isFallback: true }),
+    ...buildExchangeRates(
+      cny_rub,
+      usdt_rub,
+      {
+        cny_rub: "cache",
+        usdt_rub: "cache",
+      },
+      { isFallback: true },
+    ),
     fetched_at,
   };
 }
@@ -395,7 +430,10 @@ export async function getRatesHealth(): Promise<{
   last_rates_at: string | null;
   rates_stale: boolean;
 }> {
-  const updatedAt = await getConfigValue<string | null>("rates_updated_at", null);
+  const updatedAt = await getConfigValue<string | null>(
+    "rates_updated_at",
+    null,
+  );
   const last_rates_at = updatedAt ?? cachedRates?.fetched_at ?? null;
   if (!last_rates_at) {
     return { last_rates_at: null, rates_stale: true };
@@ -421,7 +459,9 @@ export async function persistRates(rates: ExchangeRates): Promise<void> {
       .limit(1)
       .maybeSingle();
     id = (data?.id as string | undefined) ?? null;
-  } catch { /* игнорируем */ }
+  } catch {
+    /* игнорируем */
+  }
 
   const patch = {
     rate: rates.cny_rub,

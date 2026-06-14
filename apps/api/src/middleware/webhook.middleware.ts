@@ -16,7 +16,9 @@ export const webhookSecret = createMiddleware(async (c, next) => {
   const header = c.req.header("X-Telegram-Bot-Api-Secret-Token");
 
   if (isProduction() && !secret) {
-    console.warn("[webhook] WEBHOOK_SECRET not set in production — webhook is unprotected");
+    console.warn(
+      "[webhook] WEBHOOK_SECRET not set in production — webhook is unprotected",
+    );
   }
 
   if (secret && header !== secret) {

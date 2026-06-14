@@ -7,6 +7,16 @@
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2 },
   "files": {
-    "ignore": ["node_modules", "dist", ".vercel"]
+    "ignore": [
+      "node_modules",
+      "dist",
+      ".vercel",
+      ".vercel-tmp",
+      "pop2.json",
+      "pop2_test3.json",
+      "temp_brands.json",
+      "tmp_detail.json",
+      "tmp_detail2.json"
+    ]
   }
 }

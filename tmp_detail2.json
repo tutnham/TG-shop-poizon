@@ -1,0 +1,2272 @@
+{
+  "modelSequence": [
+    { "key": "HEAD", "value": [{ "key": "carousel" }] },
+    {
+      "key": "ACTDATE",
+      "value": [{ "key": "activityDateInfo", "title": "预约抢购" }]
+    },
+    {
+      "key": "LIMITEDSALE",
+      "value": [{ "key": "limitedSaleInfo", "title": "品牌发售" }]
+    },
+    { "key": "BASE", "value": [{ "key": "discount" }, { "key": "core" }] },
+    { "key": "BIDDING", "value": [{ "key": "similarityBidding" }] },
+    {
+      "key": "PROCESS",
+      "value": [{ "key": "buyingProcess", "title": "购买流程" }]
+    },
+    {
+      "key": "DELIVERY",
+      "value": [{ "key": "deliveryTime", "title": "发货时间" }]
+    },
+    {
+      "key": "SERVICE",
+      "value": [
+        { "key": "newBrand", "title": "品宣" },
+        { "key": "genuine", "title": "保障" },
+        { "key": "newService", "title": "服务" },
+        { "key": "aiEnter", "title": "ai独立入口" },
+        { "key": "property", "title": "参数" },
+        { "key": "customization", "title": "定制" },
+        { "key": "structHomeAgg", "title": "通用首屏强化模块" }
+      ]
+    },
+    { "key": "MID", "value": [{ "key": "advMid", "title": "中通" }] },
+    {
+      "key": "ACTIVITY",
+      "value": [{ "key": "activityForm", "title": "会场活动" }]
+    },
+    {
+      "key": "SOLD",
+      "value": [{ "key": "lastSoldListModel", "title": "最近购买" }]
+    },
+    {
+      "key": "OUTFIT",
+      "value": [{ "key": "relationTrend", "title": "穿搭精选" }]
+    },
+    { "key": "QA", "value": [{ "key": "qaModel", "title": "商品讨论" }] },
+    {
+      "key": "BRAND",
+      "value": [
+        { "key": "actChannel", "title": "平价优品入口" },
+        { "key": "brand", "title": "商品品牌" }
+      ]
+    },
+    {
+      "key": "RELATION",
+      "value": [{ "key": "relationRecommend", "title": "相关推荐" }]
+    },
+    {
+      "key": "INFORMATION",
+      "value": [
+        {
+          "key": "hotSpuBrandingModel",
+          "title": "爆品品宣",
+          "ext": { "bottomBar": "1", "topBar": "1" },
+          "topBar": true,
+          "bottomBar": true
+        },
+        {
+          "key": "spuCollocation",
+          "title": "推荐搭配",
+          "ext": { "bottomBar": "1", "topBar": "1" },
+          "topBar": true,
+          "bottomBar": true
+        },
+        { "key": "perfumePropertyInfo", "title": "香水" },
+        { "key": "skinCareInfo", "title": "护肤" },
+        { "key": "functionProperty", "title": "功能特性" },
+        { "key": "scoreRank", "title": "评分特性" },
+        { "key": "runShoeComment" },
+        { "key": "shoeSeries", "title": "科技特性" },
+        { "key": "personalFeeling", "title": "上脚感受" },
+        { "key": "voteModelInfo", "title": "投票信息" }
+      ]
+    },
+    {
+      "key": "INFORMATION1",
+      "value": [
+        {
+          "key": "sizeModel",
+          "title": "尺码助手",
+          "ext": {
+            "sizeReportTitle": "试穿报告",
+            "sizeTemplateTitle": "尺码对照表",
+            "splitFittingReportTitle": "尺码推荐"
+          }
+        },
+        {
+          "key": "richText",
+          "title": "选购引导图",
+          "relateFiled": "purchaseGuide"
+        }
+      ]
+    },
+    {
+      "key": "INFORMATION2",
+      "value": [
+        { "key": "capacityCombination", "title": "箱包" },
+        { "key": "sizeWearEffectSpread", "title": "上身位置" },
+        { "key": "upperBodyEffectInfo", "title": "上身效果" },
+        {
+          "key": "richText",
+          "title": "镜框参考",
+          "relateFiled": "frameReferenceSpread"
+        },
+        { "key": "versionIntroduce", "title": "版本介绍" },
+        { "key": "qaOfficial", "title": "工艺解读" },
+        { "key": "warranty", "title": "保卡说明" },
+        { "key": "useTutorialDto", "title": "新使用教程" },
+        {
+          "key": "richText",
+          "title": "商品故事",
+          "relateFiled": "goodsStorySpread"
+        },
+        { "key": "richText", "title": "注意须知", "relateFiled": "attention" },
+        {
+          "key": "virtualImageAndTextModel",
+          "ext": {
+            "physicalContrastTitle": "实物对比",
+            "sortedModels": "spuDetailSpread,spuWearSpread,spuShowSpread,spuInfoSpread,physicalContrastImageTextSpread,materialDescriptionSpread,afterSalesServiceSpread,maintenanceInstructionsSpread,spuIntroductionSpread,brandStorySpread",
+            "specificationCourseTitle": "使用教程",
+            "spuShowTitle": "商品展示",
+            "maintenanceInstructionsTitle": "保养说明",
+            "materialDescriptionTitle": "材质说明",
+            "frameReferenceTitle": "镜框参考",
+            "goodsStoryTitle": "球鞋故事",
+            "spuDetailTitle": "细节呈现",
+            "attentionTitle": "注意须知",
+            "multiModels": "[{\"key\":\"richText\",\"title\":\"历史图文json\",\"relateFiled\":\"historyJson1\"},{\"key\":\"richText\",\"title\":\"细节呈现\",\"relateFiled\":\"spuDetailSpread\"},{\"key\":\"richText\",\"title\":\"穿搭效果\",\"relateFiled\":\"spuWearSpread\"},{\"key\":\"richText\",\"title\":\"商品展示\",\"relateFiled\":\"spuShowSpread\"},{\"key\":\"richText\",\"title\":\"商品信息\",\"relateFiled\":\"spuInfoSpread\"},{\"key\":\"richText\",\"title\":\"实物对比(图文)\",\"relateFiled\":\"physicalContrastImageTextSpread\"},{\"key\":\"richText\",\"title\":\"材质说明\",\"relateFiled\":\"materialDescriptionSpread\"},{\"key\":\"richText\",\"title\":\"售后服务\",\"relateFiled\":\"afterSalesServiceSpread\"},{\"key\":\"richText\",\"title\":\"保养说明\",\"relateFiled\":\"maintenanceInstructionsSpread\"},{\"key\":\"richText\",\"title\":\"商品介绍\",\"relateFiled\":\"spuIntroductionSpread\"},{\"key\":\"richText\",\"title\":\"品牌故事\",\"relateFiled\":\"brandStorySpread\"}]",
+            "spuInfoTitle": "商品信息",
+            "spuIntroductionTitle": "商品介绍",
+            "spuWearTitle": "穿搭效果",
+            "afterSalesServiceTitle": "售后服务"
+          }
+        },
+        {
+          "key": "newBrand2",
+          "title": "品宣",
+          "ext": { "needBar": "1" },
+          "needBar": true
+        },
+        {
+          "key": "standardBranding",
+          "title": "标准品宣",
+          "ext": { "bottomBar": "1", "topBar": "1" },
+          "topBar": true,
+          "bottomBar": true
+        },
+        {
+          "key": "hotSpuBrandingModelV2",
+          "title": "爆品品宣",
+          "ext": { "bottomBar": "1", "topBar": "1" },
+          "topBar": true,
+          "bottomBar": true
+        },
+        { "key": "buyerReading", "title": "购物须知" },
+        { "key": "commonQuestionRes", "title": "常见问题" },
+        { "key": "spuCertificate", "title": "商品资质" }
+      ]
+    },
+    {
+      "key": "TIPS",
+      "value": [{ "key": "commonTips", "title": "购物须知与常见问题" }]
+    },
+    {
+      "key": "BOTTOM",
+      "value": [{ "key": "bottomActivityForm", "title": "底部中通" }]
+    },
+    {
+      "key": "FEED2",
+      "value": [{ "key": "appraiseFeed", "title": "好物评价" }]
+    }
+  ],
+  "lastSold": {
+    "avatar": "https://qiniu.dewucdn.com/FjIIs8ZyQpJU7Yma3uaR0u-L7GVI",
+    "lastSoldText": "得*2月26日以￥1501购买了36",
+    "contentText": "309人付款",
+    "tinySoldNumText": "309人付款",
+    "lastSoldWeakenText": "2月26日购买"
+  },
+  "image": {
+    "spuImage": {
+      "threeDimension": {},
+      "images": [
+        {
+          "propertyValueId": 0,
+          "url": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg",
+          "imgType": 0,
+          "desc": "",
+          "isWhite": 1,
+          "imgStyleType": "1",
+          "uniqId": "22758709",
+          "isModel": 0,
+          "isGift": 0,
+          "specsFirstImg": 1
+        },
+        {
+          "propertyValueId": 0,
+          "url": "https://cdn.poizon.com/pro-img/origin-img/20251210/1d7ee1234dbf4e489ad4e331df18fd0e.jpg",
+          "imgType": 0,
+          "desc": "",
+          "isWhite": 1,
+          "imgStyleType": "1",
+          "uniqId": "22758710",
+          "isModel": 0,
+          "isGift": 0
+        },
+        {
+          "propertyValueId": 0,
+          "url": "https://cdn.poizon.com/pro-img/origin-img/20251210/4b331393fb0142918b6c5491da768f25.jpg",
+          "imgType": 0,
+          "desc": "",
+          "isWhite": 1,
+          "imgStyleType": "1",
+          "uniqId": "22758711",
+          "isModel": 0,
+          "isGift": 0
+        },
+        {
+          "propertyValueId": 0,
+          "url": "https://cdn.poizon.com/pro-img/origin-img/20251210/8e84cfed6b2e420a9ad6fda0492e63ce.jpg",
+          "imgType": 0,
+          "desc": "",
+          "isWhite": 1,
+          "imgStyleType": "1",
+          "uniqId": "22758712",
+          "isModel": 0,
+          "isGift": 0
+        },
+        {
+          "propertyValueId": 0,
+          "url": "https://cdn.poizon.com/pro-img/origin-img/2025121012/a7de9cb53701f7ef66ee1976512d95fe.jpg",
+          "imgType": 0,
+          "desc": "",
+          "isWhite": 1,
+          "imgStyleType": "1",
+          "uniqId": "22758713",
+          "isModel": 0,
+          "isGift": 0
+        },
+        {
+          "propertyValueId": 0,
+          "url": "https://cdn.poizon.com/pro-img/origin-img/2025121012/7db603fff81433f258cc7e0770df4de4.jpg",
+          "imgType": 0,
+          "desc": "",
+          "isWhite": 1,
+          "imgStyleType": "1",
+          "uniqId": "22758714",
+          "isModel": 0,
+          "isGift": 0
+        }
+      ],
+      "supportPanorama": 0,
+      "colorBlockImages": [],
+      "supportColorBlock": 0,
+      "arSkuIdRelation": [
+        {
+          "spuId": 1204239,
+          "skuId": 601400066,
+          "propertyValueId": 27322423,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400067,
+          "propertyValueId": 27322424,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400068,
+          "propertyValueId": 27322425,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400069,
+          "propertyValueId": 27322426,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400070,
+          "propertyValueId": 27322427,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400071,
+          "propertyValueId": 27322428,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400072,
+          "propertyValueId": 27322429,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400073,
+          "propertyValueId": 27322430,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400074,
+          "propertyValueId": 27322431,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400075,
+          "propertyValueId": 27322432,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400076,
+          "propertyValueId": 27322433,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400077,
+          "propertyValueId": 27322434,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400078,
+          "propertyValueId": 27322435,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400079,
+          "propertyValueId": 27322436,
+          "supportFlag": false
+        },
+        {
+          "spuId": 1204239,
+          "skuId": 601400080,
+          "propertyValueId": 27322437,
+          "supportFlag": false
+        }
+      ],
+      "moreMaterialFlag": 0
+    },
+    "imageLayoutType": 0,
+    "isOnlyShowHitCspu": true,
+    "sortList": [
+      {
+        "propertyValueId": 0,
+        "uniqId": "22758709",
+        "type": "carousel",
+        "isShow": true,
+        "newAnchorType": "PRODUCT",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "22758710",
+        "type": "carousel",
+        "isShow": true,
+        "newAnchorType": "PRODUCT",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "22758711",
+        "type": "carousel",
+        "isShow": true,
+        "newAnchorType": "PRODUCT",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "22758712",
+        "type": "carousel",
+        "isShow": true,
+        "newAnchorType": "PRODUCT",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "190997728",
+        "type": "sns",
+        "isShow": true,
+        "newAnchorType": "RELATION_TREND",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "99088589",
+        "type": "sns",
+        "isShow": true,
+        "newAnchorType": "RELATION_TREND",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "234258266",
+        "type": "sns",
+        "isShow": true,
+        "newAnchorType": "RELATION_TREND",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "197501261",
+        "type": "sns",
+        "isShow": true,
+        "newAnchorType": "RELATION_TREND",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "45221669",
+        "type": "sns",
+        "isShow": true,
+        "newAnchorType": "RELATION_TREND",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "22758713",
+        "type": "carousel",
+        "isShow": true,
+        "newAnchorType": "PRODUCT",
+        "extraMap": {}
+      },
+      {
+        "propertyValueId": 0,
+        "uniqId": "22758714",
+        "type": "carousel",
+        "isShow": true,
+        "newAnchorType": "PRODUCT",
+        "extraMap": {}
+      }
+    ],
+    "carouselSwitchStyle": "progressBar",
+    "snsStrategyMap": {}
+  },
+  "frontLabelSummaryDTO": {
+    "afterTitle": {
+      "sortRule": [
+        {
+          "labelType": "LABEL_DE_WU_EXCLUSIVE",
+          "sorted": 10,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_EXCLUSIVE_LAUNCH",
+          "sorted": 20,
+          "sourceType": "SPU"
+        },
+        { "labelType": "LABEL_FIRST_SELL", "sorted": 30, "sourceType": "SPU" },
+        { "labelType": "LABEL_FIRST_BUY", "sorted": 31, "sourceType": "SPU" },
+        {
+          "labelType": "LABEL_BRAND_ONLY_4_BRAND_OFFICIAL",
+          "sorted": 40,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_BRAND_ONLY_4_BRAND_ONLY",
+          "sorted": 41,
+          "sourceType": "SPU"
+        },
+        { "labelType": "LABEL_GLOBAL_BUY", "sorted": 50, "sourceType": "SPU" }
+      ],
+      "item": []
+    },
+    "belowTitle": {
+      "sortRule": [
+        {
+          "labelType": "LABEL_PAGE_GOODS_STORY",
+          "sorted": 8,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_RANK",
+          "sorted": 10,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "sorted": 20,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_IP",
+          "sorted": 30,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_THEME",
+          "sorted": 11,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_CAT",
+          "sorted": 60,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_FLOAT_PROP",
+          "sorted": 55,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_PROP",
+          "sorted": 50,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_LANDING_RELATED",
+          "sorted": 70,
+          "sourceType": "SPU"
+        },
+        {
+          "labelType": "LABEL_PAGE_MORE_SIMILAR_STYLE",
+          "sorted": 80,
+          "sourceType": "SPU"
+        }
+      ],
+      "item": [
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400066,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400067,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400068,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400069,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400070,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400071,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400072,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400073,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400074,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400075,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400076,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400077,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400078,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400079,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        },
+        {
+          "customType": 1,
+          "labelId": 0,
+          "sourceType": "SKU",
+          "sourceId": 601400080,
+          "labelType": "LABEL_PAGE_LANDING_SERIES",
+          "labelShowName": {
+            "showNameType": "TEXT",
+            "text": "ASICS x Kikos Kostadinov",
+            "textOptionStyle": { "textColorStyle": "#AAAABB" }
+          },
+          "labelRoute": {
+            "routeType": "landing_page",
+            "routeUrl": "https://m.poizon.com/router/product/series/detail?brandId=8&seriesId=1008427&spuId=1204239&sourceName=productDetail",
+            "routeTypeStyle": "ARROW_STYLE"
+          },
+          "labelRouteHided": false
+        }
+      ],
+      "displaySortList": [],
+      "industryType": "common"
+    },
+    "belowPrice": {},
+    "afterPriceFirstNew": {},
+    "beforeTitle": {}
+  },
+  "basicParam": {
+    "basicList": [
+      {
+        "key": "鞋身重量（约）",
+        "value": "380g/单只42码/单只",
+        "propertyValueId": 430322633,
+        "valueType": 0,
+        "tagType": 0
+      },
+      { "key": "发售价格", "value": "¥335", "valueType": 0, "tagType": 0 },
+      {
+        "key": "功能分类",
+        "value": "耐磨,透气",
+        "propertyValueId": 65100262,
+        "keyScene": 9,
+        "valueType": 0,
+        "tagType": 0
+      },
+      {
+        "key": "适用场地",
+        "value": "公路",
+        "propertyValueId": 658501761,
+        "valueType": 0,
+        "tagType": 0
+      },
+      {
+        "key": "跑鞋等级",
+        "value": "入门跑",
+        "propertyValueId": 658512908,
+        "keyScene": 9,
+        "valueType": 0,
+        "tagType": 0
+      },
+      {
+        "key": "鞋面",
+        "value": "透气网眼网布",
+        "keyScene": 6,
+        "valueType": 0,
+        "tagType": 0
+      },
+      {
+        "key": "大底",
+        "value": "橡胶大底",
+        "keyScene": 6,
+        "valueType": 0,
+        "tagType": 0
+      },
+      {
+        "key": "适用场景",
+        "value": "休闲",
+        "propertyValueId": 658512358,
+        "keyScene": 9,
+        "valueType": 0,
+        "tagType": 0
+      },
+      {
+        "key": "鞋帮高度",
+        "value": "低帮",
+        "propertyValueId": 65100261,
+        "keyScene": 9,
+        "valueType": 0,
+        "tagType": 0
+      }
+    ],
+    "windowTitle": "商品参数",
+    "pkModelInfo": {
+      "pkFlag": true,
+      "pkIcon1": "https://cdn.poizon.com/node-common/c45bdedd-8544-2095-a9f6-8949a23055b1-60-69.png",
+      "pkIcon2": "https://cdn.poizon.com/node-common/23c7f771-98f1-c34c-5a6f-d88dad51715b-123-36.png",
+      "pkIcon3": "https://cdn.poizon.com/node-common/a0fdb2f3-40d6-3bcb-74a1-4f06ab2927aa-144-152.png",
+      "redirectUrl": "https://m.poizon.com/router/product/ParameterComparePage?spuId=1204239&categoryId=33&source=detail&seriesId=1003092",
+      "pkIcon4": "https://cdn.poizon.com/node-common/edcfc738-9b7a-21fa-dd20-af54f3404d53-45-30.png",
+      "pkButtonText": "对比",
+      "pkButtonIconUrl": "https://cdn.poizon.com/node-common/c6576391-1c57-5c30-fbd9-3860f1f6f01d-49-48.png",
+      "windowPkButtonText": "去对比",
+      "pkIconModel": {
+        "url": "https://cdn.poizon.com/node-common/0e83c087-b2a2-44f1-0d8f-305b156c7721-46-108.png",
+        "width": 46,
+        "height": 108
+      },
+      "newIcon": false
+    },
+    "windowSubTitle": "纠错",
+    "windowsListV2": [
+      {
+        "paramGroupName": "重点参数",
+        "paramModelList": [
+          {
+            "key": "鞋身重量（约）",
+            "value": "380g/单只42码",
+            "propertyValueId": 430322633,
+            "valueType": 0,
+            "definitionId": 4068,
+            "tagType": 0,
+            "value4Basic": "380g/单只42码/单只"
+          },
+          {
+            "key": "发售价格",
+            "value": "¥335",
+            "valueType": 0,
+            "definitionId": -3,
+            "tagType": 0
+          },
+          {
+            "key": "功能分类",
+            "value": "耐磨,透气",
+            "propertyValueId": 65100262,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 169,
+            "propertyContentParams": {
+              "defId": "169",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "13851,14067",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "13851,14067"
+            },
+            "tagType": 0
+          },
+          {
+            "key": "适用场地",
+            "value": "公路",
+            "propertyValueId": 658501761,
+            "valueType": 0,
+            "definitionId": 1842,
+            "tagType": 0
+          },
+          {
+            "key": "跑鞋等级",
+            "value": "入门跑",
+            "propertyValueId": 658512908,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 4071,
+            "propertyContentParams": {
+              "defId": "4071",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "40991"
+            },
+            "tagType": 0
+          }
+        ],
+        "type": 1,
+        "showTitle": false
+      },
+      {
+        "paramGroupName": "跑鞋特性",
+        "paramGroupId": 167,
+        "paramModelList": [
+          {
+            "key": "鞋身重量（约）",
+            "value": "380g/单只42码",
+            "propertyValueId": 430322633,
+            "valueType": 0,
+            "definitionId": 4068,
+            "tagType": 0,
+            "value4Basic": "380g/单只42码/单只"
+          },
+          {
+            "key": "适用场地",
+            "value": "公路",
+            "propertyValueId": 658501761,
+            "valueType": 0,
+            "definitionId": 1842,
+            "tagType": 0
+          },
+          {
+            "key": "跑鞋等级",
+            "value": "入门跑",
+            "propertyValueId": 658512908,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 4071,
+            "propertyContentParams": {
+              "defId": "4071",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "40991"
+            },
+            "tagType": 0
+          }
+        ],
+        "type": 2,
+        "showTitle": true
+      },
+      {
+        "paramGroupName": "系列科技",
+        "paramModelList": [
+          {
+            "key": "鞋面",
+            "value": "透气网眼网布",
+            "keyScene": 6,
+            "options": [
+              {
+                "selected": false,
+                "seriesId": 1003092,
+                "seriesName": "Gel-Kayano 14",
+                "sourceType": 26,
+                "anchorName": "透气网眼网布"
+              }
+            ],
+            "tagType": 0
+          },
+          {
+            "key": "大底",
+            "value": "橡胶大底",
+            "keyScene": 6,
+            "options": [
+              {
+                "selected": false,
+                "seriesId": 1003092,
+                "seriesName": "Gel-Kayano 14",
+                "sourceType": 29,
+                "anchorName": "橡胶大底"
+              }
+            ],
+            "tagType": 0
+          }
+        ],
+        "type": 2,
+        "showTitle": true
+      },
+      {
+        "paramGroupName": "更多参数",
+        "paramGroupId": 0,
+        "paramModelList": [
+          {
+            "key": "适用场景",
+            "value": "休闲",
+            "propertyValueId": 658512358,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 1705,
+            "propertyContentParams": {
+              "defId": "1705",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "16889",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "16889"
+            },
+            "tagType": 0
+          },
+          {
+            "key": "鞋帮高度",
+            "value": "低帮",
+            "propertyValueId": 65100261,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 435,
+            "propertyContentParams": {
+              "defId": "435",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "32578"
+            },
+            "tagType": 0
+          },
+          {
+            "key": "主色",
+            "value": "白色",
+            "propertyValueId": 231844894,
+            "valueType": 0,
+            "definitionId": 2643,
+            "tagType": 0
+          },
+          {
+            "key": "风格",
+            "value": "运动,潮流",
+            "propertyValueId": 65100263,
+            "valueType": 0,
+            "definitionId": 446,
+            "tagType": 0
+          },
+          {
+            "key": "鞋底材料",
+            "value": "橡胶底",
+            "propertyValueId": 65100256,
+            "valueType": 0,
+            "definitionId": 436,
+            "tagType": 0
+          },
+          {
+            "key": "鞋头款式",
+            "value": "圆头",
+            "propertyValueId": 65100258,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 434,
+            "propertyContentParams": {
+              "defId": "434",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "17897"
+            },
+            "tagType": 0
+          },
+          {
+            "key": "闭合方式",
+            "value": "系带",
+            "propertyValueId": 65100260,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 427,
+            "propertyContentParams": {
+              "defId": "427",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "18969"
+            },
+            "tagType": 0
+          },
+          {
+            "key": "适用季节",
+            "value": "春,夏,秋,冬",
+            "propertyValueId": 65100265,
+            "valueType": 0,
+            "definitionId": 1451,
+            "tagType": 0
+          },
+          {
+            "key": "辅色",
+            "value": "白色,粉色,红色",
+            "propertyValueId": 231844913,
+            "valueType": 0,
+            "definitionId": 2644,
+            "tagType": 0
+          },
+          {
+            "key": "鞋跟类型",
+            "value": "平跟",
+            "propertyValueId": 65100259,
+            "keyScene": 9,
+            "valueType": 0,
+            "definitionId": 437,
+            "propertyContentParams": {
+              "defId": "437",
+              "catId": "33",
+              "catType": "300",
+              "exOptIds": "",
+              "spuId": "1204239",
+              "type": "definition",
+              "optIds": "32596"
+            },
+            "tagType": 0
+          },
+          {
+            "key": "主货号",
+            "value": "1202A127-400",
+            "valueType": 0,
+            "definitionId": -1,
+            "tagType": 0
+          },
+          {
+            "key": "发售日期",
+            "value": "2020秋季",
+            "valueType": 0,
+            "definitionId": -4,
+            "tagType": 0
+          }
+        ],
+        "type": 2,
+        "showTitle": true
+      }
+    ],
+    "supportAnchorFlag": false,
+    "iconUrl": "https://cdn.poizon.com/node-common/75f69aa5-d544-4d01-30af-46d9b9892657-54-54.png",
+    "extraList": [],
+    "pkButtonText": "对比",
+    "pkButtonIconUrl": "https://cdn.poizon.com/node-common/c6576391-1c57-5c30-fbd9-3860f1f6f01d-49-48.png",
+    "windowPkButtonText": "去对比",
+    "showStyle": 0,
+    "sceneTitleMap": { "titleClick": "商品百科" }
+  },
+  "floorsModel": [
+    { "title": "商品", "models": ["carousel"], "ext": {} },
+    {
+      "title": "性能",
+      "models": [
+        "functionProperty",
+        "scoreRank",
+        "runShoeComment",
+        "shoeSeries"
+      ],
+      "ext": {}
+    },
+    { "title": "尺码", "models": ["sizeModel"], "ext": {} },
+    { "title": "详情", "models": ["virtualImageAndTextModel"], "ext": {} },
+    { "title": "评价", "models": ["appraiseFeed"], "ext": {} }
+  ],
+  "qaModel": {
+    "total": 28,
+    "questionList": [
+      {
+        "id": 1818698,
+        "spuId": 1204239,
+        "content": "男生穿还OK嘛",
+        "userId": 65966172,
+        "userName": "匿名用户",
+        "userAvatar": "https://cdn.dewu.com/node-common/68b1258c-2aa5-6cbb-e6c7-d8cecf563b26-198-198.png",
+        "answerNumber": 1,
+        "createTime": "2022.1.3",
+        "qaAnswerList": [
+          {
+            "id": 686070,
+            "spuId": 1204239,
+            "qaQuestionId": 1818698,
+            "content": "太ok了 嘎嘎帅 只要有尺码直接冲",
+            "userId": 4527306,
+            "userName": "懦夫救星ii",
+            "userAvatar": "https://cdn.poizon.com/du_app/2020/image/4527306_byte99614byte_bd98771eaee84f1d89380ab8003d7333_iOS_w750h750.jpg",
+            "usefulNumber": 2,
+            "createTime": "2022.1.3",
+            "userBuyTime": "2021-10-28 12:29:36.000",
+            "canAppend": 2,
+            "answerChannelType": 2,
+            "showHighlight": 0
+          }
+        ],
+        "canAnswer": 0,
+        "status": 4,
+        "anonymous": 1,
+        "type": 21,
+        "aiAnswerNumber": 1,
+        "reviewStatus": 1,
+        "showStatus": 2,
+        "hasFolded": false,
+        "totalReply": 1,
+        "totalText": "1",
+        "noAnswerQuestionShowText": "点击回复参与讨论"
+      },
+      {
+        "id": 1403896,
+        "spuId": 1204239,
+        "content": "尺码标准吗？",
+        "userId": 1554332201,
+        "userName": "鼻子大吕布xMK",
+        "userAvatar": "https://qiniu.dewucdn.com/FopKJAJnH2BCZ5M2MId0OmBVkvdp",
+        "answerNumber": 1,
+        "createTime": "2021.12.8",
+        "qaAnswerList": [
+          {
+            "id": 377082,
+            "spuId": 1204239,
+            "qaQuestionId": 1403896,
+            "content": "尺码偏小 买大一码或半码",
+            "userId": 4527306,
+            "userName": "懦夫救星ii",
+            "userAvatar": "https://cdn.poizon.com/du_app/2020/image/4527306_byte99614byte_bd98771eaee84f1d89380ab8003d7333_iOS_w750h750.jpg",
+            "usefulNumber": 2,
+            "createTime": "2021.12.8",
+            "userBuyTime": "2021-10-28 12:29:36.000",
+            "canAppend": 2,
+            "answerChannelType": 2,
+            "showHighlight": 0
+          }
+        ],
+        "canAnswer": 0,
+        "status": 4,
+        "type": 1,
+        "aiAnswerNumber": 1,
+        "reviewStatus": 1,
+        "showStatus": 2,
+        "hasFolded": false,
+        "totalReply": 1,
+        "totalText": "1",
+        "noAnswerQuestionShowText": "点击回复参与讨论"
+      }
+    ],
+    "canAsk": 1,
+    "showType": 1,
+    "totalText": "商品讨论 (28）",
+    "noAnswerQuestionShowText": "点击回复参与讨论"
+  },
+  "imageAndTextMap": {
+    "spuShowSpread": [
+      {
+        "type": "image",
+        "contentType": "SHOW",
+        "contentName": "商品展示",
+        "images": [
+          {
+            "url": "https://cdn.poizon.com/node-common/34caa7c0-e118-5989-8a5e-84d374d48648-1125-2592.jpg",
+            "width": 1125,
+            "height": 2592
+          },
+          {
+            "url": "https://cdn.poizon.com/node-common/ZmM0MjRkMGFiODU1NGFlOTk0OTUzNzhlNmVmNzI5MjUxNjMwMzg5MTc1MzY4.jpg",
+            "width": 790,
+            "height": 2474
+          }
+        ],
+        "imageGap": true
+      }
+    ],
+    "spuIntroductionSpread": [
+      {
+        "type": "text",
+        "contentType": "INTRODUCTION",
+        "contentName": "商品介绍",
+        "images": [
+          {
+            "width": 0,
+            "height": 0,
+            "text": "UBS-1GEL-KAYANO®14运动鞋的2000年代后期美学探索了“复古未来主义”的概念及其在归档的时尚轮廓和日本工作服之间的双重性。我们在鞋面上保留了原始的GEL-KAYANO®14跑鞋美学，但通过合成革覆盖层和鞋舌上的拉长拉片对材料进行了修改。这款鞋的鞋具采用GEL®技术缓冲和TRUSSTIC™支撑装置制成。"
+          }
+        ],
+        "imageGap": true
+      }
+    ],
+    "specificationCourseSpread": [
+      {
+        "type": "image",
+        "contentType": "SPECIFICATION_COURSE",
+        "contentName": "使用教程",
+        "images": [
+          {
+            "url": "https://cdn.poizon.com/trade/gondor/10576853/20231025-578601e9e69189f9-w1024h576.png",
+            "width": 1024,
+            "height": 576
+          }
+        ],
+        "imageGap": true
+      },
+      {
+        "type": "image",
+        "contentType": "SPECIFICATION_COURSE",
+        "images": [
+          {
+            "url": "https://cdn.poizon.com/trade/gondor/10576853/20231025-0a6b95eb6c592c36-w1024h576.png",
+            "width": 1024,
+            "height": 576
+          }
+        ],
+        "imageGap": true
+      }
+    ],
+    "brandStorySpread": [
+      {
+        "type": "text",
+        "contentType": "STORY",
+        "contentName": "品牌故事",
+        "images": [
+          {
+            "width": 0,
+            "height": 0,
+            "text": "ASICS（亚瑟士）是日本实业家鬼冢喜八郎创立的跑鞋运动品牌，名字想法源自著名的拉丁谚语“AnimaSana In Corpore Sano”，意为“健全的精神寓于强健的体魄”。正如其名字的含义，ASICS亚瑟士一直坚信保持身体的健康与活力是打造健康快乐的生活方式的最佳途径。亚瑟士的跑鞋、篮球鞋等系列集专业与美貌于一身，拥有极高的热度。2016年，ASICS在“2016年日本最佳全球品牌”排行榜名列第17名。"
+          }
+        ],
+        "imageGap": true
+      }
+    ],
+    "spuDetailSpread": [
+      {
+        "type": "image",
+        "contentType": "DETAIL",
+        "contentName": "细节呈现",
+        "images": [
+          {
+            "url": "https://cdn.poizon.com/pro-img/20201106/4e1786d0b3374a3a812c77e72bf7e0db.jpg",
+            "width": 1125,
+            "height": 595
+          }
+        ],
+        "imageGap": true
+      }
+    ]
+  },
+  "virtualImageAndTextModel": {
+    "models": [
+      "spuDetailSpread",
+      "spuWearSpread",
+      "spuShowSpread",
+      "spuInfoSpread",
+      "physicalContrastImageTextSpread",
+      "materialDescriptionSpread",
+      "afterSalesServiceSpread",
+      "maintenanceInstructionsSpread",
+      "spuIntroductionSpread",
+      "brandStorySpread"
+    ],
+    "multiModels": [
+      {
+        "key": "richText",
+        "title": "历史图文json",
+        "relateFiled": "historyJson1"
+      },
+      {
+        "key": "richText",
+        "title": "细节呈现",
+        "relateFiled": "spuDetailSpread"
+      },
+      {
+        "key": "richText",
+        "title": "穿搭效果",
+        "relateFiled": "spuWearSpread"
+      },
+      {
+        "key": "richText",
+        "title": "商品展示",
+        "relateFiled": "spuShowSpread"
+      },
+      {
+        "key": "richText",
+        "title": "商品信息",
+        "relateFiled": "spuInfoSpread"
+      },
+      {
+        "key": "richText",
+        "title": "实物对比(图文)",
+        "relateFiled": "physicalContrastImageTextSpread"
+      },
+      {
+        "key": "richText",
+        "title": "材质说明",
+        "relateFiled": "materialDescriptionSpread"
+      },
+      {
+        "key": "richText",
+        "title": "售后服务",
+        "relateFiled": "afterSalesServiceSpread"
+      },
+      {
+        "key": "richText",
+        "title": "保养说明",
+        "relateFiled": "maintenanceInstructionsSpread"
+      },
+      {
+        "key": "richText",
+        "title": "商品介绍",
+        "relateFiled": "spuIntroductionSpread"
+      },
+      {
+        "key": "richText",
+        "title": "品牌故事",
+        "relateFiled": "brandStorySpread"
+      }
+    ]
+  },
+  "brandingModel": {
+    "newBrand": {
+      "jumpUrl": "https://cdn-fast.dewu.com/nezha-plus/detail/649b9c0836071e00c8e16f30/tabId=keyd41c9a9u&subPageId=657abdbee26c2e011daa55eb?isAllowVideoAutoPlay=1&nezhaChannel=prd_tongyong&title=%E5%BE%97%E7%89%A9%E7%BB%99%E6%B7%B1%E5%B1%B1%E4%BA%91%E7%AB%AF%E5%B0%8F%E5%AD%A6%E5%BB%BA%E4%BA%86%E6%96%B0%E7%90%83%E5%9C%BA&spuId=1204239",
+      "coverUrl": "https://cdn.poizon.com/node-common/2071f99c-8931-48b3-5609-eabcd1bb4fee-1065-126.png",
+      "height": 126,
+      "width": 1065,
+      "id": 999,
+      "brandingDesc": "得物给深山云端小学建了新球场",
+      "arrowStyle": 2,
+      "brandingText": "得物给深山云端小学建了新球场",
+      "dewuLogoUrl": "https://h5static.dewucdn.com/node-common/d95c31f0-8137-0d45-c332-65c35d88b0d6-66-66.png",
+      "extMap": { "needFreq": false }
+    }
+  },
+  "newService": {
+    "list": [
+      { "title": "假一赔三", "checkTarget": "FALSE_PAYS_THREE", "type": 1 },
+      { "title": "7天无理由退货", "checkTarget": "NO_REASON", "type": 2 },
+      {
+        "title": "退货运费补贴",
+        "checkTarget": "INSURANCE_CHANGE_TYPE",
+        "type": 2
+      },
+      { "title": "逐件查验", "checkTarget": "PIECE_CHECK", "type": 2 },
+      { "title": "防伪包装", "checkTarget": "SECURITY_PACKAGE", "type": 2 }
+    ],
+    "arrowStyle": 1,
+    "iconUrl": "https://cdn.poizon.com/node-common/b4712aeb-229c-f910-d5de-61755ccd4ab5-54-54.png",
+    "serviceTotalText": "5项服务",
+    "extMap": {
+      "identifyStructImgFlag": false,
+      "allCheckTargets": [
+        "FALSE_PAYS_THREE",
+        "NO_REASON",
+        "INSURANCE_CHANGE_TYPE",
+        "PIECE_CHECK",
+        "SECURITY_PACKAGE"
+      ],
+      "brandAuthLicenseFlag": false,
+      "onlyOverseaSend": false,
+      "cardServerList": "",
+      "hpFlag": "0"
+    }
+  },
+  "favoriteData": {
+    "hasFavorite": false,
+    "hasMyOwn": false,
+    "favoriteCount": {
+      "count": 9099,
+      "content": "9000+人想要",
+      "tinyContent": "9k"
+    },
+    "myOwnCount": { "count": 352, "content": "352", "tinyContent": "352" }
+  },
+  "extraToolModels": [
+    {
+      "iconUrl": "https://cdn.poizon.com/node-common/f53adde7-d85e-635c-45b2-43c1248bc3c4-54-54.png",
+      "text": "刻字",
+      "type": 4,
+      "productAdditionTabInfo": {
+        "additionType": 99,
+        "serviceItems": [
+          {
+            "spuId": 2984344,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20240803/aec3fffeb2ac407ab6b7bc30c405342b.jpg"
+          },
+          {
+            "spuId": 2984429,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20220712/70cb5695260c4454b379681ac0ba46e4.jpg"
+          },
+          {
+            "spuId": 2984471,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20240803/d568fad6f85041f684182617278cbeca.jpg"
+          },
+          {
+            "spuId": 2984498,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20240803/aa72bcbe41f445c1addcb9eab8f1edec.jpg"
+          },
+          {
+            "spuId": 3928763,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20230110/04d5f92948fa498cb3140bd965933a00.jpg"
+          },
+          {
+            "spuId": 3928886,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20240803/b06aad225e2240be80cdcca213943b53.jpg"
+          },
+          {
+            "spuId": 5056141,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20240803/2993e214ebe648c9af63b131f8244bf6.jpg"
+          },
+          {
+            "spuId": 6244442,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20230908/ac84fac1660c41ebbb22c47b02d0d912.jpg"
+          },
+          {
+            "spuId": 6244483,
+            "imgUrl": "https://cdn.poizon.com/pro-img/origin-img/20230908/d5574bf8ebf74e63ad4aff11704d474e.jpg"
+          }
+        ],
+        "previewType": 0
+      }
+    }
+  ],
+  "brandRootInfo": {
+    "title": "品牌",
+    "multiRelationText": "",
+    "multiRelationLogoList": [],
+    "brandItemList": [
+      {
+        "mainBrand": 0,
+        "brandType": 0,
+        "brandId": 8,
+        "artistId": 0,
+        "brandLogo": "https://cdn.poizon.com/pro-img/brand-logo/cut-img/20250221/300b1aa2e26a4df497f2e9072a010ee6.jpg",
+        "brandName": "ASICS",
+        "brandTextList": [
+          { "type": 6, "showText": "4.6万+款好物" },
+          { "type": 4, "showText": "78万+人关注" },
+          { "type": 2, "showText": "匠心性能之选" }
+        ],
+        "brandIdentifyInfo": {
+          "type": 1,
+          "title": "官方入驻",
+          "iconUrl": "https://cdn.dewu.com/node-common/b6d716c3-1b26-e9e2-f0ed-899f6266984e-174-48.png",
+          "iconWidth": 58,
+          "iconHeight": 16
+        },
+        "coverUrl": "https://cdn.poizon.com/stark/stark-web/55237032/e175b1b13d7cc4f4fe236ccf6f4d9e7a.png",
+        "showName": "ASICS",
+        "followStatus": 0
+      }
+    ],
+    "brandLayer": 1,
+    "brandItemShowSize": 1
+  },
+  "sizeDto": {
+    "sizeInfo": {
+      "sizeTemplate": {
+        "title": "尺码对照表",
+        "tips": "该数据仅供参考，请结合自身情况进行选择。",
+        "name": "",
+        "list": [
+          {
+            "sizeKey": "欧码EU",
+            "sizeValue": "35,35.5,36,37,37.5,38,39,39.5,40,40.5,41.5,42,42.5,43.5,44,44.5"
+          },
+          {
+            "sizeKey": "US美码",
+            "sizeValue": "4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,11.5,12"
+          },
+          {
+            "sizeKey": "UK英码",
+            "sizeValue": "2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10"
+          },
+          {
+            "sizeKey": "内长",
+            "sizeValue": "220,225,227.5,230,235,240,245,250,255,257.5,260,265,270,275,280,285"
+          },
+          {
+            "sizeKey": "适合脚长",
+            "sizeValue": "22,22.5,22.75,23,23.5,24,24.5,25,25.5,25.75,26,26.5,27,27.5,28,28.5"
+          }
+        ],
+        "brandLogoUrl": "https://cdn.poizon.com/pro-img/brand-logo/cut-img/20250221/300b1aa2e26a4df497f2e9072a010ee6.jpg",
+        "hasSizeTable": true,
+        "hitRowNum": 1,
+        "hitColNum": 0,
+        "defaultRowNum": 1,
+        "hasSelected": false,
+        "hasFold": true,
+        "offsetCodeType": 0,
+        "type": 1,
+        "isShow": 1,
+        "highlightAllRow": false
+      }
+    },
+    "sizeFlag": 3,
+    "sizeInfoRecommendText": "查看尺码表",
+    "comparedRecommendRow": 1,
+    "foldShowRowNum": 0,
+    "downFoldShowRowNum": 4,
+    "modelStyle": 0
+  },
+  "detail": {
+    "spuId": 1204239,
+    "isSelf": 0,
+    "categoryId": 33,
+    "level1CategoryId": 29,
+    "level2CategoryId": 30,
+    "brandId": 8,
+    "relationBrandIds": [],
+    "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/73aecd78437c4909bd3d870886f921fb.jpg",
+    "title": "KIKO KOSTADINOV x Asics Gel-Kayano 14 Ub1-s 缓震保护 低帮 跑步鞋 女款 蓝白",
+    "subTitle": "",
+    "desc": "",
+    "sourceName": "default",
+    "articleNumber": "1202A127-400",
+    "articleNumbers": [],
+    "isShow": 1,
+    "fitId": 3,
+    "defaultSkuId": 0,
+    "goodsType": 0,
+    "status": 1,
+    "bizType": 0,
+    "sellDate": "2020秋季",
+    "authPrice": 335,
+    "originalTitle": "Kiko Kostadinov x Asics Ub1-s Gel-kayano 14 女款 蓝白 跑步鞋",
+    "structureTitle": "KIKO KOSTADINOV x Asics Gel-Kayano 14 Ub1-s 缓震保护 低帮 跑步鞋 女款 蓝白",
+    "categoryName": "跑步鞋",
+    "soldCountText": "309人付款",
+    "levelPvSize": 1,
+    "bottomResourcePriority": [
+      "ruDetailPop",
+      "seckill",
+      "limitedRelease",
+      "education",
+      "notice",
+      "getCoupon",
+      "bargainGuide"
+    ]
+  },
+  "relationTrend": { "code": 0 },
+  "seriesProperties": {
+    "seriesScienceModel": {
+      "scienceList": [
+        {
+          "scienceName": "鞋面",
+          "scienceInfoList": [
+            {
+              "propertyOptionId": 8103,
+              "shortTitle": "鞋内空气流通",
+              "propertyOptionName": "透气网眼网布"
+            }
+          ],
+          "sourceType": 26
+        },
+        {
+          "scienceName": "大底",
+          "scienceInfoList": [
+            {
+              "propertyOptionId": 7938,
+              "shortTitle": "耐磨抓地",
+              "propertyOptionName": "橡胶大底"
+            }
+          ],
+          "sourceType": 29
+        }
+      ]
+    },
+    "seriesModelInfo": {
+      "seriesId": 1003092,
+      "title": "系列科技",
+      "seriesName": "Gel-Kayano 14"
+    }
+  },
+  "skus": [
+    {
+      "skuId": 601400066,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322423 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400067,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322424 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400068,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322425 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400069,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322426 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400070,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322427 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400071,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322428 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400072,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322429 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400073,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322430 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400074,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322431 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400075,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322432 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400076,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322433 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400077,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322434 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400078,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322435 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400079,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322436 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    },
+    {
+      "skuId": 601400080,
+      "spuId": 1204239,
+      "authPrice": 109000,
+      "status": 1,
+      "properties": [{ "level": 1, "propertyValueId": 27322437 }],
+      "logoUrl": "https://cdn.poizon.com/pro-img/origin-img/20251210/74a183dbcc494d919730096acf57da04.jpg"
+    }
+  ],
+  "saleProperties": {
+    "list": [
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "35.5",
+        "propertyValueId": 27322423,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 0,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "36",
+        "propertyValueId": 27322424,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 1,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "37",
+        "propertyValueId": 27322425,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 2,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "37.5",
+        "propertyValueId": 27322426,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 3,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "38",
+        "propertyValueId": 27322427,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 4,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "39",
+        "propertyValueId": 27322428,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 5,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "39.5",
+        "propertyValueId": 27322429,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 6,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "40",
+        "propertyValueId": 27322430,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 7,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "40.5",
+        "propertyValueId": 27322431,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 8,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "41.5",
+        "propertyValueId": 27322432,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 9,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "42",
+        "propertyValueId": 27322433,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 10,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "42.5",
+        "propertyValueId": 27322434,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 11,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "43.5",
+        "propertyValueId": 27322435,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 12,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "44",
+        "propertyValueId": 27322436,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 13,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      },
+      {
+        "propertyId": 3424,
+        "name": "尺码",
+        "value": "44.5",
+        "propertyValueId": 27322437,
+        "level": 1,
+        "customValue": "",
+        "showValue": 1,
+        "sort": 14,
+        "definitionId": 6,
+        "salePvStatus": 1,
+        "salePropertiesType": "size",
+        "leafLevelTrue": true
+      }
+    ],
+    "propNameNum": 1,
+    "salePvLevel": {
+      "levelList": [
+        {
+          "level": 1,
+          "style": 0,
+          "styleSwitch": true,
+          "bidImage": false,
+          "ignoreColorOperation": false,
+          "showSkuPrice": false,
+          "showUnitPrice": false,
+          "evokeLayerStyle": 0
+        }
+      ]
+    }
+  },
+  "configInfo": {
+    "serverTime": 1780941850538,
+    "useLevelImageUrl": true,
+    "spuHasBids": false,
+    "specialLogicTypeMap": {},
+    "sizeFlag": 3,
+    "sizeInfoRecommendText": "查看尺码表",
+    "hasSizeTable": true,
+    "cspuFlag": false,
+    "multipleSpuShow": false,
+    "relationTrendNum": 2,
+    "hasArMakeup": false,
+    "newUserFlag": true,
+    "oldSizeInfo": "查看尺码表",
+    "floatLayerType": 1,
+    "floatLayerGood": false,
+    "qaGuide": "问答升级为讨论，快来聊聊吧",
+    "appraiseShowNum": 3,
+    "defaultPropertyValueFlag": false,
+    "defaultPropertyValueId": 27322423,
+    "noPriceText": "暂时缺货",
+    "offlineText": "已下架",
+    "findSimilarText": "找相似",
+    "colorSwitcherSize": 53,
+    "hideSimilarGoods": false,
+    "appraiseScore": "0.00",
+    "skuOutStockText": "所选规格缺货",
+    "myOwnDetailGuideText": "已经拥有它就来记录下吧！",
+    "myOwnOverallGuideText": "你拥有的单品都在这里",
+    "hasVoteIcon": "https://cdn.poizon.com/node-common/56f74081-90b3-4f0b-7659-07d3e28424cc-42-42.png",
+    "noVoteIcon": "https://cdn.poizon.com/node-common/880667c2-b028-2edb-bfff-7ec0bbf489a3-42-42.png",
+    "salePvSelectText": "请选择",
+    "salePvSelectLimitUp": 2,
+    "salePvSelectFixedText": "请选择款式",
+    "ypysFlag": false,
+    "buttonConfig": {
+      "myOwn": { "isShow": true, "routeType": 0, "subRouteType": 0 },
+      "contact": {
+        "isShow": false,
+        "name": "咨询TA",
+        "routeType": 0,
+        "subRouteType": 0
+      },
+      "wantBuy": { "isShow": true, "routeType": 0, "subRouteType": 0 },
+      "kf": { "isShow": true, "routeType": 0, "subRouteType": 0 },
+      "favorite": { "isShow": true, "routeType": 0, "subRouteType": 0 }
+    },
+    "hideContentStatisticsLastSold": false,
+    "categoryCyclopediaLayerName": "参数百科",
+    "imageContainerType": "0",
+    "layerPvSwitchEnable": false,
+    "watchAiAlertMsg": "当前功能正在内测中，敬请期待",
+    "headImageComponentSortList": [
+      "THREE_DIMENSIONAL",
+      "AR",
+      "COLLOCATION",
+      "LIVE"
+    ],
+    "sensitiveInfo": false,
+    "materialDescriptionSpreadNum": 2,
+    "materialDescriptionSpreadTitle": "鉴定证书",
+    "vague": false,
+    "styleConfig": {
+      "extImgTransVal": "1",
+      "extImgTopVal": "0",
+      "extImgDownHeight": "0.636",
+      "extImgDownVal": "1",
+      "aggButtonStyle": "{\"leftTextColor\":\"#FF14151A\",\"rightTextColor\":\"#8014151A\",\"rightBgColor\":\"#80FFFFFF\",\"leftBgColor\":\"#80FFFFFF\",\"threeDimensionIcon\":\"https://cdn.poizon.com/node-common/5e0431cb-97c9-7f22-7a5f-17e007bf9c52-42-42.png\",\"arIcon\":\"https://cdn.poizon.com/node-common/90570432-5f85-df6a-90c7-6e3b7e67ec3b-42-42.png\",\"panoramaIcon\":\"https://cdn.poizon.com/node-common/75779e1f-36c3-c97a-ca6e-c14fd3e27671-42-42.png\",\"matchIcon\":\"https://cdn.poizon.com/node-common/460b2250-50f4-2af0-453b-6f9aa23060ee-42-42.png\",\"liveIcon\":\"https://cdn.poizon.com/node-common/06f3d2fe-6013-1692-82d1-ac96de94d4cb-42-42.png\",\"videoIcon\":\"https://cdn.poizon.com/node-common/8ceb3427-f710-8b55-0cd9-c02c2acf8385-42-42.png\",\"muteIcon\":\"https://cdn.poizon.com/node-common/99de6853-91e0-befe-a380-5169e766fbab-42-42.png\",\"unmuteIcon\":\"https://cdn.poizon.com/node-common/12ae8c5d-659d-5ce5-189b-96366940e530-42-42.png\",\"leftBgColorV2\":\"#80FFFFFF\",\"leftTextColorV2\":\"#9914151a\",\"leftTextColorSelectedV2\":\"#FF14151a\",\"leftBgColorSelectedV2\":\"#99FFFFFF\"}"
+    },
+    "refreshOther": 0,
+    "switchPvRefreshOther": 0,
+    "videoUseGaussianBlur": true,
+    "autoFavorite": true,
+    "useImageSortList": true,
+    "configExtMap": {},
+    "appraiseScoreNum": 0,
+    "snsContentNew": true,
+    "headImageComponentNum": 3,
+    "mergeLayerWaitTime": 0,
+    "mergeLayerWaitOptToast": "请稍后",
+    "mergeLayerPullDownClose": true,
+    "paramDecorationExclusion": false,
+    "newSizeTranV2True": false,
+    "newBrandMaskTrue": true,
+    "unFollowBrandAction": 1,
+    "bubbleConfig": {
+      "switchBubble": true,
+      "browseMillSeconds": 7000,
+      "bubbleAnimationUrl": "https://apk.dewu.com/duApp/Android_Config/resource/AirForce/test-mall-apk/video_2.mp4",
+      "width": 76,
+      "height": 74,
+      "autoDismissMillSeconds": 2000,
+      "bubbleBgColor": "F2D6F5F5",
+      "bubbleIconUrl": "https://cdn.poizon.com/node-common/3869a194-d24c-436b-cbfb-5025cd602dec-60-66.png"
+    },
+    "sellEntranceConfig": { "newSwitch": true, "showFlag": true },
+    "paramHomeAggExclusion": false,
+    "skuAsyncRefreshNew": true,
+    "toolBtnUnifiedSwitch": true,
+    "characterThreshold": 6,
+    "refreshBySkuId": 0,
+    "floatNewStyle": false
+  },
+  "kfInfo": {
+    "isShowKf": 1,
+    "kfRobotId": 163756,
+    "kfRobotoId": 163756,
+    "kfGroupId": -1,
+    "sourceName": "related"
+  },
+  "shareInfo": {
+    "threeDLinkUrl": "https://fast.dewu.com/router/product/ProductDetail?spuId=1204239&sourceName=shareDetail&shareSource=productDetail",
+    "shareLinkUrl": "https://fast.dewu.com/router/product/ProductDetail?spuId=1204239&sourceName=shareDetail",
+    "miniShareLinkUrl": "/product/ProductDetail?spuId=1204239&sourceName=shareDetail"
+  },
+  "toolFeatures": [
+    { "key": "share", "url": "" },
+    {
+      "key": "more",
+      "url": "",
+      "guideText": "快捷入口收起在这里，点击看看吧",
+      "quickTools": {
+        "title": "快捷入口",
+        "tools": [
+          { "key": "wantBuy", "name": "求购", "url": "" },
+          { "key": "sell", "name": "出售", "url": "" },
+          { "key": "mergeWant", "name": "想要", "url": "" },
+          { "key": "favorite", "name": "想要", "url": "" },
+          { "key": "mergeOrder", "name": "合并下单", "url": "" },
+          { "key": "foot", "name": "足迹", "url": "" },
+          { "key": "search", "name": "搜索", "url": "" }
+        ],
+        "toolsByService": []
+      }
+    }
+  ],
+  "paramMap": { "lowestPriceSkuId": "0", "brandingIds": "373" },
+  "mainHasSizeTable": false,
+  "mainConfigInfo": {
+    "serverTime": 1780941850543,
+    "useLevelImageUrl": true,
+    "spuHasBids": false,
+    "specialLogicTypeMap": {},
+    "hasSizeTable": false,
+    "cspuFlag": false,
+    "multipleSpuShow": false,
+    "hasArMakeup": false,
+    "newUserFlag": false,
+    "floatLayerType": 0,
+    "floatLayerGood": false,
+    "hideSimilarGoods": false,
+    "layerPvSwitchEnable": false,
+    "refreshOther": 0,
+    "switchPvRefreshOther": 0,
+    "videoUseGaussianBlur": false,
+    "autoFavorite": false,
+    "useImageSortList": false,
+    "configExtMap": {},
+    "snsContentNew": false,
+    "mergeLayerPullDownClose": false,
+    "paramDecorationExclusion": false,
+    "newBrandMaskTrue": false,
+    "paramHomeAggExclusion": false,
+    "refreshBySkuId": 0,
+    "floatNewStyle": false
+  },
+  "contentStatisticsModel": {
+    "contentList": ["28讨论", "3评价", "309人付款"],
+    "contentItems": [
+      { "content": "28讨论", "type": 1 },
+      { "content": "3评价", "type": 2 },
+      { "content": "309人付款", "type": 4 }
+    ]
+  },
+  "customizationModel": {
+    "modelTitle": "刻字",
+    "styleType": 1,
+    "imgList": [
+      "https://cdn.poizon.com/pro-img/origin-img/20240803/aec3fffeb2ac407ab6b7bc30c405342b.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20220712/70cb5695260c4454b379681ac0ba46e4.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20240803/d568fad6f85041f684182617278cbeca.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20240803/aa72bcbe41f445c1addcb9eab8f1edec.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20230110/04d5f92948fa498cb3140bd965933a00.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20240803/b06aad225e2240be80cdcca213943b53.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20240803/2993e214ebe648c9af63b131f8244bf6.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20230908/ac84fac1660c41ebbb22c47b02d0d912.jpg",
+      "https://cdn.poizon.com/pro-img/origin-img/20230908/d5574bf8ebf74e63ad4aff11704d474e.jpg"
+    ],
+    "routeUrl": "https://m.poizon.com/router/product_detail/letterCustomize?mainSpuId=1204239&previewType=0&type=2&sourceJumpType=2",
+    "type": 4,
+    "tailText": "9款可选"
+  }
+}

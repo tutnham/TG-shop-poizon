@@ -12,8 +12,8 @@
  */
 import { readFileSync } from "node:fs";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
-import { getPricingConfig } from "../src/services/pricing.service.js";
 import { refreshRates } from "../src/services/currency.service.js";
+import { getPricingConfig } from "../src/services/pricing.service.js";
 
 loadDotEnv();
 
@@ -36,7 +36,11 @@ if (!POIZON_API_KEY) {
 const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/+$/, "") ?? "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-async function safeFetch(url: string, init: RequestInit, timeoutMs = 30000): Promise<Response> {
+async function safeFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 30000,
+): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -62,8 +66,15 @@ async function supabaseUpsert(
   onConflict: string,
 ): Promise<void> {
   const url = `${SUPABASE_URL}/rest/v1/${table}?on_conflict=${onConflict}`;
-  const headers = { ...supabaseHeaders(), Prefer: "resolution=merge-duplicates" };
-  const res = await safeFetch(url, { method: "POST", headers, body: JSON.stringify(row) });
+  const headers = {
+    ...supabaseHeaders(),
+    Prefer: "resolution=merge-duplicates",
+  };
+  const res = await safeFetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(row),
+  });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`UPSERT ${table}: ${res.status} - ${text.slice(0, 200)}`);
@@ -80,16 +91,24 @@ interface SearchResultItem {
   articleNumber: string;
 }
 
-async function searchProduct(keyword: string): Promise<SearchResultItem | null> {
+async function searchProduct(
+  keyword: string,
+): Promise<SearchResultItem | null> {
   const url = `${POIZON_API_URL}/searchProducts?keyword=${encodeURIComponent(keyword)}&limit=3&page=0`;
   const res = await safeFetch(url, {
-    headers: { "x-api-key": POIZON_API_KEY, "Content-Type": "application/json" },
+    headers: {
+      "x-api-key": POIZON_API_KEY,
+      "Content-Type": "application/json",
+    },
   });
   if (!res.ok) {
     if (res.status === 429) return null;
     return null;
   }
-  const data = (await res.json()) as { total: number; productList: SearchResultItem[] };
+  const data = (await res.json()) as {
+    total: number;
+    productList: SearchResultItem[];
+  };
   return data.productList?.[0] ?? null;
 }
 
@@ -106,10 +125,15 @@ interface ProductDetailData {
   image?: { spuImage?: { images?: Array<{ url: string }> } };
 }
 
-async function fetchProductDetail(spuId: number): Promise<ProductDetailData | null> {
+async function fetchProductDetail(
+  spuId: number,
+): Promise<ProductDetailData | null> {
   const url = `${POIZON_API_URL}/productDetail?spuId=${spuId}`;
   const res = await safeFetch(url, {
-    headers: { "x-api-key": POIZON_API_KEY, "Content-Type": "application/json" },
+    headers: {
+      "x-api-key": POIZON_API_KEY,
+      "Content-Type": "application/json",
+    },
   });
   if (!res.ok) return null;
   return (await res.json()) as ProductDetailData;
@@ -142,7 +166,9 @@ const DELAY_MS = 1500; // задержка между запросами к API
 async function main() {
   const filePath = process.argv[2];
   if (!filePath) {
-    console.error("Использование: npx tsx scripts/fetch-missing-prices.ts <путь-к-pop2.json>");
+    console.error(
+      "Использование: npx tsx scripts/fetch-missing-prices.ts <путь-к-pop2.json>",
+    );
     process.exit(1);
   }
 
@@ -163,7 +189,9 @@ async function main() {
   const config = await getPricingConfig({ skipRatesRefresh: true });
   const rateCnyRub = config.rate_cny_rub;
   const rateCnyUsd = config.rate_cny_usd;
-  console.log(`[fetch-prices] Курсы: CNY→RUB=${rateCnyRub}, CNY→USD=${rateCnyUsd}`);
+  console.log(
+    `[fetch-prices] Курсы: CNY→RUB=${rateCnyRub}, CNY→USD=${rateCnyUsd}`,
+  );
 
   let updated = 0;
   let failed = 0;
@@ -187,7 +215,8 @@ async function main() {
 
     // Шаг 2: если не нашли — пробуем по seriesName (первые 30 символов)
     if (!found && seriesName && seriesName.length > 2) {
-      const query = seriesName.length > 40 ? seriesName.slice(0, 40) : seriesName;
+      const query =
+        seriesName.length > 40 ? seriesName.slice(0, 40) : seriesName;
       found = await searchProduct(query);
       searchQuery = `series="${query}"`;
     }
@@ -195,9 +224,12 @@ async function main() {
     if (!found) {
       skipped++;
       if ((i + 1) % 10 === 0 || i === noPrice.length - 1) {
-        console.log(`[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`);
+        console.log(
+          `[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`,
+        );
       }
-      if (i < noPrice.length - 1) await new Promise((r) => setTimeout(r, DELAY_MS));
+      if (i < noPrice.length - 1)
+        await new Promise((r) => setTimeout(r, DELAY_MS));
       continue;
     }
 
@@ -209,9 +241,12 @@ async function main() {
     if (!detail?.detail) {
       skipped++;
       if ((i + 1) % 10 === 0 || i === noPrice.length - 1) {
-        console.log(`[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`);
+        console.log(
+          `[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`,
+        );
       }
-      if (i < noPrice.length - 1) await new Promise((r) => setTimeout(r, DELAY_MS));
+      if (i < noPrice.length - 1)
+        await new Promise((r) => setTimeout(r, DELAY_MS));
       continue;
     }
 
@@ -226,9 +261,12 @@ async function main() {
     if (authPriceCny <= 0) {
       skipped++;
       if ((i + 1) % 10 === 0 || i === noPrice.length - 1) {
-        console.log(`[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`);
+        console.log(
+          `[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`,
+        );
       }
-      if (i < noPrice.length - 1) await new Promise((r) => setTimeout(r, DELAY_MS));
+      if (i < noPrice.length - 1)
+        await new Promise((r) => setTimeout(r, DELAY_MS));
       continue;
     }
 
@@ -237,31 +275,44 @@ async function main() {
     const priceRub = Math.round(priceCny * rateCnyRub * 100) / 100;
     const priceUsdt = Math.round((priceCny / rateCnyUsd) * 10000) / 10000;
 
-    const name = title || [p.seriesName, p.vendorCode].filter(Boolean).join(" ") || `${p.vendor || "Unknown"} #${oldSpuId}`;
+    const name =
+      title ||
+      [p.seriesName, p.vendorCode].filter(Boolean).join(" ") ||
+      `${p.vendor || "Unknown"} #${oldSpuId}`;
 
     try {
-      await supabaseUpsert("products", {
-        poizon_id: String(newSpuId),
-        name,
-        brand: p.vendor || null,
-        image_urls: images.length > 0 ? images : (p.images || []),
-        price_cny: Math.round(priceCny * 100) / 100,
-        price_rub: priceRub,
-        price_usdt: priceUsdt,
-        is_available: detail.detail.status === 1,
-        source: "poizon",
-        synced_at: now,
-        updated_at: now,
-      }, "poizon_id");
+      await supabaseUpsert(
+        "products",
+        {
+          poizon_id: String(newSpuId),
+          name,
+          brand: p.vendor || null,
+          image_urls: images.length > 0 ? images : p.images || [],
+          price_cny: Math.round(priceCny * 100) / 100,
+          price_rub: priceRub,
+          price_usdt: priceUsdt,
+          is_available: detail.detail.status === 1,
+          source: "poizon",
+          synced_at: now,
+          updated_at: now,
+        },
+        "poizon_id",
+      );
       updated++;
-      console.log(`  [OK] #${i + 1} old=${oldSpuId} → new=${newSpuId} authPrice=${authPriceCny}¥ ${searchQuery}`);
+      console.log(
+        `  [OK] #${i + 1} old=${oldSpuId} → new=${newSpuId} authPrice=${authPriceCny}¥ ${searchQuery}`,
+      );
     } catch (e) {
       failed++;
-      console.error(`[fetch-prices] Ошибка upsert oldSpuId=${oldSpuId}: ${(e as Error).message}`);
+      console.error(
+        `[fetch-prices] Ошибка upsert oldSpuId=${oldSpuId}: ${(e as Error).message}`,
+      );
     }
 
     if ((i + 1) % 10 === 0 || i === noPrice.length - 1) {
-      console.log(`[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`);
+      console.log(
+        `[fetch-prices] Прогресс: ${i + 1}/${noPrice.length} | найдено=${updated} ошибок=${failed} не_найдено=${skipped}`,
+      );
     }
 
     if (i < noPrice.length - 1) {
@@ -269,7 +320,7 @@ async function main() {
     }
   }
 
-  console.log(`\n[fetch-prices] Готово!`);
+  console.log("\n[fetch-prices] Готово!");
   console.log(`  Обновлено: ${updated}`);
   console.log(`  Ошибок: ${failed}`);
   console.log(`  Не найдено / без цены: ${skipped}`);

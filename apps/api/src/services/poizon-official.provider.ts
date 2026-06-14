@@ -95,19 +95,17 @@ export class PoizonOfficialProvider implements IPoisonProvider {
           }>;
         }>("/searchProducts", { keyword, limit, page });
 
-        const items: PoisonProductRaw[] = (data.productList ?? []).map(
-          (p) => ({
-            spuId: p.spuId,
-            title: p.title,
-            brand: p.title.split(" ")[0] ?? "Unknown",
-            logoUrl: p.logoUrl,
-            priceFen: 0, // цена доступна только через productDetailWithPrice
-            inStock: true,
-            images: p.images?.length ? p.images : [p.logoUrl],
-            sizes: {},
-            soldCount: 0,
-          }),
-        );
+        const items: PoisonProductRaw[] = (data.productList ?? []).map((p) => ({
+          spuId: p.spuId,
+          title: p.title,
+          brand: p.title.split(" ")[0] ?? "Unknown",
+          logoUrl: p.logoUrl,
+          priceFen: 0, // цена доступна только через productDetailWithPrice
+          inStock: true,
+          images: p.images?.length ? p.images : [p.logoUrl],
+          sizes: {},
+          soldCount: 0,
+        }));
 
         const total = data.total ?? items.length;
         const hasMore = (page + 1) * limit < total;
@@ -139,9 +137,9 @@ export class PoizonOfficialProvider implements IPoisonProvider {
 
       if (!raw?.detail) return null;
 
-      const images =
-        raw.image?.spuImage?.images?.map((i) => i.url) ??
-        [raw.detail.logoUrl];
+      const images = raw.image?.spuImage?.images?.map((i) => i.url) ?? [
+        raw.detail.logoUrl,
+      ];
 
       return {
         spuId: raw.detail.spuId,
@@ -152,8 +150,7 @@ export class PoizonOfficialProvider implements IPoisonProvider {
         inStock: raw.detail.status === 1,
         images,
         sizes: {},
-        soldCount:
-          Number.parseInt(raw.detail.soldCountText ?? "0", 10) || 0,
+        soldCount: Number.parseInt(raw.detail.soldCountText ?? "0", 10) || 0,
       };
     });
   }

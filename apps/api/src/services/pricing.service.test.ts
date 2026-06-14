@@ -1,14 +1,14 @@
-import Decimal from "decimal.js";
 import assert from "node:assert/strict";
 import { afterEach, describe, it, mock } from "node:test";
+import Decimal from "decimal.js";
+import { resetExchangeRateService } from "./currency.service.js";
+import { InMemoryExchangeRateCacheRepository } from "./exchange/cache.repository.js";
 import { resetPricingModuleConfig } from "./pricing.config.js";
 import {
   PriceCalculator,
-  resetPriceCalculator,
   calculatePrices,
+  resetPriceCalculator,
 } from "./pricing.service.js";
-import { resetExchangeRateService } from "./currency.service.js";
-import { InMemoryExchangeRateCacheRepository } from "./exchange/cache.repository.js";
 
 // ── Вспомогательные функции ─────────────────────────────────────────
 
@@ -92,18 +92,12 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
     // finalRub: ROUND_CEIL, scale=0 => ceil(8093.75) = 8094
     assert.equal(result.publicBreakdown.finalRub.toNumber(), 8094);
     // Округление только в конце — subtotal не округлён
-    assert.equal(
-      result.publicBreakdown.subtotalRub.toNumber(),
-      8093.75,
-    );
+    assert.equal(result.publicBreakdown.subtotalRub.toNumber(), 8093.75);
 
     // Проверка breakdown полей
     assert.equal(result.publicBreakdown.isFallback, false);
     assert.equal(result.publicBreakdown.isStale, false);
-    assert.equal(
-      result.publicBreakdown.cnyRubSource,
-      "cbr-mirror",
-    );
+    assert.equal(result.publicBreakdown.cnyRubSource, "cbr-mirror");
     assert.ok(result.publicBreakdown.rateTimestamp.length > 0);
   });
 
@@ -154,9 +148,7 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
       "fxBuffer должен быть > 0",
     );
     assert.ok(
-      result.internalBreakdown.finalUsdt.gt(
-        result.internalBreakdown.baseUsdt,
-      ),
+      result.internalBreakdown.finalUsdt.gt(result.internalBreakdown.baseUsdt),
     );
   });
 
@@ -213,7 +205,9 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
       rate: d(13.5),
       source: "cbr-mirror",
       fetchedAt: oldDate.toISOString(),
-      expiresAt: new Date(oldDate.getTime() + 24 * 60 * 60 * 1000).toISOString(),
+      expiresAt: new Date(
+        oldDate.getTime() + 24 * 60 * 60 * 1000,
+      ).toISOString(),
       isFallback: true,
       isStale: true,
     });
@@ -254,7 +248,7 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
       /stale|fallback/i,
     );
 
-    delete process.env.PRICING_PUBLIC_RATE_POLICY;
+    process.env.PRICING_PUBLIC_RATE_POLICY = undefined;
     resetPricingModuleConfig();
   });
 
@@ -278,7 +272,10 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
     // final — округлён
     const finalStr = b.finalRub.toString();
     if (b.roundingScale === 0) {
-      assert.ok(!finalStr.includes("."), `final=${finalStr} не должно иметь дробной части`);
+      assert.ok(
+        !finalStr.includes("."),
+        `final=${finalStr} не должно иметь дробной части`,
+      );
     }
   });
 
@@ -297,7 +294,7 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
       /stale|fallback|unavailable/i,
     );
 
-    delete process.env.PRICING_PUBLIC_RATE_POLICY;
+    process.env.PRICING_PUBLIC_RATE_POLICY = undefined;
     resetPricingModuleConfig();
   });
 
@@ -316,12 +313,9 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
 
     // subtotal = 8093.75, ROUND_HALF_UP => 8094 (тоже)
     assert.equal(result.publicBreakdown.finalRub.toNumber(), 8094);
-    assert.equal(
-      result.publicBreakdown.roundingMode,
-      "ROUND_HALF_UP",
-    );
+    assert.equal(result.publicBreakdown.roundingMode, "ROUND_HALF_UP");
 
-    delete process.env.PRICING_ROUNDING_MODE;
+    process.env.PRICING_ROUNDING_MODE = undefined;
     resetPricingModuleConfig();
   });
 });
@@ -336,10 +330,7 @@ describe("calculatePrices (legacy, обратная совместимость)"
 
   it("применяет 25% наценку и доставку", () => {
     const result = calculatePrices(100, config);
-    assert.equal(
-      result.rub,
-      Math.ceil((100 * 13.5 * 1.25 + 500) / 10) * 10,
-    );
+    assert.equal(result.rub, Math.ceil((100 * 13.5 * 1.25 + 500) / 10) * 10);
   });
 
   it("нулевая цена не даёт NaN", () => {

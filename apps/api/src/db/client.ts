@@ -6,11 +6,11 @@ let client: SupabaseClient | null = null;
 function cleanEnv(value: string | undefined): string | undefined {
   if (!value) return undefined;
   return value
-    .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width chars, BOM
+    .replace(/\u200B|\u200C|\u200D|\uFEFF/g, "") // zero-width chars, BOM
     .trim()
-    .replace(/^["']|["']$/g, "")  // wrapping quotes
+    .replace(/^["']|["']$/g, "") // wrapping quotes
     .replace(/\/rest\/v1\/?$/, "") // strip /rest/v1 suffix (supabase-js adds it back)
-    .replace(/\/+$/, "");           // trailing slashes
+    .replace(/\/+$/, ""); // trailing slashes
 }
 
 export function getSupabase(): SupabaseClient {

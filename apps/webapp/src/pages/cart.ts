@@ -1,11 +1,8 @@
 import { renderCartItemCard } from "../components/cart-item-card.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
-import {
-  type CartSnapshot,
-  loadCartSnapshot,
-} from "../lib/cart-store.js";
 import { setCachedLines } from "../lib/cart-presence.js";
+import { type CartSnapshot, loadCartSnapshot } from "../lib/cart-store.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { isCurrentNavigation } from "../lib/navigation-guard.js";
 import { getNavigationGeneration, navigate } from "../router.js";

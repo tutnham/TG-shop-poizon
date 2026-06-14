@@ -1,0 +1,205 @@
+{
+  "products": [
+    {
+      "productId": 552632,
+      "variantId": "552632",
+      "url": "https://www.thepoizon.ru/product/8900006736094239",
+      "title": "",
+      "description": "",
+      "vendorCode": "1202A127-400",
+      "categoryId": 8713,
+      "vendorId": 17,
+      "images": [
+        "https://cdn.poizon.com/pro-img/origin-img/20230707/1878a3d4c9eb4d1eb04895d6e8062050.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/2025061201/b1e59f3bc9fb3f132bd5e342ca0ba422.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/2025061201/5f90e939b2ebf228dd67edf657b708e6.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20230707/0def1752769449ff8a661d39d5e83fe5.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20230707/db1b2c9c7e82402abd131649916d5ebc.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20230707/3ebf1a885b2f42518323f0abe341f689.jpg"
+      ],
+      "price": 0,
+      "favoriteCount": 0,
+      "countryOfOrigin": "Китай",
+      "properties": [
+        {
+          "key": "跑鞋等级",
+          "value": "入门跑"
+        },
+        {
+          "key": "适用场地",
+          "value": "公路"
+        },
+        {
+          "key": "适用场景",
+          "value": "休闲"
+        },
+        {
+          "key": "功能性",
+          "value": "耐磨,透气"
+        },
+        {
+          "key": "鞋面",
+          "value": "透气网眼网布"
+        },
+        {
+          "key": "大底",
+          "value": "橡胶大底"
+        },
+        {
+          "key": "发售日期",
+          "value": "2020秋季"
+        },
+        {
+          "key": "发售价格",
+          "value": "¥335"
+        },
+        {
+          "key": "鞋身重量（约）",
+          "value": "380g/单只42码/单只"
+        }
+      ],
+      "seriesName": "Gel Kayano",
+      "relatedProducts": [],
+      "gender": "FEMALE",
+      "sizes": [],
+      "vat": "NO_VAT",
+      "currency": "RUB",
+      "keywords": [],
+      "vendor": "Asics"
+    },
+    {
+      "productId": 552700,
+      "variantId": "552700",
+      "url": "https://www.thepoizon.ru/product/8900023720495137",
+      "title": "",
+      "description": "",
+      "vendorCode": "1201A514-400",
+      "categoryId": 8713,
+      "vendorId": 17,
+      "images": [
+        "https://cdn.poizon.com/pro-img/origin-img/20220809/7dc6a03818a344519d3b51d88f1e9d3b.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/2025061510/dc676358e221c2b479122380d8d3437c.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/2025061510/ba06c41ab6cc2f0ff05d9647304fa1c2.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20220809/6965be43eed140299de07d3dce293f05.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20220809/e05e1878480541da8df49c0170c300fe.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20220809/dbb3cb98f69344989c8b99db8a3200df.jpg"
+      ],
+      "price": 0,
+      "favoriteCount": 0,
+      "countryOfOrigin": "Китай",
+      "properties": [
+        {
+          "key": "鞋帮高度",
+          "value": "低帮"
+        },
+        {
+          "key": "跑鞋等级",
+          "value": "入门跑"
+        },
+        {
+          "key": "发售日期",
+          "value": "2022.08"
+        },
+        {
+          "key": "适用场地",
+          "value": "公路"
+        },
+        {
+          "key": "适用场景",
+          "value": "休闲"
+        },
+        {
+          "key": "鞋面",
+          "value": "透气网眼网布"
+        },
+        {
+          "key": "大底",
+          "value": "橡胶大底"
+        },
+        {
+          "key": "功能性",
+          "value": "耐磨,透气,轻便"
+        },
+        {
+          "key": "发售价格",
+          "value": "¥706"
+        }
+      ],
+      "seriesName": "Gel Kayano",
+      "relatedProducts": [],
+      "gender": "MALE",
+      "sizes": [],
+      "vat": "NO_VAT",
+      "currency": "RUB",
+      "keywords": [],
+      "vendor": "Asics"
+    },
+    {
+      "productId": 552735,
+      "variantId": "552735",
+      "url": "https://www.thepoizon.ru/product/8900021813557912",
+      "title": "",
+      "description": "",
+      "vendorCode": "1012B535-001",
+      "categoryId": 8713,
+      "vendorId": 17,
+      "images": [
+        "https://cdn.poizon.com/pro-img/origin-img/20240718/d33f718951134131ae32d1fa716c638a.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/2025061514/b1d727335a8c02f8fbb50882fab7834a.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/2025061514/f5749c040ad983b50ded27daca7c9280.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20240718/f2da86723ac04242b87c6766977464f8.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20240718/51b5353fccb74ca8ba068fba225f76cd.jpg",
+        "https://cdn.poizon.com/pro-img/origin-img/20240718/622edec8b9714e388d24ef738584a314.jpg"
+      ],
+      "price": 0,
+      "favoriteCount": 0,
+      "countryOfOrigin": "Китай",
+      "properties": [
+        {
+          "key": "鞋帮高度",
+          "value": "低帮"
+        },
+        {
+          "key": "功能性",
+          "value": "耐磨,透气"
+        },
+        {
+          "key": "发售日期",
+          "value": "2023春季"
+        },
+        {
+          "key": "跑鞋等级",
+          "value": "进阶跑"
+        },
+        {
+          "key": "发售价格",
+          "value": "¥1390"
+        },
+        {
+          "key": "适用场地",
+          "value": "跑步机,塑胶跑道,公路"
+        },
+        {
+          "key": "大底",
+          "value": "AHAR"
+        },
+        {
+          "key": "鞋面",
+          "value": "工程弹性针织鞋面"
+        },
+        {
+          "key": "中底",
+          "value": "全掌 GEL缓震胶、全掌 FF BLAST 、全掌 LITETRUSS"
+        }
+      ],
+      "seriesName": "",
+      "relatedProducts": [],
+      "gender": "FEMALE",
+      "sizes": [],
+      "vat": "NO_VAT",
+      "currency": "RUB",
+      "keywords": [],
+      "vendor": "Asics"
+    }
+  ]
+}

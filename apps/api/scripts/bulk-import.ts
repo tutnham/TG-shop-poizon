@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
-import { runBulkImport, type PoparceRawProduct } from "../src/services/poizon-sync.service.js";
+import {
+  type PoparceRawProduct,
+  runBulkImport,
+} from "../src/services/poizon-sync.service.js";
 
 loadDotEnv();
 
@@ -18,10 +21,7 @@ try {
   const content = readFileSync(filePath, "utf-8");
   raw = JSON.parse(content);
 } catch (e) {
-  console.error(
-    "Ошибка чтения JSON-файла:",
-    (e as Error).message,
-  );
+  console.error("Ошибка чтения JSON-файла:", (e as Error).message);
   process.exit(1);
 }
 

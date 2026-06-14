@@ -1,10 +1,9 @@
-import { Decimal } from "decimal.js";
 import type { Result } from "@poizon-shop/shared";
+import { Decimal } from "decimal.js";
 import { getSupabase } from "../db/client.js";
 import { appError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
 import { getExchangeRateService } from "./currency.service.js";
-import { getPricingModuleConfig } from "./pricing.config.js";
 import type {
   CalculationBreakdown,
   PriceCalculationInput,
@@ -12,6 +11,7 @@ import type {
   UsdtCalculationBreakdown,
 } from "./exchange/rate-types.js";
 import { RateStaleError, RateUnavailableError } from "./exchange/rate-types.js";
+import { getPricingModuleConfig } from "./pricing.config.js";
 
 // ── Обратно-совместимый конфиг (будет удалён при полном переходе) ────
 export interface PricingConfig {
@@ -30,7 +30,9 @@ export class PriceCalculator {
    * Публичная цена: цена из ЦБ РФ (CNY→RUB) + наценка + доставка.
    * Внутренняя цена: через кросс-курс USDT/CNY + наценка + fxBuffer.
    */
-  async calculate(input: PriceCalculationInput): Promise<PriceCalculationResult> {
+  async calculate(
+    input: PriceCalculationInput,
+  ): Promise<PriceCalculationResult> {
     const config = getPricingModuleConfig();
     const rateService = getExchangeRateService();
     const snapshot = await rateService.getRateSnapshot();
@@ -74,8 +76,10 @@ export class PriceCalculator {
       snapshot.cnyRub.fetchedAt,
       snapshot.usdtRub.isStale || snapshot.cnyRub.isStale,
       {
-        usdtRub: snapshot.usdtRub.source as UsdtCalculationBreakdown["sources"]["usdtRub"],
-        cnyRub: snapshot.cnyRub.source as UsdtCalculationBreakdown["sources"]["cnyRub"],
+        usdtRub: snapshot.usdtRub
+          .source as UsdtCalculationBreakdown["sources"]["usdtRub"],
+        cnyRub: snapshot.cnyRub
+          .source as UsdtCalculationBreakdown["sources"]["cnyRub"],
       },
     );
 
@@ -100,7 +104,11 @@ export class PriceCalculator {
     const rateService = getExchangeRateService();
     const cnyRub = await rateService.getCnyRubRate();
 
-    rateService.validateRateForPolicy(cnyRub, config.publicRatePolicy, "cny_rub");
+    rateService.validateRateForPolicy(
+      cnyRub,
+      config.publicRatePolicy,
+      "cny_rub",
+    );
 
     return this._calculatePublic(
       priceCny,
@@ -146,8 +154,10 @@ export class PriceCalculator {
       snapshot.cnyRub.fetchedAt,
       snapshot.usdtRub.isStale || snapshot.cnyRub.isStale,
       {
-        usdtRub: snapshot.usdtRub.source as UsdtCalculationBreakdown["sources"]["usdtRub"],
-        cnyRub: snapshot.cnyRub.source as UsdtCalculationBreakdown["sources"]["cnyRub"],
+        usdtRub: snapshot.usdtRub
+          .source as UsdtCalculationBreakdown["sources"]["usdtRub"],
+        cnyRub: snapshot.cnyRub
+          .source as UsdtCalculationBreakdown["sources"]["cnyRub"],
       },
     );
   }
@@ -236,9 +246,7 @@ export class PriceCalculator {
     scale: number,
   ): Decimal {
     const rounding =
-      mode === "ROUND_HALF_UP"
-        ? Decimal.ROUND_HALF_UP
-        : Decimal.ROUND_CEIL;
+      mode === "ROUND_HALF_UP" ? Decimal.ROUND_HALF_UP : Decimal.ROUND_CEIL;
     return value.toDecimalPlaces(scale, rounding);
   }
 }

@@ -1,3 +1,5 @@
+import { escapeHtml } from "./escape.js";
+
 export function showToast(message: string, durationMs = 2200): void {
   const existing = document.querySelector(".app-toast");
   existing?.remove();
@@ -7,7 +9,7 @@ export function showToast(message: string, durationMs = 2200): void {
   el.setAttribute("role", "status");
   el.innerHTML = `
     <span class="material-symbols-outlined app-toast__icon">check_circle</span>
-    <span>${message}</span>
+    <span>${escapeHtml(message)}</span>
   `;
   document.body.appendChild(el);
 

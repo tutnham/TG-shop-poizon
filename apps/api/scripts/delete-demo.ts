@@ -11,7 +11,11 @@ loadDotEnv();
 const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/+$/, "") ?? "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
-async function safeFetch(url: string, init: RequestInit, timeoutMs = 30000): Promise<Response> {
+async function safeFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs = 30000,
+): Promise<Response> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -35,8 +39,8 @@ async function main() {
   // Шаг 1: получаем все товары через cursor-пагинацию (быстрее offset)
   const limit = 50;
   let lastId = "00000000-0000-0000-0000-000000000000";
-  let allIds: string[] = [];
-  let demoIds: string[] = [];
+  const allIds: string[] = [];
+  const demoIds: string[] = [];
 
   console.log("[delete-demo] Загружаем список товаров...");
 
@@ -54,7 +58,10 @@ async function main() {
     for (const row of rows) {
       lastId = row.id;
       allIds.push(row.id);
-      if (row.image_urls?.length > 0 && row.image_urls[0].includes("unsplash")) {
+      if (
+        row.image_urls?.length > 0 &&
+        row.image_urls[0].includes("unsplash")
+      ) {
         demoIds.push(row.id);
       }
     }
@@ -97,13 +104,17 @@ async function main() {
         if (attempt < 3) {
           await new Promise((r) => setTimeout(r, 500 * attempt));
         } else {
-          console.error(`[delete-demo] Ошибка удаления ${id.slice(0, 8)}: ${res.status} ${text.slice(0, 100)}`);
+          console.error(
+            `[delete-demo] Ошибка удаления ${id.slice(0, 8)}: ${res.status} ${text.slice(0, 100)}`,
+          );
         }
       } catch (e) {
         if (attempt < 3) {
           await new Promise((r) => setTimeout(r, 500 * attempt));
         } else {
-          console.error(`[delete-demo] Ошибка удаления ${id.slice(0, 8)}: ${(e as Error).message}`);
+          console.error(
+            `[delete-demo] Ошибка удаления ${id.slice(0, 8)}: ${(e as Error).message}`,
+          );
         }
       }
     }
@@ -115,7 +126,9 @@ async function main() {
     }
 
     if ((i + 1) % 20 === 0 || i === demoIds.length - 1) {
-      console.log(`[delete-demo] Прогресс: ${i + 1}/${demoIds.length} | удалено=${deleted} ошибок=${errors}`);
+      console.log(
+        `[delete-demo] Прогресс: ${i + 1}/${demoIds.length} | удалено=${deleted} ошибок=${errors}`,
+      );
     }
 
     // Задержка между запросами
@@ -124,7 +137,7 @@ async function main() {
     }
   }
 
-  console.log(`\n[delete-demo] Готово!`);
+  console.log("\n[delete-demo] Готово!");
   console.log(`  Удалено: ${deleted}`);
   console.log(`  Ошибок: ${errors}`);
 }

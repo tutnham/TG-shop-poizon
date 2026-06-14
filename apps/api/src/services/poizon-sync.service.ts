@@ -6,10 +6,20 @@ import {
   isVercelServerless,
 } from "../lib/runtime.js";
 import { refreshRates } from "./currency.service.js";
+import type { IPoisonProvider } from "./poizon.provider.js";
 import { getPoisonProvider } from "./poizon.service.js";
 import { calculatePricesFromFen, getPricingConfig } from "./pricing.service.js";
 
-const SYNC_KEYWORDS = ["nike", "jordan", "adidas", "yeezy", "new balance", "asics", "puma", "reebok"];
+const SYNC_KEYWORDS = [
+  "nike",
+  "jordan",
+  "adidas",
+  "yeezy",
+  "new balance",
+  "asics",
+  "puma",
+  "reebok",
+];
 const SYNC_PAGE_SIZE = 50; // Товаров на страницу при пагинации API
 const SYNC_MAX_PAGES_PER_KEYWORD = 60; // Макс 3000 товаров на ключевое слово
 const SYNC_DELAY_BETWEEN_PAGES_MS = 1200;
@@ -46,19 +56,26 @@ export async function runFullSync(): Promise<{
     await sleep(SYNC_DELAY_BETWEEN_PAGES_MS);
 
     for (const keyword of SYNC_KEYWORDS) {
-      console.log(`[poizon-sync] Начинаем синхронизацию по ключевому слову: "${keyword}"`);
+      console.log(
+        `[poizon-sync] Начинаем синхронизацию по ключевому слову: "${keyword}"`,
+      );
 
       for (let page = 0; page < SYNC_MAX_PAGES_PER_KEYWORD; page++) {
-        let result;
+        let result: Awaited<ReturnType<IPoisonProvider["searchProducts"]>>;
         try {
           result = await provider.searchProducts(keyword, SYNC_PAGE_SIZE, page);
         } catch (e) {
-          console.warn(`[poizon-sync] Ошибка поиска "${keyword}" страница ${page}:`, (e as Error).message);
+          console.warn(
+            `[poizon-sync] Ошибка поиска "${keyword}" страница ${page}:`,
+            (e as Error).message,
+          );
           break; // Прерываем цикл по этому ключевому слову при ошибке
         }
 
         if (!result.items.length) {
-          console.log(`[poizon-sync] "${keyword}" страница ${page}: нет товаров, завершаем`);
+          console.log(
+            `[poizon-sync] "${keyword}" страница ${page}: нет товаров, завершаем`,
+          );
           break;
         }
 
@@ -87,13 +104,17 @@ export async function runFullSync(): Promise<{
               is_available: item.inStock,
             });
           } catch (e) {
-            console.warn(`[poizon-sync] Ошибка расчёта цены spuId=${item.spuId}:`, (e as Error).message);
+            console.warn(
+              `[poizon-sync] Ошибка расчёта цены spuId=${item.spuId}:`,
+              (e as Error).message,
+            );
           }
         }
 
         // Пакетный upsert
         if (batch.length > 0) {
-          const { inserted, errors } = await productRepo.upsertProductsBatch(batch);
+          const { inserted, errors } =
+            await productRepo.upsertProductsBatch(batch);
           items_synced += inserted;
           if (errors > 0) {
             console.warn(`[poizon-sync] Ошибок upsert в пакете: ${errors}`);
@@ -104,7 +125,7 @@ export async function runFullSync(): Promise<{
         const progress = items_synced;
         console.log(
           `[poizon-sync] Прогресс: ключ="${keyword}" стр.${page + 1} | ` +
-          `всего товаров=${progress} | страниц=${total_pages}`,
+            `всего товаров=${progress} | страниц=${total_pages}`,
         );
 
         if (!result.hasMore) {
@@ -113,13 +134,17 @@ export async function runFullSync(): Promise<{
         }
 
         // Задержка между страницами для соблюдения rate-limit
-        await sleep(SYNC_DELAY_BETWEEN_PAGES_MS + Math.random() * SYNC_DELAY_JITTER_MS);
+        await sleep(
+          SYNC_DELAY_BETWEEN_PAGES_MS + Math.random() * SYNC_DELAY_JITTER_MS,
+        );
       }
     }
 
     await finishSyncLog(logId, "success", items_synced);
     await setConfigValue("last_synced_at", new Date().toISOString());
-    console.log(`[poizon-sync] Синхронизация завершена: ${items_synced} товаров`);
+    console.log(
+      `[poizon-sync] Синхронизация завершена: ${items_synced} товаров`,
+    );
     return { ok: true, items_synced };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Sync failed";
@@ -205,21 +230,28 @@ export async function runBulkImport(
         const spuId = raw.spuId ? String(raw.spuId) : "";
         if (!spuId || !raw.title) continue;
 
-        const priceFen = (raw.priceFen ?? raw.price) ?? 0;
+        const priceFen = raw.priceFen ?? raw.price ?? 0;
         const soldCount =
           raw.soldCount ?? (Number.parseInt(raw.soldCountText ?? "0", 10) || 0);
 
         const prices = calculatePricesFromFen(priceFen, config);
 
         const rawSizes = raw.sizes ?? {};
-        const hasSizes = typeof rawSizes === "object" && !Array.isArray(rawSizes) && Object.keys(rawSizes).length > 0;
+        const hasSizes =
+          typeof rawSizes === "object" &&
+          !Array.isArray(rawSizes) &&
+          Object.keys(rawSizes).length > 0;
 
         batch.push({
           poizon_id: spuId,
           name: raw.title,
           brand: raw.brand ?? raw.title?.split(" ")[0] ?? null,
           category_id: null,
-          image_urls: raw.images?.length ? raw.images : raw.logoUrl ? [raw.logoUrl] : [],
+          image_urls: raw.images?.length
+            ? raw.images
+            : raw.logoUrl
+              ? [raw.logoUrl]
+              : [],
           price_cny: prices.cny,
           price_rub: prices.rub,
           price_usdt: prices.usdt,
@@ -244,14 +276,17 @@ export async function runBulkImport(
       // Разбиваем на чанки по UPSERT_BATCH_SIZE и вставляем с задержкой
       for (let i = 0; i < batch.length; i += UPSERT_BATCH_SIZE) {
         const chunk = batch.slice(i, i + UPSERT_BATCH_SIZE);
-        const { inserted, errors } = await productRepo.upsertProductsBatch(chunk);
+        const { inserted, errors } =
+          await productRepo.upsertProductsBatch(chunk);
         items_synced += inserted;
         if (errors > 0) {
-          console.warn(`[poizon-sync] Ошибок upsert в чанке ${i / UPSERT_BATCH_SIZE}: ${errors}`);
+          console.warn(
+            `[poizon-sync] Ошибок upsert в чанке ${i / UPSERT_BATCH_SIZE}: ${errors}`,
+          );
         }
         console.log(
           `[poizon-sync] Импорт: чанк ${Math.floor(i / UPSERT_BATCH_SIZE) + 1}/${Math.ceil(batch.length / UPSERT_BATCH_SIZE)} | ` +
-          `товаров=${items_synced}/${batch.length}`,
+            `товаров=${items_synced}/${batch.length}`,
         );
         // Небольшая задержка между чанками чтобы не перегружать БД
         if (i + UPSERT_BATCH_SIZE < batch.length) {

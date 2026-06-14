@@ -39,11 +39,7 @@ export async function fetchCnyRubRateFromCbr(): Promise<ExchangeRate> {
     signal: AbortSignal.timeout(10000),
   });
   if (!res.ok) {
-    throw new ProviderError(
-      `HTTP ${res.status}`,
-      "cbr-mirror",
-      res.status,
-    );
+    throw new ProviderError(`HTTP ${res.status}`, "cbr-mirror", res.status);
   }
   const data = (await res.json()) as CbrDailyJson;
   const cny = extractCnyRow(data);

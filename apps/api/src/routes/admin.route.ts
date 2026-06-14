@@ -1,6 +1,8 @@
 import { zValidator } from "@hono/zod-validator";
-import { z } from "zod";
+import type { OrderListItem, OrderStatus } from "@poizon-shop/shared";
 import { Hono } from "hono";
+import { z } from "zod";
+import { getSupabase } from "../db/client.js";
 import { getConfigValue, setConfigValue } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
 import * as productRepo from "../db/product.repository.js";
@@ -10,9 +12,7 @@ import { notifyOrderStatus } from "../services/notification.service.js";
 import * as orderService from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
 import { getPricingConfig, setMarkup } from "../services/pricing.service.js";
-import { getSupabase } from "../db/client.js";
 import type { AppEnv } from "../types/env.types.js";
-import type { OrderStatus, OrderListItem } from "@poizon-shop/shared";
 
 const admin = new Hono<AppEnv>();
 admin.use("*", adminAuth);
@@ -36,7 +36,15 @@ admin.get("/dashboard", async (c) => {
 // ---------------------------------------------------------------------------
 const AdminOrdersQuerySchema = z.object({
   status: z
-    .enum(["pending", "confirmed", "paid", "processing", "shipped", "delivered", "cancelled"])
+    .enum([
+      "pending",
+      "confirmed",
+      "paid",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled",
+    ])
     .optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(50).default(20),
@@ -49,7 +57,10 @@ admin.get("/orders", zValidator("query", AdminOrdersQuerySchema), async (c) => {
     page: q.page,
     limit: q.limit,
   });
-  return c.json({ data: orders, pagination: { page: q.page, limit: q.limit, total } });
+  return c.json({
+    data: orders,
+    pagination: { page: q.page, limit: q.limit, total },
+  });
 });
 
 admin.get("/orders/:id", async (c) => {
@@ -59,7 +70,14 @@ admin.get("/orders/:id", async (c) => {
 });
 
 const UpdateOrderStatusSchema = z.object({
-  status: z.enum(["confirmed", "paid", "processing", "shipped", "delivered", "cancelled"]),
+  status: z.enum([
+    "confirmed",
+    "paid",
+    "processing",
+    "shipped",
+    "delivered",
+    "cancelled",
+  ]),
   tracking_number: z.string().max(100).optional(),
   admin_comment: z.string().max(500).optional(),
 });
@@ -77,7 +95,9 @@ admin.patch(
 
     const result = await orderService.transitionOrder(id, body.status, extra);
     if (!result.ok) {
-      const err = (result as { ok: false; error: { message: string; status: number } }).error;
+      const err = (
+        result as { ok: false; error: { message: string; status: number } }
+      ).error;
       return c.json({ error: err.message }, err.status as 400 | 404);
     }
 
@@ -148,7 +168,12 @@ admin.patch(
 
 admin.post("/products/sync", async (c) => {
   const result = await runFullSync();
-  return c.json(result.ok ? { ok: true, items_synced: result.items_synced } : { error: result.error }, result.ok ? 200 : 400);
+  return c.json(
+    result.ok
+      ? { ok: true, items_synced: result.items_synced }
+      : { error: result.error },
+    result.ok ? 200 : 400,
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -175,26 +200,22 @@ const UpdatePricingSchema = z.object({
   delivery_fee: z.number().min(0).optional(),
 });
 
-admin.patch(
-  "/pricing",
-  zValidator("json", UpdatePricingSchema),
-  async (c) => {
-    const body = c.req.valid("json");
-    if (body.markup_percent != null) {
-      await setMarkup(body.markup_percent, body.delivery_fee);
-    }
-    const rates = await refreshRates(true);
-    const cfg = await getPricingConfig({ skipRatesRefresh: true });
-    return c.json({
-      data: {
-        markup_percent: cfg.markup_percent,
-        delivery_fee: cfg.delivery_fee,
-        cny_rub: rates.cny_rub,
-        fetched_at: rates.fetched_at,
-      },
-    });
-  },
-);
+admin.patch("/pricing", zValidator("json", UpdatePricingSchema), async (c) => {
+  const body = c.req.valid("json");
+  if (body.markup_percent != null) {
+    await setMarkup(body.markup_percent, body.delivery_fee);
+  }
+  const rates = await refreshRates(true);
+  const cfg = await getPricingConfig({ skipRatesRefresh: true });
+  return c.json({
+    data: {
+      markup_percent: cfg.markup_percent,
+      delivery_fee: cfg.delivery_fee,
+      cny_rub: rates.cny_rub,
+      fetched_at: rates.fetched_at,
+    },
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Sync logs
@@ -228,20 +249,22 @@ const PROTECTED_CONFIG_KEYS = new Set(["admin_telegram_ids"]);
 
 const UpdateConfigSchema = z.object({
   key: z.string().min(1).max(100),
-  value: z.union([z.string(), z.number(), z.boolean(), z.array(z.unknown()), z.record(z.unknown())]),
+  value: z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.array(z.unknown()),
+    z.record(z.unknown()),
+  ]),
 });
 
-admin.patch(
-  "/config",
-  zValidator("json", UpdateConfigSchema),
-  async (c) => {
-    const { key, value } = c.req.valid("json");
-    if (PROTECTED_CONFIG_KEYS.has(key)) {
-      return c.json({ error: "Cannot modify protected config key" }, 403);
-    }
-    await setConfigValue(key, value);
-    return c.json({ ok: true });
-  },
-);
+admin.patch("/config", zValidator("json", UpdateConfigSchema), async (c) => {
+  const { key, value } = c.req.valid("json");
+  if (PROTECTED_CONFIG_KEYS.has(key)) {
+    return c.json({ error: "Cannot modify protected config key" }, 403);
+  }
+  await setConfigValue(key, value);
+  return c.json({ ok: true });
+});
 
 export { admin };

@@ -1,7 +1,4 @@
-import {
-  getEnvOptional,
-  isProduction,
-} from "../types/env.types.js";
+import { getEnvOptional, isProduction } from "../types/env.types.js";
 
 export function runStartupChecks(): void {
   if (isProduction()) {

@@ -25,12 +25,7 @@ function setupShopBot(bot: Bot): void {
     const kb = new InlineKeyboard().webApp("🛍 Открыть магазин", webappUrl);
     const name = ctx.from?.first_name ? `, ${ctx.from.first_name}` : "";
     await ctx.reply(
-      `Привет${name}! 👋\n\n` +
-        "Добро пожаловать в <b>Poizon Shop</b> — магазин оригинальных кроссовок и одежды с доставкой по РФ и СНГ.\n\n" +
-        "🔹 <b>Только оригинал</b> — проверка подлинности каждого товара\n" +
-        "🔹 <b>Доставка 5–10 дней</b> — прямые поставки с Poizon\n" +
-        "🔹 <b>Оплата</b> — согласовывается с менеджером после оформления заказа\n\n" +
-        "Нажми кнопку ниже, чтобы открыть каталог 🛍",
+      `Привет${name}! 👋\n\nДобро пожаловать в <b>Poizon Shop</b> — магазин оригинальных кроссовок и одежды с доставкой по РФ и СНГ.\n\n🔹 <b>Только оригинал</b> — проверка подлинности каждого товара\n🔹 <b>Доставка 5–10 дней</b> — прямые поставки с Poizon\n🔹 <b>Оплата</b> — согласовывается с менеджером после оформления заказа\n\nНажми кнопку ниже, чтобы открыть каталог 🛍`,
       { reply_markup: kb, parse_mode: "HTML" },
     );
   });
@@ -89,13 +84,19 @@ function setupShopBot(bot: Bot): void {
     const orderId = ctx.match[1] ?? "";
     const userId = ctx.from?.id;
     if (!userId) {
-      await ctx.answerCallbackQuery({ text: "Ошибка авторизации", show_alert: true });
+      await ctx.answerCallbackQuery({
+        text: "Ошибка авторизации",
+        show_alert: true,
+      });
       return;
     }
     // Получаем заказ с проверкой владельца
     const order = await orderRepo.getOrderById(orderId);
     if (!order) {
-      await ctx.answerCallbackQuery({ text: "Заказ не найден", show_alert: true });
+      await ctx.answerCallbackQuery({
+        text: "Заказ не найден",
+        show_alert: true,
+      });
       return;
     }
     // Проверяем, что пользователь — владелец заказа (по telegram_id)
@@ -111,7 +112,10 @@ function setupShopBot(bot: Bot): void {
       .eq("telegram_id", userId)
       .maybeSingle();
     if (!orderUser || !tgUser || orderUser.user_id !== tgUser.id) {
-      await ctx.answerCallbackQuery({ text: "Нет доступа к этому заказу", show_alert: true });
+      await ctx.answerCallbackQuery({
+        text: "Нет доступа к этому заказу",
+        show_alert: true,
+      });
       return;
     }
     const statusLabels: Record<string, string> = {

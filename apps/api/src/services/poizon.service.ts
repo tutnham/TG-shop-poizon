@@ -115,7 +115,7 @@ export class PoparcePoisonProvider implements IPoisonProvider {
         }));
 
         const total = data.total ?? items.length;
-        const hasMore = data.hasMore ?? ((page + 1) * limit < total);
+        const hasMore = data.hasMore ?? (page + 1) * limit < total;
         return { items, hasMore, total };
       },
     );

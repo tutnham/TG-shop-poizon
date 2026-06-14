@@ -213,7 +213,10 @@ export async function upsertProductsBatch(
 
     if (error) {
       errors += chunk.length;
-      console.warn(`[product-repo] batch upsert chunk ${i / UPSERT_BATCH_SIZE} failed:`, error.message);
+      console.warn(
+        `[product-repo] batch upsert chunk ${i / UPSERT_BATCH_SIZE} failed:`,
+        error.message,
+      );
     } else {
       inserted += chunk.length;
     }
