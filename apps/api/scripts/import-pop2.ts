@@ -8,8 +8,10 @@
  *   npx tsx scripts/import-pop2.ts ../../pop2.json
  */
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
 import { refreshRates } from "../src/services/currency.service.js";
+import { stripCjk } from "../src/services/poizon-sku.mapper.js";
 import { getPricingConfig } from "../src/services/pricing.service.js";
 
 loadDotEnv();
@@ -211,31 +213,30 @@ async function ensureCategories(categories: Pop2Category[]): Promise<void> {
 // ── Формирование имени товара ───────────────────────────────────────
 
 function buildProductName(p: Pop2Product): string {
-  // Если есть title — используем его
-  if (p.title?.trim()) return p.title.trim();
+  if (p.title?.trim()) {
+    const cleaned = stripCjk(p.title.trim());
+    if (cleaned) return cleaned;
+  }
 
-  // Иначе: серия + артикул
-  const parts: string[] = [];
-  if (p.seriesName?.trim()) {
-    parts.push(p.seriesName.trim());
-  }
-  if (p.vendorCode?.trim()) {
-    parts.push(p.vendorCode.trim());
-  }
+  const parts = [p.vendor, p.seriesName, p.vendorCode]
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part));
+
   if (parts.length > 0) return parts.join(" ");
 
-  // Совсем запасной вариант
   return `${p.vendor || "Unknown"} #${p.productId}`;
 }
 
 // ── Основная функция импорта ────────────────────────────────────────
 
 async function main() {
-  const filePath = process.argv[2];
+  const filePath =
+    process.argv[2] ??
+    fileURLToPath(new URL("../../../pop2.json", import.meta.url));
 
   if (!filePath) {
     console.error(
-      "Использование: npx tsx scripts/import-pop2.ts <путь-к-pop2.json>",
+      "Использование: npx tsx scripts/import-pop2.ts [путь-к-pop2.json]",
     );
     process.exit(1);
   }
