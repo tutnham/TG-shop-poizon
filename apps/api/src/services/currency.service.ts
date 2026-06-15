@@ -317,23 +317,53 @@ export function resetExchangeRateService(): void {
 export function seedExchangeRateCacheForTests(
   cnyRub: number,
   usdtRub: number,
+  options?: {
+    fetchedAt?: string;
+    isStale?: boolean;
+    isFallback?: boolean;
+  },
 ): void {
-  const now = new Date();
+  const fetchedAt = options?.fetchedAt ?? new Date().toISOString();
+  const isStale = options?.isStale ?? false;
+  const isFallback = options?.isFallback ?? false;
+  const fetchedMs = new Date(fetchedAt).getTime();
+
   cache.setCnyRub({
     rate: new Decimal(cnyRub),
     source: "cbr-mirror",
-    fetchedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + CBR_CNY_RUB_TTL_MS).toISOString(),
-    isFallback: false,
-    isStale: false,
+    fetchedAt,
+    expiresAt: new Date(fetchedMs + CBR_CNY_RUB_TTL_MS).toISOString(),
+    isFallback,
+    isStale,
   });
   cache.setUsdtRub({
     rate: new Decimal(usdtRub),
     source: "binance",
-    fetchedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + BINANCE_USDT_RUB_TTL_MS).toISOString(),
-    isFallback: false,
-    isStale: false,
+    fetchedAt,
+    expiresAt: new Date(fetchedMs + BINANCE_USDT_RUB_TTL_MS).toISOString(),
+    isFallback,
+    isStale,
+  });
+}
+
+/** Seed only USDT leg (CNY will be fetched or fall through). */
+export function seedUsdtRubCacheForTests(
+  usdtRub: number,
+  options?: {
+    fetchedAt?: string;
+    isStale?: boolean;
+    isFallback?: boolean;
+  },
+): void {
+  const fetchedAt = options?.fetchedAt ?? new Date().toISOString();
+  const fetchedMs = new Date(fetchedAt).getTime();
+  cache.setUsdtRub({
+    rate: new Decimal(usdtRub),
+    source: "binance",
+    fetchedAt,
+    expiresAt: new Date(fetchedMs + BINANCE_USDT_RUB_TTL_MS).toISOString(),
+    isFallback: options?.isFallback ?? false,
+    isStale: options?.isStale ?? false,
   });
 }
 

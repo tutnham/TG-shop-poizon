@@ -6,12 +6,13 @@ interface CacheEntry<T> {
 const store = new Map<string, CacheEntry<unknown>>();
 
 // Периодическая очистка устаревших записей для предотвращения утечки памяти
-setInterval(() => {
+const cacheCleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store) {
     if (now > entry.expiresAt) store.delete(key);
   }
 }, 300000);
+cacheCleanupInterval.unref();
 
 export function cacheGet<T>(key: string): T | null {
   const entry = store.get(key);

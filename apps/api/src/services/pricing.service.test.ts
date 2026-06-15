@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
-import { afterEach, describe, it } from "node:test";
+import { afterEach, describe, it, mock } from "node:test";
 import Decimal from "decimal.js";
 import {
   resetExchangeRateService,
   seedExchangeRateCacheForTests,
+  seedUsdtRubCacheForTests,
 } from "./currency.service.js";
 import { resetPricingModuleConfig } from "./pricing.config.js";
 import {
@@ -132,17 +133,9 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
       throw new Error("network down");
     }) as unknown as typeof fetch;
 
-    // Предварительно кладём курс в кеш
     resetExchangeRateService();
-    const cache = new InMemoryExchangeRateCacheRepository();
-    const now = new Date();
-    cache.setUsdtRub({
-      rate: d(97),
-      source: "binance",
-      fetchedAt: new Date(now.getTime() - 60 * 1000).toISOString(), // 1 мин назад
-      expiresAt: new Date(now.getTime() + 4 * 60 * 1000).toISOString(),
-      isFallback: false,
-      isStale: false,
+    seedUsdtRubCacheForTests(97, {
+      fetchedAt: new Date(Date.now() - 60 * 1000).toISOString(),
     });
 
     const calc = new PriceCalculator();
@@ -160,27 +153,12 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
   });
 
   it("поведение при stale rate", async () => {
-    // Кладём устаревшие курсы в кеш
+    const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
     resetExchangeRateService();
-    const cache = new InMemoryExchangeRateCacheRepository();
-    const oldDate = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 часов назад
-    cache.setCnyRub({
-      rate: d(13.5),
-      source: "cbr-mirror",
-      fetchedAt: oldDate.toISOString(),
-      expiresAt: new Date(
-        oldDate.getTime() + 24 * 60 * 60 * 1000,
-      ).toISOString(),
-      isFallback: true,
+    seedExchangeRateCacheForTests(13.5, 97, {
+      fetchedAt: oldDate,
       isStale: true,
-    });
-    cache.setUsdtRub({
-      rate: d(97),
-      source: "binance",
-      fetchedAt: oldDate.toISOString(),
-      expiresAt: new Date(oldDate.getTime() + 5 * 60 * 1000).toISOString(),
       isFallback: true,
-      isStale: true,
     });
 
     // Мокаем fetch — но STRICT всё равно не разрешит

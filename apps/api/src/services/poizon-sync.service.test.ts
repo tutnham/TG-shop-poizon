@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import { VERCEL_SYNC_BLOCKED_MESSAGE } from "../lib/runtime.js";
+import { runFullSync } from "./poizon-sync.service.js";
 
 describe("runFullSync on Vercel", () => {
   const env = process.env;
@@ -12,7 +13,6 @@ describe("runFullSync on Vercel", () => {
 
   it("returns error without starting sync when VERCEL=1", async () => {
     process.env.VERCEL = "1";
-    const { runFullSync } = await import("./poizon-sync.service.js");
     const result = await runFullSync();
     assert.equal(result.ok, false);
     assert.equal(result.items_synced, 0);
