@@ -1,4 +1,8 @@
-import type { ProductDetail, ProductListItem } from "@poizon-shop/shared";
+import type {
+  ProductDetail,
+  ProductListItem,
+  SizePricesMap,
+} from "@poizon-shop/shared";
 import {
   dedupeByNameRu,
   dedupeDisplayLabels,
@@ -18,6 +22,7 @@ type ProductRow = {
   sold_count: number;
   synced_at: string | null;
   price_cny: number | null;
+  size_prices: SizePricesMap;
   sizes: Record<string, string[]>;
   stock: Record<string, boolean>;
   category_id: string | null;
@@ -114,6 +119,7 @@ export async function getProductById(
     image_urls: row.image_urls ?? [],
     sizes: (row.sizes as Record<string, string[]>) ?? {},
     stock: (row.stock as Record<string, boolean>) ?? {},
+    size_prices: (row.size_prices as SizePricesMap) ?? {},
     price_cny: row.price_cny != null ? Number(row.price_cny) : null,
     category_id: row.category_id,
   };
@@ -162,6 +168,7 @@ export async function upsertProductFromPoizon(row: {
   price_cny: number;
   price_rub: number;
   price_usdt: number;
+  size_prices: SizePricesMap;
   sizes: Record<string, string[]>;
   stock: Record<string, boolean>;
   sold_count: number;
@@ -194,6 +201,7 @@ export async function upsertProductsBatch(
     price_cny: number;
     price_rub: number;
     price_usdt: number;
+    size_prices: SizePricesMap;
     sizes: Record<string, string[]>;
     stock: Record<string, boolean>;
     sold_count: number;

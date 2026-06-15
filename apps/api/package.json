@@ -13,7 +13,9 @@
     "sync:poizon": "npx tsx scripts/poizon-sync.ts",
     "import:pop2": "npx tsx scripts/import-pop2.ts",
     "delete:demo": "npx tsx scripts/delete-demo.ts",
-    "fetch:prices": "npx tsx scripts/fetch-missing-prices.ts"
+    "fetch:prices": "npx tsx scripts/fetch-missing-prices.ts",
+    "probe:poizon": "npx tsx scripts/probe-poizon-api.ts",
+    "backfill:sizes": "npx tsx scripts/backfill-size-prices.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

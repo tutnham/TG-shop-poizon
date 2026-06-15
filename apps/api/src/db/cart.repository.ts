@@ -1,3 +1,4 @@
+import type { SizePricesMap } from "@poizon-shop/shared";
 import { getSupabase } from "./client.js";
 
 export type CartItemRow = {
@@ -13,6 +14,8 @@ export type CartItemRow = {
     image_urls: string[] | null;
     price_rub: number;
     price_usdt: number;
+    price_cny: number | null;
+    size_prices: SizePricesMap;
     is_available: boolean;
     stock: Record<string, boolean>;
   };
@@ -23,7 +26,7 @@ export async function getCartItems(userId: string): Promise<CartItemRow[]> {
     .from("cart_items")
     .select(
       `id, product_id, size, quantity,
-      product:products(id, name, name_ru, brand, image_urls, price_rub, price_usdt, is_available, stock)`,
+      product:products(id, name, name_ru, brand, image_urls, price_rub, price_usdt, price_cny, size_prices, is_available, stock)`,
     )
     .eq("user_id", userId);
   if (error) throw new Error(error.message);

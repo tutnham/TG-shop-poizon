@@ -168,6 +168,16 @@ export function renderProductDetailView(
       ? (p.stock ?? {})
       : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
 
+  const defaultUnit = {
+    rub: p.price_rub,
+    usdt: p.price_usdt,
+  };
+
+  const resolveUnitForSize = (size: string) => {
+    const fromMap = p.size_prices?.[size];
+    return fromMap ?? defaultUnit;
+  };
+
   page.innerHTML = `
     <div class="product-gallery">
       <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="${escapeHtml(p.name)}" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
@@ -175,8 +185,8 @@ export function renderProductDetailView(
     <p class="product-detail__brand">${escapeHtml(p.brand ?? "")}</p>
     <h2 class="product-detail__title">${escapeHtml(p.name)}</h2>
     <div class="product-detail__prices">
-      <div class="price-rub product-detail__price-rub">${formatRub(p.price_rub)}</div>
-      <div class="price-usdt">${formatUsdt(p.price_usdt)}</div>
+      <div class="price-rub product-detail__price-rub">${formatRub(defaultUnit.rub)}</div>
+      <div class="price-usdt product-detail__price-usdt">${formatUsdt(defaultUnit.usdt)}</div>
     </div>
 
     <h3 class="section-title">${t("select_size")}</h3>
@@ -212,6 +222,19 @@ export function renderProductDetailView(
     ?.addEventListener("click", () => navigate("/cart"));
 
   const grid = page.querySelector("#sizes") as HTMLElement;
+  const priceRubEl = page.querySelector(
+    ".product-detail__price-rub",
+  ) as HTMLElement | null;
+  const priceUsdtEl = page.querySelector(
+    ".product-detail__price-usdt",
+  ) as HTMLElement | null;
+
+  const updateDisplayedPrice = (size: string) => {
+    const unit = resolveUnitForSize(size);
+    if (priceRubEl) priceRubEl.textContent = formatRub(unit.rub);
+    if (priceUsdtEl) priceUsdtEl.textContent = formatUsdt(unit.usdt);
+  };
+
   const selectSize = (size: string, chip: HTMLButtonElement) => {
     if (isStale(state)) return;
     state.size = size;
@@ -219,16 +242,19 @@ export function renderProductDetailView(
       c.classList.remove("active");
     }
     chip.classList.add("active");
+    updateDisplayedPrice(size);
     void syncProductActions(page, p, state);
   };
 
   for (const s of sizes) {
     const btn = document.createElement("button");
     const available = stock[s] !== false;
+    const sizeUnit = resolveUnitForSize(s);
     btn.type = "button";
     btn.textContent = s;
     btn.className = "chip";
     btn.dataset.size = s;
+    btn.title = `${s} · ${formatRub(sizeUnit.rub)}`;
     if (!available) {
       btn.classList.add("chip--disabled");
       btn.disabled = true;

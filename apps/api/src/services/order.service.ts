@@ -13,6 +13,7 @@ import {
   notifyAdminNewOrder,
   notifyUserOrderCreated,
 } from "./notification.service.js";
+import { resolveProductSizePrice } from "./product-pricing.js";
 
 export type CreateOrderSuccess = {
   order_id: string;
@@ -81,16 +82,19 @@ export async function createOrderFromCart(
     }
   }
 
-  const items = cart.map((item) => ({
-    product_id: item.product_id,
-    name: item.product.name_ru ?? item.product.name,
-    brand: item.product.brand,
-    size: item.size,
-    quantity: item.quantity,
-    price_rub: Number(item.product.price_rub) * item.quantity,
-    price_usdt: Number(item.product.price_usdt) * item.quantity,
-    image_url: item.product.image_urls?.[0] ?? null,
-  }));
+  const items = cart.map((item) => {
+    const unit = resolveProductSizePrice(item.product, item.size);
+    return {
+      product_id: item.product_id,
+      name: item.product.name_ru ?? item.product.name,
+      brand: item.product.brand,
+      size: item.size,
+      quantity: item.quantity,
+      price_rub: unit.rub * item.quantity,
+      price_usdt: unit.usdt * item.quantity,
+      image_url: item.product.image_urls?.[0] ?? null,
+    };
+  });
 
   const total_rub = items.reduce((s, i) => s + i.price_rub, 0);
   const total_usdt = items.reduce((s, i) => s + i.price_usdt, 0);

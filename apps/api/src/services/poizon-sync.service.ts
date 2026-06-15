@@ -8,7 +8,14 @@ import {
 import { refreshRates } from "./currency.service.js";
 import type { IPoisonProvider } from "./poizon.provider.js";
 import { getPoisonProvider } from "./poizon.service.js";
+import type { PoisonProductRaw } from "./poizon.provider.js";
+import {
+  buildSizePricesFromFen,
+  minSizePrice,
+  type SizePricesMap,
+} from "./product-pricing.js";
 import { calculatePricesFromFen, getPricingConfig } from "./pricing.service.js";
+import type { PricingConfig } from "./pricing.service.js";
 
 const SYNC_KEYWORDS = [
   "nike",
@@ -23,11 +30,85 @@ const SYNC_KEYWORDS = [
 const SYNC_PAGE_SIZE = 50; // Товаров на страницу при пагинации API
 const SYNC_MAX_PAGES_PER_KEYWORD = 60; // Макс 3000 товаров на ключевое слово
 const SYNC_DELAY_BETWEEN_PAGES_MS = 1200;
+const SYNC_DELAY_BETWEEN_DETAILS_MS = 800;
 const SYNC_DELAY_JITTER_MS = 300;
 const UPSERT_BATCH_SIZE = 100; // Размер пакета для upsert в БД
 
 /** Стандартные EU размеры кроссовок, используемые когда API не возвращает размеры */
 const DEFAULT_EU_SIZES = ["39", "40", "41", "42", "43", "44", "45", "46"];
+
+type UpsertRow = Parameters<typeof productRepo.upsertProductsBatch>[0][number];
+
+export function mapPoizonItemToUpsertRow(
+  item: PoisonProductRaw,
+  config: PricingConfig,
+): UpsertRow {
+  const hasSkuPrices = Object.keys(item.sizePricesFen).length > 0;
+  const sizePrices: SizePricesMap = hasSkuPrices
+    ? buildSizePricesFromFen(item.sizePricesFen, config)
+    : {};
+
+  const scalarFromSkus = minSizePrice(sizePrices);
+  const fallbackPrices = calculatePricesFromFen(item.priceFen, config);
+  const scalar = scalarFromSkus ?? {
+    cny: fallbackPrices.cny,
+    rub: fallbackPrices.rub,
+    usdt: fallbackPrices.usdt,
+  };
+
+  const hasSizes = Object.keys(item.sizes).length > 0;
+  const sizeLabels = hasSizes
+    ? Object.keys(item.sizes)
+    : hasSkuPrices
+      ? Object.keys(sizePrices)
+      : DEFAULT_EU_SIZES;
+
+  const stock = hasSizes
+    ? item.sizes
+    : hasSkuPrices
+      ? Object.fromEntries(
+          sizeLabels.map((s) => [s, sizePrices[s] != null]),
+        )
+      : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
+
+  return {
+    poizon_id: String(item.spuId),
+    name: item.englishTitle || item.title,
+    brand: item.brand,
+    category_id: null,
+    image_urls: item.images,
+    price_cny: scalar.cny,
+    price_rub: scalar.rub,
+    price_usdt: scalar.usdt,
+    size_prices: sizePrices,
+    sizes: { EU: sizeLabels },
+    stock,
+    sold_count: item.soldCount,
+    is_available: item.inStock,
+  };
+}
+
+async function enrichWithProductDetail(
+  provider: IPoisonProvider,
+  item: PoisonProductRaw,
+): Promise<PoisonProductRaw> {
+  try {
+    const detail = await provider.getProductDetail(item.spuId);
+    if (!detail) return item;
+    return {
+      ...item,
+      ...detail,
+      images: detail.images.length ? detail.images : item.images,
+      soldCount: detail.soldCount || item.soldCount,
+    };
+  } catch (e) {
+    console.warn(
+      `[poizon-sync] detail fetch spuId=${item.spuId}:`,
+      (e as Error).message,
+    );
+    return item;
+  }
+}
 
 export async function runFullSync(): Promise<{
   ok: boolean;
@@ -79,30 +160,15 @@ export async function runFullSync(): Promise<{
           break;
         }
 
-        // Собираем товары текущей страницы в пакет
-        const batch: Parameters<typeof productRepo.upsertProductsBatch>[0] = [];
+        const batch: UpsertRow[] = [];
         for (const item of result.items) {
           try {
-            const prices = calculatePricesFromFen(item.priceFen, config);
-            const hasSizes = Object.keys(item.sizes).length > 0;
-            batch.push({
-              poizon_id: String(item.spuId),
-              name: item.title,
-              brand: item.brand,
-              category_id: null,
-              image_urls: item.images,
-              price_cny: prices.cny,
-              price_rub: prices.rub,
-              price_usdt: prices.usdt,
-              sizes: hasSizes
-                ? { EU: Object.keys(item.sizes) }
-                : { EU: DEFAULT_EU_SIZES },
-              stock: hasSizes
-                ? item.sizes
-                : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true])),
-              sold_count: item.soldCount,
-              is_available: item.inStock,
-            });
+            const enriched = await enrichWithProductDetail(provider, item);
+            batch.push(mapPoizonItemToUpsertRow(enriched, config));
+            await sleep(
+              SYNC_DELAY_BETWEEN_DETAILS_MS +
+                Math.random() * SYNC_DELAY_JITTER_MS,
+            );
           } catch (e) {
             console.warn(
               `[poizon-sync] Ошибка расчёта цены spuId=${item.spuId}:`,
@@ -223,7 +289,7 @@ export async function runBulkImport(
     const config = await getPricingConfig({ skipRatesRefresh: true });
 
     // Нормализация сырых данных во внутренний формат
-    const batch: Parameters<typeof productRepo.upsertProductsBatch>[0] = [];
+    const batch: UpsertRow[] = [];
 
     for (const raw of rawProducts) {
       try {
@@ -234,36 +300,31 @@ export async function runBulkImport(
         const soldCount =
           raw.soldCount ?? (Number.parseInt(raw.soldCountText ?? "0", 10) || 0);
 
-        const prices = calculatePricesFromFen(priceFen, config);
-
         const rawSizes = raw.sizes ?? {};
         const hasSizes =
           typeof rawSizes === "object" &&
           !Array.isArray(rawSizes) &&
           Object.keys(rawSizes).length > 0;
 
-        batch.push({
-          poizon_id: spuId,
-          name: raw.title,
-          brand: raw.brand ?? raw.title?.split(" ")[0] ?? null,
-          category_id: null,
-          image_urls: raw.images?.length
+        const item: PoisonProductRaw = {
+          spuId: Number(spuId),
+          title: raw.title,
+          englishTitle: raw.title,
+          brand: raw.brand ?? raw.title?.split(" ")[0] ?? "Unknown",
+          logoUrl: raw.logoUrl ?? "",
+          priceFen,
+          inStock: raw.inStock !== false,
+          images: raw.images?.length
             ? raw.images
             : raw.logoUrl
               ? [raw.logoUrl]
               : [],
-          price_cny: prices.cny,
-          price_rub: prices.rub,
-          price_usdt: prices.usdt,
-          sizes: hasSizes
-            ? { EU: Object.keys(rawSizes) }
-            : { EU: DEFAULT_EU_SIZES },
-          stock: hasSizes
-            ? rawSizes
-            : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true])),
-          sold_count: soldCount,
-          is_available: raw.inStock !== false,
-        });
+          sizes: hasSizes ? rawSizes : {},
+          sizePricesFen: {},
+          soldCount,
+        };
+
+        batch.push(mapPoizonItemToUpsertRow(item, config));
       } catch (e) {
         console.warn(
           `[poizon-sync] Ошибка нормализации товара spuId=${raw.spuId}:`,

@@ -1,6 +1,7 @@
 import { getEnvOptional } from "../types/env.types.js";
 import { withCache } from "./cache.service.js";
 import { PoizonOfficialProvider } from "./poizon-official.provider.js";
+import { parsePoizonDetailResponse } from "./poizon-detail.parser.js";
 import type { IPoisonProvider, PoisonProductRaw } from "./poizon.provider.js";
 
 const BASE_URL = () =>
@@ -36,30 +37,25 @@ async function poisonFetch<T>(
   return res.json() as Promise<T>;
 }
 
-function mapDetail(raw: {
-  detail: {
-    spuId: number;
-    title: string;
-    logoUrl: string;
-    status: number;
-    soldCountText?: string;
-  };
-  price: { item: { price: number } };
-  image?: { spuImage?: { images?: Array<{ url: string }> } };
+function mapSearchItem(s: {
+  spuId: number;
+  title: string;
+  logoUrl: string;
+  price: number;
+  soldCountText?: string;
 }): PoisonProductRaw {
-  const images = raw.image?.spuImage?.images?.map((i) => i.url) ?? [
-    raw.detail.logoUrl,
-  ];
   return {
-    spuId: raw.detail.spuId,
-    title: raw.detail.title,
-    brand: raw.detail.title.split(" ")[0] ?? "Unknown",
-    logoUrl: raw.detail.logoUrl,
-    priceFen: raw.price.item.price,
-    inStock: raw.detail.status === 1,
-    images,
+    spuId: s.spuId,
+    title: s.title,
+    englishTitle: s.title,
+    brand: s.title.split(" ")[0] ?? "Unknown",
+    logoUrl: s.logoUrl,
+    priceFen: s.price,
+    inStock: true,
+    images: [s.logoUrl],
     sizes: {},
-    soldCount: Number.parseInt(raw.detail.soldCountText ?? "0", 10) || 0,
+    sizePricesFen: {},
+    soldCount: Number.parseInt(s.soldCountText ?? "0", 10) || 0,
   };
 }
 
@@ -102,17 +98,7 @@ export class PoparcePoisonProvider implements IPoisonProvider {
         // Автоопределение формата ответа: spuList | productList | list
         const sourceList = data.spuList ?? data.productList ?? data.list ?? [];
 
-        const items = sourceList.map((s) => ({
-          spuId: s.spuId,
-          title: s.title,
-          brand: s.title.split(" ")[0] ?? "Unknown",
-          logoUrl: s.logoUrl,
-          priceFen: s.price,
-          inStock: true,
-          images: [s.logoUrl],
-          sizes: {},
-          soldCount: Number.parseInt(s.soldCountText ?? "0", 10) || 0,
-        }));
+        const items = sourceList.map((s) => mapSearchItem(s));
 
         const total = data.total ?? items.length;
         const hasMore = data.hasMore ?? (page + 1) * limit < total;
@@ -123,11 +109,10 @@ export class PoparcePoisonProvider implements IPoisonProvider {
 
   async getProductDetail(spuId: number): Promise<PoisonProductRaw | null> {
     return withCache(`product:${spuId}`, 30 * 60, async () => {
-      const raw = await poisonFetch<Parameters<typeof mapDetail>[0]>(
-        "/productDetailWithPrice",
-        { spuId },
-      );
-      return mapDetail(raw);
+      const raw = await poisonFetch<unknown>("/productDetailWithPrice", {
+        spuId,
+      });
+      return parsePoizonDetailResponse(raw, spuId);
     });
   }
 
@@ -153,6 +138,7 @@ export class MockPoisonProvider implements IPoisonProvider {
         {
           spuId: 100001,
           title: `Mock ${keyword}`,
+          englishTitle: `Mock ${keyword}`,
           brand: "Nike",
           logoUrl:
             "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
@@ -161,7 +147,8 @@ export class MockPoisonProvider implements IPoisonProvider {
           images: [
             "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
           ],
-          sizes: { "42": true },
+          sizes: { "42": true, "43": true },
+          sizePricesFen: { "42": 45000, "43": 52000 },
           soldCount: 100,
         },
       ],
@@ -174,6 +161,7 @@ export class MockPoisonProvider implements IPoisonProvider {
     return {
       spuId,
       title: "Mock Product",
+      englishTitle: "Mock Product",
       brand: "Nike",
       logoUrl:
         "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
@@ -182,7 +170,8 @@ export class MockPoisonProvider implements IPoisonProvider {
       images: [
         "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400",
       ],
-      sizes: { "42": true },
+      sizes: { "42": true, "43": true },
+      sizePricesFen: { "42": 45000, "43": 52000 },
       soldCount: 50,
     };
   }

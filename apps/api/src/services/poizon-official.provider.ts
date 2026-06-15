@@ -1,5 +1,6 @@
 import { getEnvOptional } from "../types/env.types.js";
 import { withCache } from "./cache.service.js";
+import { parsePoizonDetailResponse } from "./poizon-detail.parser.js";
 import type { IPoisonProvider, PoisonProductRaw } from "./poizon.provider.js";
 
 const NOT_CONFIGURED =
@@ -98,12 +99,14 @@ export class PoizonOfficialProvider implements IPoisonProvider {
         const items: PoisonProductRaw[] = (data.productList ?? []).map((p) => ({
           spuId: p.spuId,
           title: p.title,
+          englishTitle: p.title,
           brand: p.title.split(" ")[0] ?? "Unknown",
           logoUrl: p.logoUrl,
-          priceFen: 0, // цена доступна только через productDetailWithPrice
+          priceFen: 0,
           inStock: true,
           images: p.images?.length ? p.images : [p.logoUrl],
           sizes: {},
+          sizePricesFen: {},
           soldCount: 0,
         }));
 
@@ -120,38 +123,8 @@ export class PoizonOfficialProvider implements IPoisonProvider {
   async getProductDetail(spuId: number): Promise<PoisonProductRaw | null> {
     this.ensureConfigured();
     return withCache(`official-product:${spuId}`, 30 * 60, async () => {
-      // Тип ответа совпадает с DetailWithPricesResponseTypeV5 из OpenAPI
-      const raw = await this.fetch<{
-        detail: {
-          spuId: number;
-          title: string;
-          logoUrl: string;
-          status: number;
-          soldCountText?: string;
-        };
-        price: { item: { price: number } };
-        image?: {
-          spuImage?: { images?: Array<{ url: string }> };
-        };
-      }>("/productDetailWithPrice", { spuId });
-
-      if (!raw?.detail) return null;
-
-      const images = raw.image?.spuImage?.images?.map((i) => i.url) ?? [
-        raw.detail.logoUrl,
-      ];
-
-      return {
-        spuId: raw.detail.spuId,
-        title: raw.detail.title,
-        brand: raw.detail.title.split(" ")[0] ?? "Unknown",
-        logoUrl: raw.detail.logoUrl,
-        priceFen: raw.price?.item?.price ?? 0,
-        inStock: raw.detail.status === 1,
-        images,
-        sizes: {},
-        soldCount: Number.parseInt(raw.detail.soldCountText ?? "0", 10) || 0,
-      };
+      const raw = await this.fetch<unknown>("/productDetailWithPrice", { spuId });
+      return parsePoizonDetailResponse(raw, spuId);
     });
   }
 

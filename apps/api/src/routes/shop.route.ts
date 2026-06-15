@@ -21,6 +21,7 @@ import {
   buildTonTransferLink,
   createOrderFromCart,
 } from "../services/order.service.js";
+import { resolveProductSizePrice } from "../services/product-pricing.js";
 import type { AppEnv } from "../types/env.types.js";
 
 const shop = new Hono<AppEnv>();
@@ -52,18 +53,21 @@ async function fireCartNotification(userId: string): Promise<void> {
       getUserById(userId),
     ]);
     if (!user?.telegram_id) return;
-    const items = cart.map((item) => ({
-      name: item.product.name_ru ?? item.product.name,
-      brand: item.product.brand,
-      size: item.size,
-      quantity: item.quantity,
-      price_rub: Number(item.product.price_rub) * item.quantity,
-    }));
+    const items = cart.map((item) => {
+      const unit = resolveProductSizePrice(item.product, item.size);
+      return {
+        name: item.product.name_ru ?? item.product.name,
+        brand: item.product.brand,
+        size: item.size,
+        quantity: item.quantity,
+        price_rub: unit.rub * item.quantity,
+      };
+    });
     const totalRub = items.reduce((s, i) => s + i.price_rub, 0);
-    const totalUsdt = cart.reduce(
-      (s, i) => s + Number(i.product.price_usdt) * i.quantity,
-      0,
-    );
+    const totalUsdt = cart.reduce((s, i) => {
+      const unit = resolveProductSizePrice(i.product, i.size);
+      return s + unit.usdt * i.quantity;
+    }, 0);
     await notifyCartUpdate(user.telegram_id, items, totalRub, totalUsdt);
   } catch (err) {
     console.error("[cart-notify] failed", err);
@@ -148,22 +152,25 @@ shop.use("/user/*", requireTmaAuth);
 shop.get("/cart", async (c) => {
   const userId = c.get("userId") as string;
   const items = await cartRepo.getCartItems(userId);
-  const mapped = items.map((item) => ({
-    id: item.id,
-    product_id: item.product_id,
-    size: item.size,
-    quantity: item.quantity,
-    product: {
-      id: item.product.id,
-      name: item.product.name_ru ?? item.product.name,
-      brand: item.product.brand,
-      image_url: item.product.image_urls?.[0] ?? null,
-      price_rub: Number(item.product.price_rub),
-      price_usdt: Number(item.product.price_usdt),
-    },
-    line_rub: Number(item.product.price_rub) * item.quantity,
-    line_usdt: Number(item.product.price_usdt) * item.quantity,
-  }));
+  const mapped = items.map((item) => {
+    const unit = resolveProductSizePrice(item.product, item.size);
+    return {
+      id: item.id,
+      product_id: item.product_id,
+      size: item.size,
+      quantity: item.quantity,
+      product: {
+        id: item.product.id,
+        name: item.product.name_ru ?? item.product.name,
+        brand: item.product.brand,
+        image_url: item.product.image_urls?.[0] ?? null,
+        price_rub: unit.rub,
+        price_usdt: unit.usdt,
+      },
+      line_rub: unit.rub * item.quantity,
+      line_usdt: unit.usdt * item.quantity,
+    };
+  });
   const total_rub = mapped.reduce((s, i) => s + i.line_rub, 0);
   const total_usdt = mapped.reduce((s, i) => s + i.line_usdt, 0);
   return c.json({ data: mapped, total_rub, total_usdt });
@@ -175,6 +182,14 @@ shop.post("/cart", zValidator("json", AddToCartSchema), async (c) => {
   if (!product) return c.json({ error: "Product not found" }, 404);
   const stock = product.stock ?? {};
   if (stock[body.size] === false) {
+    return c.json({ error: "Size unavailable" }, 400);
+  }
+  const sizePrice = product.size_prices?.[body.size];
+  if (
+    product.size_prices &&
+    Object.keys(product.size_prices).length > 0 &&
+    !sizePrice
+  ) {
     return c.json({ error: "Size unavailable" }, 400);
   }
   const userId = c.get("userId") as string;

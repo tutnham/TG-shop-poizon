@@ -10,11 +10,20 @@ export interface ProductListItem {
   synced_at?: string | null;
 }
 
+export type SizePrice = {
+  cny: number;
+  rub: number;
+  usdt: number;
+};
+
+export type SizePricesMap = Record<string, SizePrice>;
+
 export interface ProductDetail extends ProductListItem {
   name_ru: string | null;
   image_urls: string[];
   sizes: Record<string, string[]>;
   stock: Record<string, boolean>;
+  size_prices: SizePricesMap;
   price_cny: number | null;
   category_id: string | null;
 }
