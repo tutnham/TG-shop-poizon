@@ -18,7 +18,8 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
   clearPageRoot(app);
   app.classList.remove("page-with-nav");
   const pageRoot = ensurePageRoot(app);
-  pageRoot.innerHTML = '<div class="page page-tg-content" id="checkout"></div>';
+  pageRoot.innerHTML =
+    '<div class="page page-tg-content page-tg-content--scroll" id="checkout"></div>';
   const page = pageRoot.querySelector("#checkout") as HTMLElement;
   setupBackButton(() => {
     if (step === 2) {
@@ -73,11 +74,15 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
               enterkeyhint="done"
             >${escapeHtml(deliveryData.address)}</textarea>
           </label>
-          <button type="button" class="btn-primary checkout-form__continue" id="checkout-continue">
-            ${t("continue")}
-          </button>
         </div>
       `;
+      for (const field of page.querySelectorAll<HTMLElement>(
+        ".checkout-form__input, .checkout-form__textarea",
+      )) {
+        field.addEventListener("focus", () => {
+          field.scrollIntoView({ block: "center", behavior: "smooth" });
+        });
+      }
       const goToPayment = (): void => {
         const name = (
           document.getElementById("checkout-name") as HTMLInputElement
@@ -96,9 +101,6 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
         step = 2;
         renderStep();
       };
-      page
-        .querySelector("#checkout-continue")
-        ?.addEventListener("click", goToPayment);
       showMainButton(t("continue"), goToPayment);
     } else if (step === 2) {
       page.innerHTML = `

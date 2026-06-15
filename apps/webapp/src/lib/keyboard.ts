@@ -22,6 +22,10 @@ export function hideKeyboard(): void {
   trap.remove();
 }
 
+function isCheckoutFormElement(el: EventTarget | null): boolean {
+  return el instanceof HTMLElement && !!el.closest(".checkout-form");
+}
+
 export function isEditableElement(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
   if (el.closest("input, textarea, select, [contenteditable='true']")) {
@@ -29,11 +33,15 @@ export function isEditableElement(el: EventTarget | null): boolean {
   }
   // Тап по <label> или подписи поля не должен закрывать клавиатуру до фокуса на input.
   const label = el.closest("label");
-  return !!label?.querySelector("input, textarea, select");
+  if (label?.querySelector("input, textarea, select")) return true;
+  // Тап по области формы checkout (отступы между полями) не должен сбрасывать ввод.
+  return isCheckoutFormElement(el);
 }
 
 function shouldDismissKeyboard(): boolean {
-  return !isEditableElement(document.activeElement);
+  const active = document.activeElement;
+  if (isEditableElement(active)) return false;
+  return !isCheckoutFormElement(active);
 }
 
 /** Скрывать клавиатуру при тапе вне полей ввода и при скролле. */

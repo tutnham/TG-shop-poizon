@@ -48,14 +48,7 @@ function paintCart(
         <span class="price-usdt cart-summary__usdt">${formatUsdt(snapshot.total_usdt)}</span>
       </div>
     </div>
-    <button type="button" class="btn-primary cart-summary__checkout" id="checkout-btn">
-      ${t("proceed_checkout")}
-    </button>
   `;
-
-  summary
-    .querySelector("#checkout-btn")
-    ?.addEventListener("click", () => navigate("/checkout"));
 
   showMainButton(t("proceed_checkout"), () => navigate("/checkout"));
 }

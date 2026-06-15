@@ -895,11 +895,6 @@
   margin-top: 4px;
 }
 
-.cart-summary__checkout {
-  width: 100%;
-  margin-top: 16px;
-}
-
 .cart-peek {
   display: flex;
   align-items: center;
@@ -1116,10 +1111,6 @@
 .checkout-form__textarea {
   resize: vertical;
   min-height: 72px;
-}
-
-.checkout-form__continue {
-  margin-top: 8px;
 }
 
 .checkout-form__secondary-btn {
