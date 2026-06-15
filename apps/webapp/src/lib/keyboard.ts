@@ -1,5 +1,7 @@
 /** Скрыть экранную клавиатуру (Telegram WebView / mobile Safari). */
 export function hideKeyboard(): void {
+  if (keyboardDismissPaused) return;
+
   const active = document.activeElement;
   if (active instanceof HTMLElement) {
     active.blur();
@@ -22,6 +24,17 @@ export function hideKeyboard(): void {
   trap.remove();
 }
 
+let keyboardDismissPaused = false;
+
+/** Отключить автозакрытие клавиатуры (checkout и другие формы). */
+export function setKeyboardDismissPaused(paused: boolean): void {
+  keyboardDismissPaused = paused;
+}
+
+export function isKeyboardDismissPaused(): boolean {
+  return keyboardDismissPaused;
+}
+
 function isCheckoutFormElement(el: EventTarget | null): boolean {
   return el instanceof HTMLElement && !!el.closest(".checkout-form");
 }
@@ -39,6 +52,7 @@ export function isEditableElement(el: EventTarget | null): boolean {
 }
 
 function shouldDismissKeyboard(): boolean {
+  if (keyboardDismissPaused) return false;
   const active = document.activeElement;
   if (isEditableElement(active)) return false;
   return !isCheckoutFormElement(active);
@@ -49,13 +63,15 @@ export function bindKeyboardDismiss(root: HTMLElement): void {
   root.addEventListener(
     "pointerdown",
     (e) => {
-      if (!isEditableElement(e.target)) hideKeyboard();
+      if (keyboardDismissPaused || isEditableElement(e.target)) return;
+      hideKeyboard();
     },
     { passive: true },
   );
 
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
   const onScroll = (): void => {
+    if (keyboardDismissPaused) return;
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       if (shouldDismissKeyboard()) hideKeyboard();

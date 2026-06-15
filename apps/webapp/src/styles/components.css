@@ -1078,6 +1078,13 @@
   gap: 14px;
 }
 
+.checkout-form__hint {
+  margin: 0 0 16px;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
 .checkout-form__field {
   display: flex;
   flex-direction: column;

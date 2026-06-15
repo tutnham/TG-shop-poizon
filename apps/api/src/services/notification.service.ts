@@ -72,6 +72,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   ton: "TON",
   rub_manual: "RUB (вручную)",
   usdt_manual: "USDT (вручную)",
+  none: "Менеджер свяжется",
 };
 
 const STATUS_MESSAGES: Record<string, { ru: string; en: string }> = {
@@ -207,7 +208,13 @@ export async function notifyUserOrderCreated(params: {
   lines.push(
     "",
     `<b>Итого:</b> ${totalRub} ₽ / ${totalUsdt} USDT`,
-    `<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`,
+  );
+
+  if (paymentMethod !== "none") {
+    lines.push(`<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`);
+  }
+
+  lines.push(
     "",
     `<b>Получатель:</b> ${escapeHtml(deliveryInfo.full_name)}`,
     `<b>Телефон:</b> ${escapeHtml(deliveryInfo.phone)}`,
@@ -291,8 +298,11 @@ export async function notifyAdminNewOrder(params: {
   lines.push(
     "",
     `<b>Итого:</b> ${totalRub} ₽`,
-    `<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`,
   );
+
+  if (paymentMethod !== "none") {
+    lines.push(`<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`);
+  }
 
   const text = lines.join("\n");
 

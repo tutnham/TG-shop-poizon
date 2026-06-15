@@ -112,7 +112,9 @@ export async function createOrderFromCart(
   } = {};
 
   try {
-    if (body.payment_method === "ton") {
+    if (body.payment_method === "none") {
+      paymentMeta = {};
+    } else if (body.payment_method === "ton") {
       const tonRate = await getConfigValue<number>("ton_rate_usd", 2.5);
       const ton_amount = Math.ceil((total_usdt / tonRate) * 1000) / 1000;
       await paymentRepo.createPayment({

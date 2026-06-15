@@ -1,6 +1,7 @@
 import { apiPost } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { escapeHtml } from "../lib/escape.js";
+import { setKeyboardDismissPaused } from "../lib/keyboard.js";
 import { goBack, navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
@@ -10,11 +11,15 @@ import {
 } from "../telegram.js";
 
 let step = 1;
-let paymentMethod: "ton" | "rub_manual" | "usdt_manual" = "ton";
 let deliveryData = { full_name: "", phone: "", address: "" };
+
+function leaveCheckout(): void {
+  setKeyboardDismissPaused(false);
+}
 
 export async function renderCheckout(app: HTMLElement): Promise<void> {
   step = 1;
+  setKeyboardDismissPaused(true);
   clearPageRoot(app);
   app.classList.remove("page-with-nav");
   const pageRoot = ensurePageRoot(app);
@@ -23,11 +28,10 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
   const page = pageRoot.querySelector("#checkout") as HTMLElement;
   setupBackButton(() => {
     if (step === 2) {
-      step = 1;
-      renderStep();
-    } else if (step === 3) {
+      leaveCheckout();
       navigate("/orders");
     } else {
+      leaveCheckout();
       goBack();
     }
   });
@@ -37,6 +41,7 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
     if (step === 1) {
       page.innerHTML = `
         <h2 class="section-title">${t("step_delivery")}</h2>
+        <p class="checkout-form__hint">${t("order_admin_hint")}</p>
         <div class="checkout-form">
           <label class="checkout-form__field" for="checkout-name">
             <span class="checkout-form__label">${t("full_name")}</span>
@@ -76,104 +81,49 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
           </label>
         </div>
       `;
-      for (const field of page.querySelectorAll<HTMLElement>(
-        ".checkout-form__input, .checkout-form__textarea",
-      )) {
-        field.addEventListener("focus", () => {
-          field.scrollIntoView({ block: "center", behavior: "smooth" });
-        });
-      }
-      const goToPayment = (): void => {
-        const name = (
-          document.getElementById("checkout-name") as HTMLInputElement
-        )?.value.trim();
-        const phone = (
-          document.getElementById("checkout-phone") as HTMLInputElement
-        )?.value.trim();
-        const address = (
-          document.getElementById("checkout-address") as HTMLTextAreaElement
-        )?.value.trim();
-        if (!name || !phone || !address) {
-          window.Telegram?.WebApp?.showAlert(t("fill_all_fields"));
-          return;
-        }
-        deliveryData = { full_name: name, phone, address };
-        step = 2;
-        renderStep();
-      };
-      showMainButton(t("continue"), goToPayment);
-    } else if (step === 2) {
-      page.innerHTML = `
-        <h2 class="section-title">${t("step_payment")}</h2>
-        <div class="pay-options">
-          <button type="button" class="chip pay-opt active" data-m="ton">${t("pay_ton")}</button>
-          <button type="button" class="chip pay-opt" data-m="rub_manual">${t("pay_rub")}</button>
-          <button type="button" class="chip pay-opt" data-m="usdt_manual">${t("pay_usdt")}</button>
-        </div>
-      `;
-      for (const btn of page.querySelectorAll(".pay-opt")) {
-        btn.addEventListener("click", () => {
-          for (const b of page.querySelectorAll(".pay-opt"))
-            b.classList.remove("active");
-          btn.classList.add("active");
-          paymentMethod = (btn as HTMLElement).dataset
-            .m as typeof paymentMethod;
-        });
-      }
       showMainButton(t("place_order"), submitOrder);
     }
   }
 
   async function submitOrder() {
-    const { full_name: name, phone, address } = deliveryData;
+    const name = (
+      document.getElementById("checkout-name") as HTMLInputElement | null
+    )?.value.trim();
+    const phone = (
+      document.getElementById("checkout-phone") as HTMLInputElement | null
+    )?.value.trim();
+    const address = (
+      document.getElementById("checkout-address") as HTMLTextAreaElement | null
+    )?.value.trim();
+
     if (!name || !phone || !address) {
       window.Telegram?.WebApp?.showAlert(t("fill_all_fields"));
       return;
     }
+
+    deliveryData = { full_name: name, phone, address };
+
     try {
       const res = await apiPost<{
-        data: {
-          short_id: string;
-          payment: {
-            wallet_comment?: string;
-            ton_amount?: number;
-            instructions?: string;
-          };
-          ton_link?: string;
-        };
+        data: { short_id: string };
       }>("/api/orders", {
-        payment_method: paymentMethod,
+        payment_method: "none",
         delivery_info: { full_name: name, phone, address, country: "RU" },
       });
 
-      step = 3;
-      const d = res.data;
-      if (paymentMethod === "ton") {
-        page.innerHTML = `
-          <h2 class="section-title">${t("step_payment")}</h2>
-          <p>${t("ton_instruction")}</p>
-          <p><strong>${escapeHtml(d.payment.wallet_comment)}</strong></p>
-          <p>TON: ${escapeHtml(d.payment.ton_amount ?? "—")}</p>
-          ${d.ton_link ? `<button class="btn-primary" id="open-wallet">${t("open_wallet")}</button>` : ""}
-          <button class="chip checkout-form__secondary-btn" id="to-orders">${t("orders")}</button>
-        `;
-        page.querySelector("#open-wallet")?.addEventListener("click", () => {
-          if (d.ton_link) window.Telegram?.WebApp?.openLink(d.ton_link);
-        });
-      } else {
-        page.innerHTML = `
-          <h2 class="section-title">${t("step_payment")}</h2>
-          <p>${t("manual_instruction")}</p>
-          <p><strong>#${escapeHtml(d.short_id)}</strong></p>
-          <p>${escapeHtml(d.payment.instructions ?? "")}</p>
-          <button class="chip checkout-form__secondary-btn" id="to-orders">${t("orders")}</button>
-        `;
-      }
+      step = 2;
+      leaveCheckout();
+      const shortId = res.data.short_id;
+      page.innerHTML = `
+        <h2 class="section-title">${t("order_success_title")}</h2>
+        <p>${t("order_success_text")}</p>
+        <p><strong>#${escapeHtml(shortId)}</strong></p>
+        <button type="button" class="chip checkout-form__secondary-btn" id="to-orders">${t("orders")}</button>
+      `;
       page
         .querySelector("#to-orders")
         ?.addEventListener("click", () => navigate("/orders"));
       hideMainButton();
-      window.Telegram?.WebApp?.showAlert(`Order #${d.short_id}`);
     } catch (e) {
       window.Telegram?.WebApp?.showAlert(
         e instanceof Error ? e.message : t("error"),

@@ -25,7 +25,9 @@ export const UpdateCartItemSchema = z.object({
 });
 
 export const CreateOrderSchema = z.object({
-  payment_method: z.enum(["ton", "rub_manual", "usdt_manual"]),
+  payment_method: z
+    .enum(["ton", "rub_manual", "usdt_manual", "none"])
+    .default("none"),
   delivery_info: z.object({
     full_name: z.string().min(2).max(120),
     phone: z.string().min(5).max(30),

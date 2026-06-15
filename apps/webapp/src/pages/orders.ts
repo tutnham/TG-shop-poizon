@@ -50,10 +50,11 @@ function statusColor(status: string): string {
 }
 
 function paymentLabel(method: string | null): string {
+  if (method === "none" || !method) return "—";
   if (method === "ton") return t("pay_ton");
   if (method === "rub_manual") return t("pay_rub");
   if (method === "usdt_manual") return t("pay_usdt");
-  return method ?? "—";
+  return method;
 }
 
 export async function renderOrderDetail(app: HTMLElement): Promise<void> {
@@ -114,7 +115,7 @@ export async function renderOrderDetail(app: HTMLElement): Promise<void> {
       </div>
       <div class="order-detail__meta">
         <span>${new Date(o.created_at).toLocaleString()}</span>
-        <span>${t("payment")}: ${paymentLabel(o.payment_method)}</span>
+        ${o.payment_method && o.payment_method !== "none" ? `<span>${t("payment")}: ${paymentLabel(o.payment_method)}</span>` : ""}
       </div>
       ${deliveryHtml}
       <div class="order-detail__section">

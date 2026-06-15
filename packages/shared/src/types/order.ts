@@ -7,7 +7,7 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
-export type PaymentMethod = "ton" | "rub_manual" | "usdt_manual";
+export type PaymentMethod = "ton" | "rub_manual" | "usdt_manual" | "none";
 
 export interface OrderItemSnapshot {
   product_id: string;
