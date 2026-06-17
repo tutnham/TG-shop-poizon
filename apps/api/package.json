@@ -15,7 +15,11 @@
     "delete:demo": "npx tsx scripts/delete-demo.ts",
     "fetch:prices": "npx tsx scripts/fetch-missing-prices.ts",
     "probe:poizon": "npx tsx scripts/probe-poizon-api.ts",
-    "backfill:sizes": "npx tsx scripts/backfill-size-prices.ts"
+    "capture:poizon-har": "npx tsx scripts/capture-poizon-har.ts",
+    "backfill:sizes": "npx tsx scripts/backfill-size-prices.ts",
+    "backfill:sizes:loop": "npx tsx scripts/backfill-size-prices-loop.ts",
+    "verify:size-prices": "npx tsx scripts/verify-size-prices.ts",
+    "backfill:shihuo-prices": "npx tsx scripts/backfill-shihuo-prices.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",
