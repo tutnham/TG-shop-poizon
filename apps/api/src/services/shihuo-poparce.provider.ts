@@ -53,6 +53,27 @@ function extractSearchItems(data: unknown): unknown[] {
   return [];
 }
 
+function hasExplicitArticleMismatch(
+  item: Record<string, unknown>,
+  vendorCode: string,
+): boolean {
+  const normalizedQuery = normalizeArticle(vendorCode);
+  if (!normalizedQuery) return false;
+
+  const explicitFields = [item.vendorCode, item.articleNumber, item.article]
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => normalizeArticle(v));
+
+  if (explicitFields.length === 0) return false;
+
+  return !explicitFields.some(
+    (field) =>
+      field === normalizedQuery ||
+      field.includes(normalizedQuery) ||
+      normalizedQuery.includes(field),
+  );
+}
+
 function itemRelevanceScore(
   item: Record<string, unknown>,
   vendorCode: string,
@@ -132,7 +153,16 @@ export function parseSearchByArticleResponse(
     }
   }
 
-  return best?.hit ?? null;
+  if (best) return best.hit;
+
+  const firstItem = items[0];
+  if (!firstItem || typeof firstItem !== "object") return null;
+  if (hasExplicitArticleMismatch(firstItem as Record<string, unknown>, vendorCode)) {
+    return null;
+  }
+
+  // Shihuo /search?query= scopes by article; items often omit vendorCode fields.
+  return mapSearchItem(firstItem);
 }
 
 /** Min numeric supplier price in CNY from /price response. */

@@ -55,6 +55,28 @@ describe("shihuo-poparce.provider parsers", () => {
     assert.equal(hit, null);
   });
 
+  it("parseSearchByArticleResponse falls back to items[0] when API omits article fields", () => {
+    const hit = parseSearchByArticleResponse(
+      {
+        query: "1011B721-001",
+        items: [
+          {
+            goodsId: "1795432",
+            styleId: "46219528",
+            name: "亚瑟士 Gel-Kayano 29",
+            price: "699",
+          },
+        ],
+      },
+      "1011B721-001",
+    );
+
+    assert.ok(hit);
+    assert.equal(hit!.goodsId, "1795432");
+    assert.equal(hit!.styleId, "46219528");
+    assert.equal(hit!.priceCny, 699);
+  });
+
   it("parseSearchByArticleResponse accepts normalized article match", () => {
     const hit = parseSearchByArticleResponse(
       {
