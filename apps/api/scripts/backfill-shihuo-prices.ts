@@ -5,7 +5,7 @@
  * shihuo_goods_id/shihuo_style_id. size_prices не трогает.
  *
  * Использование:
- *   npx tsx scripts/backfill-shihuo-prices.ts [pop2.json] [--dry-run] [--limit=100]
+ *   npx tsx scripts/backfill-shihuo-prices.ts [pop2.json] [--dry-run] [--limit=100] [--retries=6]
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -25,6 +25,7 @@ const fileArg = args.find((a) => !a.startsWith("--"));
 const limitArg = args.find((a) => a.startsWith("--limit="));
 const offsetArg = args.find((a) => a.startsWith("--offset="));
 const delayArg = args.find((a) => a.startsWith("--delay="));
+const retriesArg = args.find((a) => a.startsWith("--retries="));
 const onlyPoizonArg = args.find((a) => a.startsWith("--only-poizon-id="));
 
 const DRY_RUN = args.includes("--dry-run");
@@ -32,13 +33,23 @@ const FORCE = args.includes("--force");
 const LIMIT = limitArg ? Number(limitArg.split("=")[1]) : null;
 const OFFSET = offsetArg ? Number(offsetArg.split("=")[1]) : 0;
 const DELAY_MS = Number(delayArg?.split("=")[1] ?? "1500");
+const DEFAULT_MAX_RETRIES = 6;
+const MAX_RETRIES_RAW = retriesArg
+  ? Number(retriesArg.split("=")[1])
+  : DEFAULT_MAX_RETRIES;
+const MAX_RETRIES =
+  Number.isFinite(MAX_RETRIES_RAW) && MAX_RETRIES_RAW >= 0
+    ? Math.floor(MAX_RETRIES_RAW)
+    : DEFAULT_MAX_RETRIES;
 const ONLY_POIZON_ID = onlyPoizonArg?.split("=")[1]?.trim() ?? null;
 
-const MAX_RETRIES = 4;
 const BACKOFF_BASE_MS = 2000;
+const MAX_BACKOFF_MS = 30000;
 const POIZON_CHUNK = 200;
 const RATE_LIMIT_PATTERN =
   /429|503|403|too many|forbidden resource|service unavailable|service temporarily unavailable/i;
+const TRANSIENT_ERROR_PATTERN =
+  /aborted|timeout|timed out|econnreset|etimedout|enotfound|eai_again|socket hang up|network|fetch failed|502|504/i;
 
 interface Pop2Product {
   productId: number;
@@ -65,9 +76,15 @@ function jitter(ms: number): number {
   return ms + Math.floor(Math.random() * 400);
 }
 
-function isRateLimitError(err: unknown): boolean {
+function getRetryableErrorType(err: unknown): "rate_limit" | "transient" | null {
   const msg = err instanceof Error ? err.message : String(err);
-  return RATE_LIMIT_PATTERN.test(msg);
+  if (RATE_LIMIT_PATTERN.test(msg)) return "rate_limit";
+  if (TRANSIENT_ERROR_PATTERN.test(msg)) return "transient";
+  return null;
+}
+
+function isRetryableError(err: unknown): boolean {
+  return getRetryableErrorType(err) !== null;
 }
 
 async function withRetry<T>(
@@ -81,12 +98,20 @@ async function withRetry<T>(
       return await fn();
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
-      if (!isRateLimitError(lastError) || attempt === MAX_RETRIES) {
+      const retryableType = getRetryableErrorType(lastError);
+      if (!isRetryableError(lastError) || attempt === MAX_RETRIES) {
+        if (retryableType && attempt === MAX_RETRIES) {
+          console.warn(
+            `[backfill-shihuo] ${label}: ${retryableType} retries exhausted after ${MAX_RETRIES + 1} attempts`,
+          );
+        }
         throw lastError;
       }
-      const waitMs = jitter(BACKOFF_BASE_MS * 2 ** attempt);
+      const waitMs = jitter(
+        Math.min(MAX_BACKOFF_MS, BACKOFF_BASE_MS * 2 ** attempt),
+      );
       console.warn(
-        `[backfill-shihuo] ${label}: rate limit (attempt ${attempt + 1}/${MAX_RETRIES + 1}), wait ${waitMs}ms`,
+        `[backfill-shihuo] ${label}: ${retryableType} (attempt ${attempt + 1}/${MAX_RETRIES + 1}), wait ${waitMs}ms`,
       );
       await sleep(waitMs);
     }
