@@ -22,6 +22,10 @@ function securityHeaders() {
       "Strict-Transport-Security",
       "max-age=63072000; includeSubDomains; preload",
     );
+    c.res.headers.set(
+      "Content-Security-Policy",
+      "default-src 'none'; frame-ancestors 'none'",
+    );
     await next();
   };
 }

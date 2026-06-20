@@ -38,4 +38,15 @@ describe("webhookSecret middleware", () => {
     });
     assert.equal(res.status, 200);
   });
+
+  it("rejects production requests when WEBHOOK_SECRET is missing", async () => {
+    delete process.env.WEBHOOK_SECRET;
+    process.env.NODE_ENV = "production";
+    const app = new Hono();
+    app.use("*", webhookSecret);
+    app.post("/", (c) => c.json({ ok: true }));
+
+    const res = await app.request("/", { method: "POST" });
+    assert.equal(res.status, 403);
+  });
 });

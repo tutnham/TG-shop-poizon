@@ -15,6 +15,8 @@ import * as productRepo from "../db/product.repository.js";
 import { getLastSyncTime } from "../db/product.repository.js";
 import { getUserById, updateUserLanguage } from "../db/user.repository.js";
 import { optionalTmaAuth, requireTmaAuth } from "../middleware/auth.middleware.js";
+import { mutationRateLimit } from "../middleware/mutation-rate-limit.js";
+import { bodySizeLimit } from "../middleware/request-body-limit.js";
 import { getExchangeRates } from "../services/currency.service.js";
 import { notifyCartUpdate } from "../services/notification.service.js";
 import {
@@ -176,7 +178,12 @@ shop.get("/cart", async (c) => {
   return c.json({ data: mapped, total_rub, total_usdt });
 });
 
-shop.post("/cart", zValidator("json", AddToCartSchema), async (c) => {
+shop.post(
+  "/cart",
+  mutationRateLimit,
+  bodySizeLimit(),
+  zValidator("json", AddToCartSchema),
+  async (c) => {
   const body = c.req.valid("json");
   const product = await productRepo.getProductById(body.product_id);
   if (!product) return c.json({ error: "Product not found" }, 404);
@@ -198,7 +205,8 @@ shop.post("/cart", zValidator("json", AddToCartSchema), async (c) => {
     console.error("[cart-notify] POST /cart failed:", e),
   );
   return c.json({ ok: true });
-});
+  },
+);
 
 shop.patch(
   "/cart/:itemId",
@@ -226,7 +234,12 @@ shop.delete("/cart/:itemId", async (c) => {
   return c.json({ ok: true });
 });
 
-shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
+shop.post(
+  "/orders",
+  mutationRateLimit,
+  bodySizeLimit(),
+  zValidator("json", CreateOrderSchema),
+  async (c) => {
   const body = c.req.valid("json");
   const result = await createOrderFromCart(c.get("userId") as string, body);
 
@@ -254,7 +267,8 @@ shop.post("/orders", zValidator("json", CreateOrderSchema), async (c) => {
     result as { error: { message: string; code?: string; status?: number } }
   ).error;
   return c.json({ error: message }, status as 400 | 404 | 500);
-});
+  },
+);
 
 shop.get("/orders", async (c) => {
   const orders = await orderRepo.listOrdersByUser(c.get("userId") as string);
