@@ -1,5 +1,5 @@
 import type { ProductDetail } from "@poizon-shop/shared";
-import { apiPost, seedGetCache } from "../api/client.js";
+import { IMPORT_REQUEST_TIMEOUT_MS, apiPost, seedGetCache } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { navigate } from "../router.js";
 import { haptic } from "../telegram.js";
@@ -24,12 +24,17 @@ export async function importProductByArticle(
   }
 
   try {
-    const res = await apiPost<{ data: ProductDetail }>("/api/products/import", {
-      query: trimmed,
-    });
+    const res = await apiPost<{ data: ProductDetail }>(
+      "/api/products/import",
+      { query: trimmed },
+      { timeoutMs: IMPORT_REQUEST_TIMEOUT_MS },
+    );
     return res.data;
   } catch (err) {
     const message = err instanceof Error ? err.message : t("error");
+    if (/timeout/i.test(message)) {
+      throw new ProductImportError(t("poizon_import_timeout"), 408);
+    }
     if (/rate limit/i.test(message)) {
       throw new ProductImportError(t("poizon_import_rate_limited"), 429);
     }

@@ -56,7 +56,7 @@ export function isEditableElement(el: EventTarget | null): boolean {
     return true;
   }
   // Тап по области search-bar / import — фокус на input, не закрываем клавиатуру.
-  if (el.closest(".search-bar, .poizon-import-section__input")) return true;
+  if (el.closest(".search-bar, .search-section")) return true;
   // Тап по <label> или подписи поля не должен закрывать клавиатуру до фокуса на input.
   const label = el.closest("label");
   if (label?.querySelector("input, textarea, select")) return true;
@@ -66,7 +66,7 @@ export function isEditableElement(el: EventTarget | null): boolean {
 
 function focusSearchBarInput(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
-  const bar = el.closest(".search-bar, .poizon-import-section__input");
+  const bar = el.closest(".search-bar, .search-section");
   if (!bar) return false;
   const input = bar.querySelector("input");
   if (!(input instanceof HTMLInputElement)) return false;

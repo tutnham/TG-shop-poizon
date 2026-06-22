@@ -16,8 +16,8 @@ import {
 import {
   hideKeyboard,
   wireFormInput,
-  wireSearchInput,
 } from "../lib/keyboard.js";
+import { looksLikeImportQuery } from "../lib/import-query.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
   capturePageRenderGeneration,
@@ -60,7 +60,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   clearPageRoot(app);
   app.classList.add("page-with-nav");
 
-  renderHeader(app, { showSearch: true });
+  renderHeader(app, { showSearch: true, unifiedSearch: true });
 
   const pageRoot = ensurePageRoot(app);
 
@@ -68,76 +68,72 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   main.className = "home-main";
   pageRoot.appendChild(main);
 
-  const importSection = document.createElement("section");
-  importSection.className = "poizon-import-section";
-  importSection.innerHTML = `
-    <h2 class="poizon-import-section__title">${t("poizon_import_title")}</h2>
-    <div class="search-bar poizon-import-section__input">
-      <span class="material-symbols-outlined search-bar__icon">search</span>
-      <input
-        type="text"
-        id="poizon-import-input"
-        placeholder="${t("poizon_import_placeholder")}"
-        autocomplete="off"
-        enterkeyhint="go"
-        inputmode="text"
-      />
-    </div>
-    <p class="poizon-import-section__hint">${t("poizon_import_hint")}</p>
-    <button type="button" class="btn-primary poizon-import-section__btn" id="poizon-import-btn">
-      ${t("poizon_import_button")}
-    </button>
-    <p class="poizon-import-section__error" id="poizon-import-error" hidden></p>
-  `;
-  main.appendChild(importSection);
+  const searchInput = document.getElementById(
+    "search-input",
+  ) as HTMLInputElement | null;
+  const importBtn = document.getElementById(
+    "search-import-btn",
+  ) as HTMLButtonElement | null;
+  const importStatus = document.getElementById(
+    "search-import-status",
+  ) as HTMLParagraphElement | null;
 
-  const importInput = importSection.querySelector(
-    "#poizon-import-input",
-  ) as HTMLInputElement;
-  const importBtn = importSection.querySelector(
-    "#poizon-import-btn",
-  ) as HTMLButtonElement;
-  const importError = importSection.querySelector(
-    "#poizon-import-error",
-  ) as HTMLParagraphElement;
+  if (searchInput) wireFormInput(searchInput);
 
-  wireFormInput(importInput);
+  let importRunning = false;
 
-  async function runImport(): Promise<void> {
-    const query = importInput.value.trim();
-    if (!query) {
-      importError.textContent = t("poizon_import_invalid");
-      importError.hidden = false;
+  async function runImport(query: string): Promise<void> {
+    if (importRunning) return;
+    const trimmed = query.trim();
+    if (!trimmed) {
+      if (importStatus) {
+        importStatus.textContent = t("poizon_import_invalid");
+        importStatus.hidden = false;
+      }
       return;
     }
 
-    importError.hidden = true;
-    importBtn.disabled = true;
-    importBtn.textContent = t("loading");
+    if (importStatus) {
+      importStatus.textContent = t("poizon_import_loading");
+      importStatus.classList.remove("is-error");
+      importStatus.hidden = false;
+    }
+    importRunning = true;
+    if (searchInput) searchInput.disabled = true;
+    if (importBtn) importBtn.disabled = true;
 
     try {
-      await importAndOpenProduct(query);
+      await importAndOpenProduct(trimmed);
     } catch (err) {
       const message =
         err instanceof ProductImportError ? err.message : t("error");
-      importError.textContent = message;
-      importError.hidden = false;
+      if (importStatus) {
+        importStatus.textContent = message;
+        importStatus.classList.add("is-error");
+        importStatus.hidden = false;
+      }
     } finally {
-      importBtn.disabled = false;
-      importBtn.textContent = t("poizon_import_button");
+      importRunning = false;
+      if (searchInput) searchInput.disabled = false;
+      if (importBtn) importBtn.disabled = false;
     }
   }
 
-  importBtn.addEventListener("click", () => {
+  importBtn?.addEventListener("click", () => {
     hideKeyboard();
-    void runImport();
+    const q = searchInput?.value.trim() ?? "";
+    if (looksLikeImportQuery(q) || q) {
+      void runImport(q);
+    }
   });
 
-  importInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      hideKeyboard();
-      void runImport();
+  searchInput?.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    hideKeyboard();
+    const q = searchInput.value.trim();
+    if (looksLikeImportQuery(q)) {
+      void runImport(q);
     }
   });
 
@@ -400,16 +396,16 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     }
   }
 
-  const searchInput = document.getElementById(
+  const searchInputForCatalog = document.getElementById(
     "search-input",
   ) as HTMLInputElement | null;
-  if (searchInput) wireSearchInput(searchInput);
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
-  searchInput?.addEventListener("input", () => {
+  searchInputForCatalog?.addEventListener("input", () => {
+    if (importStatus) importStatus.hidden = true;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
-      search = searchInput.value.trim();
+      search = searchInputForCatalog.value.trim();
       page = 1;
       hasMore = true;
       cardIndex = 0;

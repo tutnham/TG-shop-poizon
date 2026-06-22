@@ -1,5 +1,7 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
 const REQUEST_TIMEOUT_MS = 15_000;
+/** Импорт по артикулу: Poizon + Shihuo могут занимать до минуты. */
+export const IMPORT_REQUEST_TIMEOUT_MS = 120_000;
 
 /** Simple in-memory GET cache with TTL. Invalidated on any write operation. */
 const CACHE_TTL_MS = 30_000;
@@ -21,9 +23,10 @@ function headers(): HeadersInit {
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<Response> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
     return await fetch(url, { ...init, signal: controller.signal });
   } catch (e) {
@@ -57,13 +60,21 @@ export async function apiGet<T>(path: string): Promise<T> {
   return data;
 }
 
-export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
+export async function apiPost<T>(
+  path: string,
+  body?: unknown,
+  opts?: { timeoutMs?: number },
+): Promise<T> {
   invalidateCache();
-  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: headers(),
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const res = await fetchWithTimeout(
+    `${API_BASE}${path}`,
+    {
+      method: "POST",
+      headers: headers(),
+      body: body ? JSON.stringify(body) : undefined,
+    },
+    opts?.timeoutMs ?? REQUEST_TIMEOUT_MS,
+  );
   if (!res.ok) await parseErrorResponse(res);
   return res.json() as Promise<T>;
 }
