@@ -1,5 +1,5 @@
 import type { ProductDetail } from "@poizon-shop/shared";
-import { apiPost } from "../api/client.js";
+import { apiPost, seedGetCache } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { navigate } from "../router.js";
 import { haptic } from "../telegram.js";
@@ -48,6 +48,7 @@ export async function importProductByArticle(
 
 export async function importAndOpenProduct(query: string): Promise<void> {
   const product = await importProductByArticle(query);
+  seedGetCache(`/api/products/${product.id}`, { data: product });
   haptic("success");
   showToast(t("poizon_import_success"));
   navigate(`/product/${product.id}`);

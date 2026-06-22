@@ -3,6 +3,10 @@ import { apiGet } from "../api/client.js";
 import { hideBottomNav } from "../components/bottom-nav.js";
 import { renderProductDetailView } from "../components/product-detail-view.js";
 import { t } from "../i18n/index.js";
+import {
+  capturePageRenderGeneration,
+  isActivePageRender,
+} from "../lib/page-render-guard.js";
 import { getRouteParam, goBack } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
@@ -16,6 +20,8 @@ const PRODUCT_PAGE_ID = "product-page";
 export async function renderProduct(app: HTMLElement): Promise<void> {
   const id = getRouteParam("id");
   if (!id) return;
+
+  const navGen = capturePageRenderGeneration();
 
   hideBottomNav(app);
   clearPageRoot(app);
@@ -33,8 +39,10 @@ export async function renderProduct(app: HTMLElement): Promise<void> {
     const { data: p } = await apiGet<{ data: ProductDetail }>(
       `/api/products/${id}`,
     );
+    if (!isActivePageRender(navGen)) return;
     renderProductDetailView(page, p);
   } catch {
+    if (!isActivePageRender(navGen)) return;
     page.innerHTML = `<div class="empty-state">${t("error")}</div>`;
     hideMainButton();
   }

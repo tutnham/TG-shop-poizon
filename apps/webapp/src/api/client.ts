@@ -68,6 +68,11 @@ export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/** Прогревает GET-кэш после import/mutation, чтобы карточка открылась без гонки. */
+export function seedGetCache<T>(path: string, data: T): void {
+  getCache.set(path, { data, expires: Date.now() + CACHE_TTL_MS });
+}
+
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   invalidateCache();
   const res = await fetchWithTimeout(`${API_BASE}${path}`, {

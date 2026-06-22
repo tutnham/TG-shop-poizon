@@ -19,6 +19,10 @@ import {
   wireSearchInput,
 } from "../lib/keyboard.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
+import {
+  capturePageRenderGeneration,
+  isActivePageRender,
+} from "../lib/page-render-guard.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
 const PENDING_BRAND_KEY = "poizon_pending_brand";
@@ -30,6 +34,9 @@ const RECYCLE_VIEWPORT_MULTIPLIER = 3; // Удалять карточки дал
 const LOAD_MORE_THRESHOLD = 60; // После 60 карточек показываем кнопку «Загрузить ещё»
 
 export async function renderHome(app: HTMLElement): Promise<void> {
+  const navGen = capturePageRenderGeneration();
+  const stale = (): boolean => !isActivePageRender(navGen);
+
   hideMainButton();
   hideBackButton();
   clearCartCache();
@@ -180,6 +187,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   );
 
   async function doRefresh() {
+    if (stale()) return;
     page = 1;
     hasMore = true;
     cardIndex = 0;
@@ -250,6 +258,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     const { data: brands } = await apiGet<{
       data: string[];
     }>("/api/brands");
+    if (stale()) return;
     for (const brandName of brands) {
       const chip = document.createElement("button");
       chip.type = "button";
@@ -266,6 +275,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const config = await apiGet<{
     last_synced_at: string | null;
   }>("/api/config").catch(() => null);
+  if (stale()) return;
   if (config?.last_synced_at) {
     syncBadge.textContent = `${t("updated")}: ${new Date(config.last_synced_at).toLocaleDateString()}`;
   }
@@ -323,6 +333,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   async function filterBrand(brand: string) {
+    if (stale()) return;
     activeBrand = brand;
     page = 1;
     hasMore = true;
@@ -337,7 +348,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   async function loadMore() {
-    if (loading || !hasMore) return;
+    if (loading || !hasMore || stale()) return;
     loading = true;
     const sk = document.createElement("div");
     sk.className = "skeleton";
@@ -357,6 +368,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         data: ProductListItem[];
         pagination: { pages: number };
       }>(`/api/products?${q}`);
+      if (stale()) return;
       sk.remove();
       for (const p of res.data) {
         const badge = badgeForIndex(cardIndex);
@@ -371,6 +383,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       recycleCards();
       updateLoadTrigger();
     } catch {
+      if (stale()) return;
       sk.remove();
       setCatalogPreviewVisible(true);
       grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">${t("error")}<br/><button type="button" class="btn-primary" style="margin-top:16px;width:auto">${t("retry")}</button></div>`;
@@ -382,8 +395,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         grid.innerHTML = "";
         void loadMore();
       });
+    } finally {
+      loading = false;
     }
-    loading = false;
   }
 
   const searchInput = document.getElementById(
@@ -439,11 +453,11 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   if (pendingCategory !== null) {
     sessionStorage.removeItem(PENDING_CATEGORY_KEY);
     activeCategory = pendingCategory;
-    await loadMore();
+    if (!stale()) await loadMore();
   } else if (pendingBrand !== null) {
     sessionStorage.removeItem(PENDING_BRAND_KEY);
-    await filterBrand(pendingBrand);
-  } else {
+    if (!stale()) await filterBrand(pendingBrand);
+  } else if (!stale()) {
     await loadMore();
   }
 }
