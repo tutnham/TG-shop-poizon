@@ -9,6 +9,7 @@
     "test": "node --import tsx --test src/**/*.test.ts",
     "db:migrate": "bun run scripts/migrate.ts",
     "webhook:set": "npx tsx scripts/webhook-set.ts",
+    "cron:webhooks": "npx tsx scripts/invoke-webhook-cron.ts",
     "rates:update": "npx tsx scripts/rates-update.ts",
     "sync:poizon": "npx tsx scripts/poizon-sync.ts",
     "import:pop2": "npx tsx scripts/import-pop2.ts",

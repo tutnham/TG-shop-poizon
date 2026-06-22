@@ -3,10 +3,7 @@ import type {
   ProductListItem,
   SizePricesMap,
 } from "@poizon-shop/shared";
-import {
-  dedupeByNameRu,
-  dedupeDisplayLabels,
-} from "../lib/dedupe-labels.js";
+import { dedupeByNameRu, dedupeDisplayLabels } from "../lib/dedupe-labels.js";
 import { sanitizeSearchQuery } from "../lib/search-sanitize.js";
 import { getSupabase } from "./client.js";
 
@@ -114,7 +111,23 @@ export async function getProductById(
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
-  const row = data as ProductRow;
+  return rowToProductDetail(data as ProductRow);
+}
+
+export async function getProductByPoizonId(
+  poizonId: string,
+): Promise<ProductDetail | null> {
+  const { data, error } = await getSupabase()
+    .from("products")
+    .select("*")
+    .eq("poizon_id", poizonId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return rowToProductDetail(data as ProductRow);
+}
+
+function rowToProductDetail(row: ProductRow): ProductDetail {
   const base = toListItem(row);
   return {
     ...base,
@@ -162,7 +175,7 @@ export async function setProductVisibility(
   if (error) throw new Error(error.message);
 }
 
-export async function upsertProductFromPoizon(row: {
+type UpsertProductRow = {
   poizon_id: string;
   name: string;
   brand: string | null;
@@ -176,13 +189,30 @@ export async function upsertProductFromPoizon(row: {
   stock: Record<string, boolean>;
   sold_count: number;
   is_available: boolean;
-}): Promise<void> {
+};
+
+export async function upsertProductFromPoizon(
+  row: UpsertProductRow,
+): Promise<void> {
+  await upsertProductRow(row, "poizon");
+}
+
+export async function upsertImportedProduct(
+  row: UpsertProductRow,
+): Promise<void> {
+  await upsertProductRow(row, "user_import");
+}
+
+async function upsertProductRow(
+  row: UpsertProductRow,
+  source: string,
+): Promise<void> {
   const { error } = await getSupabase()
     .from("products")
     .upsert(
       {
         ...row,
-        source: "poizon",
+        source,
         synced_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
@@ -195,21 +225,7 @@ export async function upsertProductFromPoizon(row: {
 const UPSERT_BATCH_SIZE = 100;
 
 export async function upsertProductsBatch(
-  rows: Array<{
-    poizon_id: string;
-    name: string;
-    brand: string | null;
-    category_id: string | null;
-    image_urls: string[];
-    price_cny: number;
-    price_rub: number;
-    price_usdt: number;
-    size_prices: SizePricesMap;
-    sizes: Record<string, string[]>;
-    stock: Record<string, boolean>;
-    sold_count: number;
-    is_available: boolean;
-  }>,
+  rows: UpsertProductRow[],
 ): Promise<{ inserted: number; errors: number }> {
   let inserted = 0;
   let errors = 0;

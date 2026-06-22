@@ -12,7 +12,7 @@
     "test": "npm run test -w @poizon-shop/api",
     "rates:update": "npm run rates:update -w @poizon-shop/api",
     "webhook:set": "npm run webhook:set -w @poizon-shop/api",
-    "cron:webhooks": "node scripts/invoke-webhook-cron.mjs",
+    "cron:webhooks": "npm run cron:webhooks -w @poizon-shop/api",
     "sync:poizon": "npm run sync:poizon -w @poizon-shop/api"
   },
   "dependencies": {

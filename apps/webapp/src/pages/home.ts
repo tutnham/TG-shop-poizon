@@ -10,6 +10,10 @@ import { renderProductCard } from "../components/product-card.js";
 import { t } from "../i18n/index.js";
 import { clearCartCache } from "../lib/cart-presence.js";
 import {
+  ProductImportError,
+  importAndOpenProduct,
+} from "../lib/import-actions.js";
+import {
   bindKeyboardDismiss,
   hideKeyboard,
   wireSearchInput,
@@ -57,6 +61,80 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const main = document.createElement("main");
   main.className = "home-main";
   pageRoot.appendChild(main);
+
+  const importSection = document.createElement("section");
+  importSection.className = "poizon-import-section";
+  importSection.innerHTML = `
+    <h2 class="poizon-import-section__title">${t("poizon_import_title")}</h2>
+    <div class="poizon-import-row">
+      <div class="search-bar poizon-import-row__input">
+        <span class="material-symbols-outlined search-bar__icon">link</span>
+        <input
+          type="text"
+          id="poizon-import-input"
+          placeholder="${t("poizon_import_placeholder")}"
+          autocomplete="off"
+          enterkeyhint="go"
+          inputmode="text"
+        />
+      </div>
+      <button type="button" class="btn-primary poizon-import-row__btn" id="poizon-import-btn">
+        ${t("poizon_import_button")}
+      </button>
+    </div>
+    <p class="poizon-import-section__error" id="poizon-import-error" hidden></p>
+  `;
+  main.appendChild(importSection);
+
+  const importInput = importSection.querySelector(
+    "#poizon-import-input",
+  ) as HTMLInputElement;
+  const importBtn = importSection.querySelector(
+    "#poizon-import-btn",
+  ) as HTMLButtonElement;
+  const importError = importSection.querySelector(
+    "#poizon-import-error",
+  ) as HTMLParagraphElement;
+
+  wireSearchInput(importInput);
+
+  async function runImport(): Promise<void> {
+    const query = importInput.value.trim();
+    if (!query) {
+      importError.textContent = t("poizon_import_invalid");
+      importError.hidden = false;
+      return;
+    }
+
+    importError.hidden = true;
+    importBtn.disabled = true;
+    importBtn.textContent = t("loading");
+
+    try {
+      await importAndOpenProduct(query);
+    } catch (err) {
+      const message =
+        err instanceof ProductImportError ? err.message : t("error");
+      importError.textContent = message;
+      importError.hidden = false;
+    } finally {
+      importBtn.disabled = false;
+      importBtn.textContent = t("poizon_import_button");
+    }
+  }
+
+  importBtn.addEventListener("click", () => {
+    hideKeyboard();
+    void runImport();
+  });
+
+  importInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      hideKeyboard();
+      void runImport();
+    }
+  });
 
   // Pull-to-refresh indicator
   const ptrIndicator = document.createElement("div");

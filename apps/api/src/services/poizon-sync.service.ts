@@ -91,7 +91,7 @@ export function mapPoizonItemToUpsertRow(
   };
 }
 
-async function enrichWithProductDetail(
+export async function enrichWithProductDetail(
   provider: IPoisonProvider,
   item: PoisonProductRaw,
 ): Promise<PoisonProductRaw> {

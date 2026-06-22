@@ -39,3 +39,7 @@ export const CreateOrderSchema = z.object({
 export const UpdateLanguageSchema = z.object({
   language_code: z.enum(["ru", "en"]),
 });
+
+export const ImportProductSchema = z.object({
+  query: z.string().trim().min(1).max(200),
+});

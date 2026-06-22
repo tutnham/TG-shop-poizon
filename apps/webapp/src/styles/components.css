@@ -157,6 +157,41 @@
   padding: calc(var(--header-height) + 8px) var(--page-padding) 0;
 }
 
+.poizon-import-section {
+  padding: 12px var(--page-padding) 0;
+}
+
+.poizon-import-section__title {
+  margin: 0 0 8px;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.poizon-import-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.poizon-import-row__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.poizon-import-row__btn {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 112px;
+  padding-inline: 14px;
+}
+
+.poizon-import-section__error {
+  margin: 8px 0 0;
+  font-size: var(--font-xs);
+  color: var(--color-danger, #e57373);
+}
+
 .search-bar {
   position: relative;
   display: flex;
