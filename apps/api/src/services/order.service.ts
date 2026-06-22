@@ -99,111 +99,111 @@ export async function createOrderFromCart(
   const total_rub = items.reduce((s, i) => s + i.price_rub, 0);
   const total_usdt = items.reduce((s, i) => s + i.price_usdt, 0);
 
-  const { id, short_id } = await orderRepo.createOrder({
-    user_id: userId,
-    items,
-    total_rub,
-    total_usdt,
-    payment_method: body.payment_method,
-    delivery_info: body.delivery_info,
-  });
+  let paymentPayload: {
+    method: PaymentMethod;
+    amount_display: number;
+    amount_ton?: number;
+    wallet_comment: string;
+  } | null = null;
 
-  const wallet_comment = `ORD-${short_id}`;
-  let paymentMeta: {
-    wallet_comment?: string;
-    ton_amount?: number;
-    instructions?: string;
-  } = {};
+  let paymentMeta: CreateOrderSuccess["payment"] = {};
 
   try {
-    if (body.payment_method === "none") {
-      paymentMeta = {};
-    } else if (body.payment_method === "ton") {
+    if (body.payment_method === "ton") {
       const tonRate = await getConfigValue<number>("ton_rate_usd", 2.5);
       const ton_amount = Math.ceil((total_usdt / tonRate) * 1000) / 1000;
-      await paymentRepo.createPayment({
-        order_id: id,
+      paymentPayload = {
         method: "ton",
         amount_display: total_usdt,
         amount_ton: ton_amount,
-        wallet_comment,
-      });
-      paymentMeta = { wallet_comment, ton_amount };
+        wallet_comment: "",
+      };
+      paymentMeta = { ton_amount };
     } else if (body.payment_method === "rub_manual") {
       const instructions = await getConfigValue<string>(
         "payment_instructions_rub",
         "Оплата RUB: свяжитесь с менеджером.",
       );
-      await paymentRepo.createPayment({
-        order_id: id,
+      paymentPayload = {
         method: "rub_manual",
         amount_display: total_rub,
-        wallet_comment,
-      });
-      paymentMeta = { wallet_comment, instructions };
-    } else {
+        wallet_comment: "",
+      };
+      paymentMeta = { instructions };
+    } else if (body.payment_method === "usdt_manual") {
       const instructions = await getConfigValue<string>(
         "payment_instructions_usdt",
         "USDT: укажите номер заказа в комментарии.",
       );
-      await paymentRepo.createPayment({
-        order_id: id,
+      paymentPayload = {
         method: "usdt_manual",
         amount_display: total_usdt,
-        wallet_comment,
-      });
-      paymentMeta = { wallet_comment, instructions };
+        wallet_comment: "",
+      };
+      paymentMeta = { instructions };
     }
 
-    await cartRepo.clearCart(userId);
+    const { id, short_id } = await orderRepo.createOrder({
+      user_id: userId,
+      items,
+      total_rub,
+      total_usdt,
+      payment_method: body.payment_method,
+      delivery_info: body.delivery_info,
+      payment: paymentPayload,
+    });
+
+    paymentMeta.wallet_comment = `ORD-${short_id}`;
+
+    let user: Awaited<ReturnType<typeof getUserById>> = null;
+    try {
+      user = await getUserById(userId);
+    } catch (err) {
+      console.error("[order] failed to load user for notification", err);
+    }
+
+    if (user?.telegram_id) {
+      try {
+        await notifyUserOrderCreated({
+          telegramId: user.telegram_id,
+          shortId: short_id,
+          items,
+          totalRub: total_rub,
+          totalUsdt: total_usdt,
+          paymentMethod: body.payment_method,
+          deliveryInfo: body.delivery_info,
+        });
+      } catch (err) {
+        console.error("[order] user notification failed", err);
+      }
+    }
+
+    try {
+      await notifyAdminNewOrder({
+        shortId: short_id,
+        customerName: body.delivery_info.full_name,
+        customerPhone: body.delivery_info.phone,
+        customerTelegramId: user?.telegram_id,
+        customerUsername: user?.username ?? undefined,
+        items,
+        totalRub: total_rub,
+        paymentMethod: body.payment_method,
+        deliveryAddress: body.delivery_info.address,
+      });
+    } catch (err) {
+      console.error("[order] admin notification failed", err);
+    }
+
+    return {
+      ok: true,
+      data: { order_id: id, short_id, payment: paymentMeta },
+    };
   } catch (e) {
-    await orderRepo.deleteOrder(id).catch(() => {});
     return {
       ok: false,
       error: appError(e instanceof Error ? e.message : "Order failed", 500),
     };
   }
-
-  let user: Awaited<ReturnType<typeof getUserById>> = null;
-  try {
-    user = await getUserById(userId);
-  } catch (err) {
-    console.error("[order] failed to load user for notification", err);
-  }
-
-  if (user?.telegram_id) {
-    try {
-      await notifyUserOrderCreated({
-        telegramId: user.telegram_id,
-        shortId: short_id,
-        items,
-        totalRub: total_rub,
-        totalUsdt: total_usdt,
-        paymentMethod: body.payment_method,
-        deliveryInfo: body.delivery_info,
-      });
-    } catch (err) {
-      console.error("[order] user notification failed", err);
-    }
-  }
-
-  try {
-    await notifyAdminNewOrder({
-      shortId: short_id,
-      customerName: body.delivery_info.full_name,
-      customerPhone: body.delivery_info.phone,
-      customerTelegramId: user?.telegram_id,
-      customerUsername: user?.username ?? undefined,
-      items,
-      totalRub: total_rub,
-      paymentMethod: body.payment_method,
-      deliveryAddress: body.delivery_info.address,
-    });
-  } catch (err) {
-    console.error("[order] admin notification failed", err);
-  }
-
-  return { ok: true, data: { order_id: id, short_id, payment: paymentMeta } };
 }
 
 export async function confirmManualPayment(

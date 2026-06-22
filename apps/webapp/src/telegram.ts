@@ -37,6 +37,10 @@ type TgWebApp = {
     setText: (t: string) => void;
     show: () => void;
     hide: () => void;
+    enable: () => void;
+    disable: () => void;
+    showProgress: (leaveActive?: boolean) => void;
+    hideProgress: () => void;
     onClick: (fn: () => void) => void;
     offClick: (fn: () => void) => void;
     isVisible?: boolean;
@@ -190,9 +194,23 @@ export function hideMainButton(): void {
     tg.MainButton.offClick(mainButtonHandler);
     mainButtonHandler = null;
   }
+  tg.MainButton.hideProgress?.();
+  tg.MainButton.enable?.();
   tg.MainButton.hide();
   document.documentElement.classList.remove("tg-main-button-visible");
   requestAnimationFrame(() => applyTelegramLayout());
+}
+
+export function setMainButtonProgress(active: boolean): void {
+  const tg = getTg();
+  if (!tg?.MainButton) return;
+  if (active) {
+    tg.MainButton.showProgress?.(false);
+    tg.MainButton.disable?.();
+  } else {
+    tg.MainButton.hideProgress?.();
+    tg.MainButton.enable?.();
+  }
 }
 
 export function setupBackButton(onBack: () => void): void {

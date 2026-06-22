@@ -17,7 +17,7 @@ import { getUserById, updateUserLanguage } from "../db/user.repository.js";
 import { optionalTmaAuth, requireTmaAuth } from "../middleware/auth.middleware.js";
 import { mutationRateLimit } from "../middleware/mutation-rate-limit.js";
 import { bodySizeLimit } from "../middleware/request-body-limit.js";
-import { getExchangeRates } from "../services/currency.service.js";
+import { getExchangeRateService } from "../services/currency.service.js";
 import { notifyCartUpdate } from "../services/notification.service.js";
 import {
   buildTonTransferLink,
@@ -27,6 +27,20 @@ import { resolveProductSizePrice } from "../services/product-pricing.js";
 import type { AppEnv } from "../types/env.types.js";
 
 const shop = new Hono<AppEnv>();
+
+/** CDN/browser cache for public read-only catalog endpoints */
+function publicCache(maxAgeSec: number, sMaxAgeSec: number) {
+  return async (
+    c: { header: (name: string, value: string) => void },
+    next: () => Promise<void>,
+  ) => {
+    await next();
+    c.header(
+      "Cache-Control",
+      `public, max-age=${maxAgeSec}, s-maxage=${sMaxAgeSec}, stale-while-revalidate=60`,
+    );
+  };
+}
 
 shop.get("/ping", optionalTmaAuth, async (c) => {
   try {
@@ -102,20 +116,25 @@ shop.get("/config", async (c) => {
   });
 });
 
-shop.get("/rates", async (c) => {
-  const rates = await getExchangeRates();
+shop.get("/rates", publicCache(60, 120), async (c) => {
+  const snapshot = await getExchangeRateService().getRateSnapshot();
   return c.json({
     data: {
-      cny_rub: rates.cny_rub,
-      usdt_rub: rates.usdt_rub,
-      cny_per_usdt: rates.cny_per_usdt,
-      updated_at: rates.fetched_at,
-      sources: rates.sources,
+      cny_rub: snapshot.cnyRub.rate.toNumber(),
+      usdt_rub: snapshot.usdtRub.rate.toNumber(),
+      cny_per_usdt: snapshot.cnyRub.rate
+        .div(snapshot.usdtRub.rate)
+        .toNumber(),
+      updated_at: snapshot.computedAt,
+      sources: {
+        cny_rub: snapshot.cnyRub.source,
+        usdt_rub: snapshot.usdtRub.source,
+      },
     },
   });
 });
 
-shop.get("/products", zValidator("query", ProductsQuerySchema), async (c) => {
+shop.get("/products", publicCache(30, 60), zValidator("query", ProductsQuerySchema), async (c) => {
   const q = c.req.valid("query");
   const { items, total } = await productRepo.listProducts(q);
   return c.json({
@@ -135,12 +154,12 @@ shop.get("/products/:id", async (c) => {
   return c.json({ data: product });
 });
 
-shop.get("/categories", async (c) => {
+shop.get("/categories", publicCache(300, 600), async (c) => {
   const categories = await productRepo.listCategories();
   return c.json({ data: categories });
 });
 
-shop.get("/brands", async (c) => {
+shop.get("/brands", publicCache(300, 600), async (c) => {
   const brands = await productRepo.listBrands();
   return c.json({ data: brands });
 });

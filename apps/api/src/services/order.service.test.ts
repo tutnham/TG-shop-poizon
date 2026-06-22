@@ -18,4 +18,12 @@ describe("OrderService FSM", () => {
   it("allows confirmed → paid", () => {
     assert.equal(canTransition("confirmed", "paid"), true);
   });
+
+  it("allows paid → processing", () => {
+    assert.equal(canTransition("paid", "processing"), true);
+  });
+
+  it("denies cancelled → paid", () => {
+    assert.equal(canTransition("cancelled", "paid"), false);
+  });
 });

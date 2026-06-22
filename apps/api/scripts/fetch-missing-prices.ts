@@ -13,7 +13,7 @@
 import { readFileSync } from "node:fs";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
 import { refreshRates } from "../src/services/currency.service.js";
-import { getPricingConfig } from "../src/services/pricing.service.js";
+import { loadShopPricingSettings } from "../src/services/pricing.service.js";
 
 loadDotEnv();
 
@@ -186,7 +186,7 @@ async function main() {
   // Получаем курсы
   console.log("[fetch-prices] Обновляем курсы валют...");
   await refreshRates(true);
-  const config = await getPricingConfig({ skipRatesRefresh: true });
+  const config = await loadShopPricingSettings();
   const rateCnyRub = config.rate_cny_rub;
   const rateCnyUsd = config.rate_cny_usd;
   console.log(

@@ -11,7 +11,7 @@ import { refreshRates } from "../services/currency.service.js";
 import { notifyOrderStatus } from "../services/notification.service.js";
 import * as orderService from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
-import { getPricingConfig, setMarkup } from "../services/pricing.service.js";
+import { loadShopPricingSettings, setMarkup } from "../services/pricing.service.js";
 import type { AppEnv } from "../types/env.types.js";
 
 const admin = new Hono<AppEnv>();
@@ -181,7 +181,7 @@ admin.post("/products/sync", async (c) => {
 // ---------------------------------------------------------------------------
 admin.get("/pricing", async (c) => {
   const rates = await refreshRates();
-  const cfg = await getPricingConfig({ skipRatesRefresh: true });
+  const cfg = await loadShopPricingSettings();
   return c.json({
     data: {
       markup_percent: cfg.markup_percent,
@@ -206,7 +206,7 @@ admin.patch("/pricing", zValidator("json", UpdatePricingSchema), async (c) => {
     await setMarkup(body.markup_percent, body.delivery_fee);
   }
   const rates = await refreshRates(true);
-  const cfg = await getPricingConfig({ skipRatesRefresh: true });
+  const cfg = await loadShopPricingSettings();
   return c.json({
     data: {
       markup_percent: cfg.markup_percent,

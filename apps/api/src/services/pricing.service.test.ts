@@ -9,7 +9,8 @@ import {
 import { resetPricingModuleConfig } from "./pricing.config.js";
 import {
   PriceCalculator,
-  calculatePrices,
+  buildSyncPricingContextFromSnapshot,
+  calculateProductPrices,
   resetPriceCalculator,
 } from "./pricing.service.js";
 
@@ -261,21 +262,45 @@ describe("PriceCalculator (decimal, breakdown, STRICT)", () => {
   });
 });
 
-describe("calculatePrices (legacy, обратная совместимость)", () => {
-  const config = {
+describe("calculateProductPrices (legacy rounding parity)", () => {
+  const settings = {
     rate_cny_rub: 13.5,
     rate_cny_usd: 7.25,
     markup_percent: 25,
     delivery_fee: 500,
   };
 
+  const ctx = buildSyncPricingContextFromSnapshot(
+    {
+      cnyRub: {
+        rate: d(13.5),
+        source: "env",
+        fetchedAt: new Date().toISOString(),
+        expiresAt: new Date().toISOString(),
+        isFallback: false,
+        isStale: false,
+      },
+      usdtRub: {
+        rate: d(97),
+        source: "env",
+        fetchedAt: new Date().toISOString(),
+        expiresAt: new Date().toISOString(),
+        isFallback: false,
+        isStale: false,
+      },
+      usdtCny: d(97).div(d(13.5)),
+      computedAt: new Date().toISOString(),
+    },
+    settings,
+  );
+
   it("применяет 25% наценку и доставку", () => {
-    const result = calculatePrices(100, config);
+    const result = calculateProductPrices(100, ctx);
     assert.equal(result.rub, Math.ceil((100 * 13.5 * 1.25 + 500) / 10) * 10);
   });
 
   it("нулевая цена не даёт NaN", () => {
-    const r = calculatePrices(0, config);
+    const r = calculateProductPrices(0, ctx);
     assert.equal(Number.isNaN(r.rub), false);
     assert.equal(Number.isNaN(r.usdt), false);
   });

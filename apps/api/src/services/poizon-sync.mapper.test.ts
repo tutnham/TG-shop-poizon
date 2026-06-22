@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import Decimal from "decimal.js";
 import type { PoisonProductRaw } from "./poizon.provider.js";
 import { mapPoizonItemToUpsertRow } from "./poizon-sync.service.js";
-import type { PricingConfig } from "./pricing.service.js";
+import type { SyncPricingContext } from "./pricing.service.js";
 
-const config: PricingConfig = {
-  rate_cny_rub: 10,
-  rate_cny_usd: 7,
-  markup_percent: 0,
-  delivery_fee: 0,
+const ctx: SyncPricingContext = {
+  rateCnyRub: new Decimal(10),
+  rateCnyUsd: new Decimal(7),
+  markupPercent: new Decimal(0),
+  deliveryFee: new Decimal(0),
 };
 
 describe("mapPoizonItemToUpsertRow", () => {
@@ -27,7 +28,7 @@ describe("mapPoizonItemToUpsertRow", () => {
       soldCount: 10,
     };
 
-    const row = mapPoizonItemToUpsertRow(item, config);
+    const row = mapPoizonItemToUpsertRow(item, ctx);
     assert.equal(row.name, "Nike Dunk Low");
     assert.equal(row.price_rub, 45000);
     assert.equal(row.size_prices["43"].rub, 48000);
@@ -50,7 +51,7 @@ describe("mapPoizonItemToUpsertRow", () => {
       soldCount: 0,
     };
 
-    const row = mapPoizonItemToUpsertRow(item, config);
+    const row = mapPoizonItemToUpsertRow(item, ctx);
     assert.equal(row.sizes.EU.length, 8);
     assert.deepEqual(Object.keys(row.size_prices), []);
   });

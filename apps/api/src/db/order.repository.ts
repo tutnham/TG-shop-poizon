@@ -18,17 +18,44 @@ export async function createOrder(row: {
   total_usdt: number;
   payment_method: PaymentMethod;
   delivery_info: unknown;
+  payment?: {
+    method: PaymentMethod;
+    amount_display: number;
+    amount_ton?: number;
+    wallet_comment: string;
+  } | null;
 }): Promise<{ id: string; short_id: string }> {
   for (let attempt = 0; attempt < 5; attempt++) {
     const short_id = generateShortId();
-    const { data, error } = await getSupabase()
-      .from("orders")
-      .insert({ ...row, status: "pending", short_id })
-      .select("id, short_id")
-      .single();
-    if (!error && data) return data as { id: string; short_id: string };
-    if (error?.code !== "23505")
+    const payment =
+      row.payment != null
+        ? {
+            ...row.payment,
+            wallet_comment: `ORD-${short_id}`,
+          }
+        : null;
+
+    const { data, error } = await getSupabase().rpc("create_shop_order", {
+      p_user_id: row.user_id,
+      p_items: row.items,
+      p_total_rub: row.total_rub,
+      p_total_usdt: row.total_usdt,
+      p_payment_method: row.payment_method,
+      p_delivery_info: row.delivery_info,
+      p_short_id: short_id,
+      p_payment: payment,
+    });
+
+    if (!error && data && typeof data === "object" && data !== null) {
+      const parsed = data as { id?: string; short_id?: string };
+      if (parsed.id && parsed.short_id) {
+        return { id: parsed.id, short_id: parsed.short_id };
+      }
+    }
+
+    if (error?.code !== "23505") {
       throw new Error(error?.message ?? "Order insert failed");
+    }
   }
   throw new Error("Could not generate unique order id");
 }

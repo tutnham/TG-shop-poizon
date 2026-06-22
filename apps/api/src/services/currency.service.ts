@@ -552,7 +552,7 @@ export async function persistRates(rates: ExchangeRates): Promise<void> {
       .insert({
         ...patch,
         markup_percent: Number(getEnvOptional("MARKUP_PERCENT", "25")),
-        delivery_fee: Number(getEnvOptional("DELIVERY_RUB", "500")),
+        delivery_fee: Number(getEnvOptional("DELIVERY_RUB", "0")),
         currency_pair: "CNY_RUB",
       });
     if (error) throw new Error(error.message);

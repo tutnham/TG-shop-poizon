@@ -43,6 +43,9 @@ function toListItem(row: ProductRow): ProductListItem {
   };
 }
 
+const LIST_PRODUCT_COLUMNS =
+  "id, name, name_ru, brand, image_urls, price_rub, price_usdt, is_available, sold_count, synced_at";
+
 export async function listProducts(opts: {
   page: number;
   limit: number;
@@ -55,7 +58,7 @@ export async function listProducts(opts: {
 }): Promise<{ items: ProductListItem[]; total: number }> {
   let query = getSupabase()
     .from("products")
-    .select("*", { count: "exact" })
+    .select(LIST_PRODUCT_COLUMNS, { count: "exact" })
     .eq("is_available", true);
 
   if (opts.category) {

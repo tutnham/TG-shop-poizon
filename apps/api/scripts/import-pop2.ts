@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
 import { refreshRates } from "../src/services/currency.service.js";
 import { stripCjk } from "../src/services/poizon-sku.mapper.js";
-import { getPricingConfig } from "../src/services/pricing.service.js";
+import { loadShopPricingSettings } from "../src/services/pricing.service.js";
 
 loadDotEnv();
 
@@ -266,7 +266,7 @@ async function main() {
   // Получаем курсы валют и конфиг цен
   console.log("[import-pop2] Получаем курсы валют...");
   await refreshRates(true);
-  const config = await getPricingConfig({ skipRatesRefresh: true });
+  const config = await loadShopPricingSettings();
   const rateCnyRub = config.rate_cny_rub; // сколько RUB за 1 CNY
   const rateCnyUsd = config.rate_cny_usd; // сколько USD за 1 CNY (≈ кросс-курс)
   console.log(

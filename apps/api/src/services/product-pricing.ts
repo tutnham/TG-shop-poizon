@@ -1,7 +1,7 @@
-import type { PricingConfig } from "./pricing.service.js";
+import type { SyncPricingContext } from "./pricing.service.js";
 import {
-  calculatePrices,
-  calculatePricesFromFen,
+  calculateProductPrices,
+  calculateProductPricesFromFen,
 } from "./pricing.service.js";
 
 export type SizePrice = {
@@ -14,12 +14,12 @@ export type SizePricesMap = Record<string, SizePrice>;
 
 export function buildSizePricesFromFen(
   sizePricesFen: Record<string, number>,
-  config: PricingConfig,
+  ctx: SyncPricingContext,
 ): SizePricesMap {
   const result: SizePricesMap = {};
   for (const [size, fen] of Object.entries(sizePricesFen)) {
     if (fen <= 0) continue;
-    const prices = calculatePricesFromFen(fen, config);
+    const prices = calculateProductPricesFromFen(fen, ctx);
     result[size] = {
       cny: prices.cny,
       rub: prices.rub,
@@ -31,12 +31,12 @@ export function buildSizePricesFromFen(
 
 export function buildSizePricesFromCny(
   sizePricesCny: Record<string, number>,
-  config: PricingConfig,
+  ctx: SyncPricingContext,
 ): SizePricesMap {
   const result: SizePricesMap = {};
   for (const [size, cny] of Object.entries(sizePricesCny)) {
     if (cny <= 0) continue;
-    const prices = calculatePrices(cny, config);
+    const prices = calculateProductPrices(cny, ctx);
     result[size] = {
       cny: Math.round(cny * 100) / 100,
       rub: prices.rub,

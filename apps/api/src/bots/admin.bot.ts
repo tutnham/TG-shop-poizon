@@ -6,7 +6,7 @@ import { refreshRates } from "../services/currency.service.js";
 import { notifyOrderStatus } from "../services/notification.service.js";
 import * as orderService from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
-import { getPricingConfig, setMarkup } from "../services/pricing.service.js";
+import { loadShopPricingSettings, setMarkup } from "../services/pricing.service.js";
 import { getEnvOptional } from "../types/env.types.js";
 
 let adminBot: Bot | null = null;
@@ -117,7 +117,7 @@ function setupAdminBot(bot: Bot): void {
 
   bot.command("pricing", async (ctx) => {
     const rates = await refreshRates();
-    const cfg = await getPricingConfig({ skipRatesRefresh: true });
+    const cfg = await loadShopPricingSettings();
     await ctx.reply(
       [
         `Наценка: ${cfg.markup_percent}%`,
@@ -160,7 +160,7 @@ function setupAdminBot(bot: Bot): void {
 
   bot.callbackQuery("menu:pricing", async (ctx) => {
     const rates = await refreshRates();
-    const cfg = await getPricingConfig({ skipRatesRefresh: true });
+    const cfg = await loadShopPricingSettings();
     const kb = new InlineKeyboard()
       .text("+5%", "price:+5")
       .text("-5%", "price:-5")
@@ -185,7 +185,7 @@ function setupAdminBot(bot: Bot): void {
   bot.callbackQuery("price:refresh", async (ctx) => {
     await ctx.answerCallbackQuery({ text: "Обновление..." });
     const rates = await refreshRates(true);
-    const cfg = await getPricingConfig({ skipRatesRefresh: true });
+    const cfg = await loadShopPricingSettings();
     const kb = new InlineKeyboard()
       .text("+5%", "price:+5")
       .text("-5%", "price:-5")
@@ -205,7 +205,7 @@ function setupAdminBot(bot: Bot): void {
   });
 
   bot.callbackQuery(/^price:(\+5|-5)$/, async (ctx) => {
-    const cfg = await getPricingConfig();
+    const cfg = await loadShopPricingSettings();
     const delta = ctx.match[1] === "+5" ? 5 : -5;
     const current = Number(cfg.markup_percent);
     if (!Number.isFinite(current)) {

@@ -1,4 +1,5 @@
 const API_BASE = import.meta.env.VITE_API_URL ?? "";
+const REQUEST_TIMEOUT_MS = 15_000;
 
 /** Simple in-memory GET cache with TTL. Invalidated on any write operation. */
 const CACHE_TTL_MS = 30_000;
@@ -17,6 +18,29 @@ function headers(): HeadersInit {
   };
 }
 
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw new Error("Request timeout");
+    }
+    throw e;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function parseErrorResponse(res: Response): Promise<never> {
+  const err = await res.json().catch(() => ({ error: res.statusText }));
+  throw new Error((err as { error?: string }).error ?? "Request failed");
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const key = path;
   const cached = getCache.get(key);
@@ -24,11 +48,10 @@ export async function apiGet<T>(path: string): Promise<T> {
     return cached.data as T;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { headers: headers() });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Request failed");
-  }
+  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
+    headers: headers(),
+  });
+  if (!res.ok) await parseErrorResponse(res);
   const data = (await res.json()) as T;
   getCache.set(key, { data, expires: Date.now() + CACHE_TTL_MS });
   return data;
@@ -36,40 +59,31 @@ export async function apiGet<T>(path: string): Promise<T> {
 
 export async function apiPost<T>(path: string, body?: unknown): Promise<T> {
   invalidateCache();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
     method: "POST",
     headers: headers(),
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Request failed");
-  }
+  if (!res.ok) await parseErrorResponse(res);
   return res.json() as Promise<T>;
 }
 
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   invalidateCache();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
     method: "PATCH",
     headers: headers(),
     body: JSON.stringify(body),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Request failed");
-  }
+  if (!res.ok) await parseErrorResponse(res);
   return res.json() as Promise<T>;
 }
 
 export async function apiDelete(path: string): Promise<void> {
   invalidateCache();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
     method: "DELETE",
     headers: headers(),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? "Request failed");
-  }
+  if (!res.ok) await parseErrorResponse(res);
 }

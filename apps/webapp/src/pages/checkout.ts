@@ -6,6 +6,7 @@ import { goBack, navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import {
   hideMainButton,
+  setMainButtonProgress,
   setupBackButton,
   showMainButton,
 } from "../telegram.js";
@@ -85,7 +86,11 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
     }
   }
 
+  let submitting = false;
+
   async function submitOrder() {
+    if (submitting) return;
+
     const name = (
       document.getElementById("checkout-name") as HTMLInputElement | null
     )?.value.trim();
@@ -102,6 +107,8 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
     }
 
     deliveryData = { full_name: name, phone, address };
+    submitting = true;
+    setMainButtonProgress(true);
 
     try {
       const res = await apiPost<{
@@ -128,6 +135,9 @@ export async function renderCheckout(app: HTMLElement): Promise<void> {
       window.Telegram?.WebApp?.showAlert(
         e instanceof Error ? e.message : t("error"),
       );
+    } finally {
+      submitting = false;
+      setMainButtonProgress(false);
     }
   }
 }

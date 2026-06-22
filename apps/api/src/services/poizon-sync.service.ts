@@ -14,8 +14,11 @@ import {
   minSizePrice,
   type SizePricesMap,
 } from "./product-pricing.js";
-import { calculatePricesFromFen, getPricingConfig } from "./pricing.service.js";
-import type { PricingConfig } from "./pricing.service.js";
+import {
+  buildSyncPricingContext,
+  calculateProductPricesFromFen,
+  type SyncPricingContext,
+} from "./pricing.service.js";
 
 const SYNC_KEYWORDS = [
   "nike",
@@ -41,15 +44,15 @@ type UpsertRow = Parameters<typeof productRepo.upsertProductsBatch>[0][number];
 
 export function mapPoizonItemToUpsertRow(
   item: PoisonProductRaw,
-  config: PricingConfig,
+  ctx: SyncPricingContext,
 ): UpsertRow {
   const hasSkuPrices = Object.keys(item.sizePricesFen).length > 0;
   const sizePrices: SizePricesMap = hasSkuPrices
-    ? buildSizePricesFromFen(item.sizePricesFen, config)
+    ? buildSizePricesFromFen(item.sizePricesFen, ctx)
     : {};
 
   const scalarFromSkus = minSizePrice(sizePrices);
-  const fallbackPrices = calculatePricesFromFen(item.priceFen, config);
+  const fallbackPrices = calculateProductPricesFromFen(item.priceFen, ctx);
   const scalar = scalarFromSkus ?? {
     cny: fallbackPrices.cny,
     rub: fallbackPrices.rub,
@@ -130,7 +133,7 @@ export async function runFullSync(): Promise<{
   try {
     // Предварительный прогрев курсов валют
     await refreshRates(true);
-    const config = await getPricingConfig({ skipRatesRefresh: true });
+    const pricingCtx = await buildSyncPricingContext();
     const provider = getPoisonProvider();
 
     // Задержка перед первым запросом чтобы не перегружать API
@@ -164,7 +167,7 @@ export async function runFullSync(): Promise<{
         for (const item of result.items) {
           try {
             const enriched = await enrichWithProductDetail(provider, item);
-            batch.push(mapPoizonItemToUpsertRow(enriched, config));
+            batch.push(mapPoizonItemToUpsertRow(enriched, pricingCtx));
             await sleep(
               SYNC_DELAY_BETWEEN_DETAILS_MS +
                 Math.random() * SYNC_DELAY_JITTER_MS,
@@ -286,7 +289,7 @@ export async function runBulkImport(
 
   try {
     await refreshRates(true);
-    const config = await getPricingConfig({ skipRatesRefresh: true });
+    const pricingCtx = await buildSyncPricingContext();
 
     // Нормализация сырых данных во внутренний формат
     const batch: UpsertRow[] = [];
@@ -324,7 +327,7 @@ export async function runBulkImport(
           soldCount,
         };
 
-        batch.push(mapPoizonItemToUpsertRow(item, config));
+        batch.push(mapPoizonItemToUpsertRow(item, pricingCtx));
       } catch (e) {
         console.warn(
           `[poizon-sync] Ошибка нормализации товара spuId=${raw.spuId}:`,

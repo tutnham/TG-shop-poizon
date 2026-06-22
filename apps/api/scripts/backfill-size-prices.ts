@@ -11,7 +11,7 @@ import { getSupabase } from "../src/db/client.js";
 import { mapPoizonItemToUpsertRow } from "../src/services/poizon-sync.service.js";
 import { getPoisonProvider } from "../src/services/poizon.service.js";
 import { refreshRates } from "../src/services/currency.service.js";
-import { getPricingConfig } from "../src/services/pricing.service.js";
+import { buildSyncPricingContext } from "../src/services/pricing.service.js";
 import type { IPoisonProvider, PoisonProductRaw } from "../src/services/poizon.provider.js";
 
 loadDotEnv();
@@ -164,7 +164,7 @@ async function healthCheck(provider: IPoisonProvider): Promise<void> {
 
 async function main(): Promise<void> {
   await refreshRates(true);
-  const config = await getPricingConfig({ skipRatesRefresh: true });
+  const pricingCtx = await buildSyncPricingContext();
   const provider = getPoisonProvider();
 
   const remainingBefore = await countRemainingEmpty();
@@ -205,7 +205,7 @@ async function main(): Promise<void> {
         continue;
       }
 
-      const upsertRow = mapPoizonItemToUpsertRow(detail, config);
+      const upsertRow = mapPoizonItemToUpsertRow(detail, pricingCtx);
       const sizeCount = Object.keys(upsertRow.size_prices ?? {}).length;
 
       if (sizeCount === 0) {

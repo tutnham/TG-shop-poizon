@@ -19,8 +19,8 @@ import {
   minSizePrice,
 } from "../src/services/product-pricing.js";
 import {
-  calculatePrices,
-  getPricingConfig,
+  buildSyncPricingContext,
+  calculateProductPrices,
 } from "../src/services/pricing.service.js";
 import { getShihuoPoparceProvider } from "../src/services/shihuo-poparce.provider.js";
 
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
   }
 
   await refreshRates(true);
-  const config = await getPricingConfig({ skipRatesRefresh: true });
+  const pricingCtx = await buildSyncPricingContext();
   const provider = getShihuoPoparceProvider();
 
   const pop2ByPoizonId = new Map<string, Pop2Product>();
@@ -269,7 +269,7 @@ async function main(): Promise<void> {
       if (productFull && Object.keys(productFull.sizePricesCny).length > 0) {
         const sizePrices = buildSizePricesFromCny(
           productFull.sizePricesCny,
-          config,
+          pricingCtx,
         );
         const scalar = minSizePrice(sizePrices);
         if (!scalar) {
@@ -311,7 +311,7 @@ async function main(): Promise<void> {
           continue;
         }
 
-        const prices = calculatePrices(priceResult.minPriceCny, config);
+        const prices = calculateProductPrices(priceResult.minPriceCny, pricingCtx);
         patch = {
           price_cny: Math.round(priceResult.minPriceCny * 100) / 100,
           price_rub: prices.rub,
