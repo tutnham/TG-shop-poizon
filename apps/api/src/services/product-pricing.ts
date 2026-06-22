@@ -1,5 +1,8 @@
 import type { PricingConfig } from "./pricing.service.js";
-import { calculatePricesFromFen } from "./pricing.service.js";
+import {
+  calculatePrices,
+  calculatePricesFromFen,
+} from "./pricing.service.js";
 
 export type SizePrice = {
   cny: number;
@@ -19,6 +22,23 @@ export function buildSizePricesFromFen(
     const prices = calculatePricesFromFen(fen, config);
     result[size] = {
       cny: prices.cny,
+      rub: prices.rub,
+      usdt: prices.usdt,
+    };
+  }
+  return result;
+}
+
+export function buildSizePricesFromCny(
+  sizePricesCny: Record<string, number>,
+  config: PricingConfig,
+): SizePricesMap {
+  const result: SizePricesMap = {};
+  for (const [size, cny] of Object.entries(sizePricesCny)) {
+    if (cny <= 0) continue;
+    const prices = calculatePrices(cny, config);
+    result[size] = {
+      cny: Math.round(cny * 100) / 100,
       rub: prices.rub,
       usdt: prices.usdt,
     };

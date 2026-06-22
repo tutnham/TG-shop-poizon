@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  buildSizePricesFromCny,
   buildSizePricesFromFen,
   minSizePrice,
   resolveProductSizePrice,
@@ -23,6 +24,14 @@ describe("product-pricing", () => {
     assert.equal(map["42"].cny, 4500);
     assert.equal(map["42"].rub, 45000);
     assert.equal(map["43"].cny, 4800);
+  });
+
+  it("buildSizePricesFromCny converts each size from yuan", () => {
+    const map = buildSizePricesFromCny({ "42": 450, "43": 480 }, config);
+    assert.equal(map["42"].cny, 450);
+    assert.equal(map["42"].rub, 4500);
+    assert.equal(map["43"].cny, 480);
+    assert.equal(map["43"].rub, 4800);
   });
 
   it("minSizePrice picks lowest rub", () => {

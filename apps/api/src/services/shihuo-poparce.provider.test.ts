@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import {
   parseMinSupplierPriceCny,
+  parseProductFullResponse,
   parseSearchByArticleResponse,
 } from "./shihuo-poparce.provider.js";
 
@@ -121,5 +122,89 @@ describe("shihuo-poparce.provider parsers", () => {
       parseMinSupplierPriceCny({ suppliers: [{ price: "0" }, {}] }),
       null,
     );
+  });
+
+  it("parseProductFullResponse reads sizes[] with direct price fields", () => {
+    const parsed = parseProductFullResponse(
+      {
+        goodsId: "397",
+        styleId: "4244972",
+        title: "Nike AF1",
+        sizes: [
+          { size: "42", price: "529", available: true },
+          { size: "43", price: "586", available: true },
+          { size: "44", price: "600", available: false },
+        ],
+      },
+      "397",
+    );
+
+    assert.ok(parsed);
+    assert.equal(parsed!.goodsId, "397");
+    assert.equal(parsed!.styleId, "4244972");
+    assert.equal(parsed!.name, "Nike AF1");
+    assert.equal(parsed!.sizePricesCny["42"], 529);
+    assert.equal(parsed!.sizePricesCny["43"], 586);
+    assert.equal(parsed!.sizePricesCny["44"], undefined);
+    assert.equal(parsed!.stock["42"], true);
+    assert.equal(parsed!.stock["43"], true);
+    assert.equal(parsed!.stock["44"], false);
+  });
+
+  it("parseProductFullResponse reads skuList[] with saleAttr and minBidPrice (fen)", () => {
+    const parsed = parseProductFullResponse({
+      goodsId: "100",
+      skuList: [
+        {
+          minBidPrice: 45000,
+          saleAttr: [{ enName: "Size", enValue: "42" }],
+        },
+        {
+          minBidPrice: 52000,
+          saleAttr: [{ enName: "Size", enValue: "43" }],
+        },
+      ],
+    });
+
+    assert.ok(parsed);
+    assert.equal(parsed!.sizePricesCny["42"], 450);
+    assert.equal(parsed!.sizePricesCny["43"], 520);
+  });
+
+  it("parseProductFullResponse reads nested suppliers[] per size entry", () => {
+    const parsed = parseProductFullResponse({
+      goodsId: "397",
+      sizeList: [
+        {
+          sizeValue: "42",
+          suppliers: [{ price: "500" }, { price: "417" }],
+        },
+      ],
+    });
+
+    assert.ok(parsed);
+    assert.equal(parsed!.sizePricesCny["42"], 417);
+    assert.equal(parsed!.stock["42"], true);
+  });
+
+  it("parseProductFullResponse excludes available=false even with price", () => {
+    const parsed = parseProductFullResponse({
+      goodsId: "1",
+      sizes: [{ size: "42", price: "500", available: false }],
+    });
+
+    assert.ok(parsed);
+    assert.equal(parsed!.sizePricesCny["42"], undefined);
+    assert.equal(parsed!.stock["42"], false);
+  });
+
+  it("parseProductFullResponse returns empty sizePricesCny when no priced sizes", () => {
+    const parsed = parseProductFullResponse({
+      goodsId: "1",
+      sizes: [{ size: "42", available: false }],
+    });
+
+    assert.ok(parsed);
+    assert.deepEqual(parsed!.sizePricesCny, {});
   });
 });

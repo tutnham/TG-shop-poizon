@@ -1,17 +1,23 @@
 /**
- * Бэкфилл scalar-цен через Shihuo Poparce: searchByArticle → fetchPrice.
+ * Бэкфилл цен через Shihuo Poparce: searchByArticle → product-full (per-size prices).
+ * Фолбэк на fetchPrice (scalar) если product-full без размерных цен.
  *
- * Читает pop2.json, join productId -> products.poizon_id, обновляет price_* и
- * shihuo_goods_id/shihuo_style_id. size_prices не трогает.
+ * Читает pop2.json, join productId -> products.poizon_id, обновляет price_*,
+ * size_prices, sizes, stock и shihuo_goods_id/shihuo_style_id.
  *
  * Использование:
  *   npx tsx scripts/backfill-shihuo-prices.ts [pop2.json] [--dry-run] [--limit=100] [--retries=6]
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import type { SizePricesMap } from "@poizon-shop/shared";
 import { getSupabase } from "../src/db/client.js";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
 import { refreshRates } from "../src/services/currency.service.js";
+import {
+  buildSizePricesFromCny,
+  minSizePrice,
+} from "../src/services/product-pricing.js";
 import {
   calculatePrices,
   getPricingConfig,
@@ -32,7 +38,7 @@ const DRY_RUN = args.includes("--dry-run");
 const FORCE = args.includes("--force");
 const LIMIT = limitArg ? Number(limitArg.split("=")[1]) : null;
 const OFFSET = offsetArg ? Number(offsetArg.split("=")[1]) : 0;
-const DELAY_MS = Number(delayArg?.split("=")[1] ?? "1500");
+const DELAY_MS = Number(delayArg?.split("=")[1] ?? "2500");
 const DEFAULT_MAX_RETRIES = 6;
 const MAX_RETRIES_RAW = retriesArg
   ? Number(retriesArg.split("=")[1])
@@ -66,7 +72,12 @@ type ProductRow = {
   shihuo_goods_id: string | null;
   shihuo_style_id: string | null;
   price_cny: number | null;
+  size_prices: SizePricesMap | null;
 };
+
+function hasSizePrices(sizePrices: SizePricesMap | null | undefined): boolean {
+  return Boolean(sizePrices && Object.keys(sizePrices).length > 0);
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -129,7 +140,9 @@ async function fetchProductsByPoizonIds(
     const chunk = poizonIds.slice(i, i + POIZON_CHUNK);
     const { data, error } = await getSupabase()
       .from("products")
-      .select("id, poizon_id, shihuo_goods_id, shihuo_style_id, price_cny")
+      .select(
+        "id, poizon_id, shihuo_goods_id, shihuo_style_id, price_cny, size_prices",
+      )
       .in("poizon_id", chunk);
 
     if (error) throw new Error(error.message);
@@ -184,6 +197,8 @@ async function main(): Promise<void> {
   const productsByPoizonId = await fetchProductsByPoizonIds(poizonIds);
 
   let updated = 0;
+  let updatedWithSizes = 0;
+  let updatedScalarFallback = 0;
   let dryRun = 0;
   let skippedNoVendorCode = 0;
   let skippedNoDbRow = 0;
@@ -215,50 +230,98 @@ async function main(): Promise<void> {
       dbRow.shihuo_goods_id &&
       dbRow.shihuo_style_id &&
       dbRow.price_cny != null &&
-      Number(dbRow.price_cny) > 0
+      Number(dbRow.price_cny) > 0 &&
+      hasSizePrices(dbRow.size_prices)
     ) {
       skippedAlreadyMapped++;
       continue;
     }
 
     try {
-      const searchHit = await withRetry(`search poizon=${poizonId}`, () =>
-        provider.searchByArticle(vendorCode),
-      );
+      let goodsId = dbRow.shihuo_goods_id ?? undefined;
+      let styleId = dbRow.shihuo_style_id ?? undefined;
 
-      if (!searchHit) {
-        notFound++;
-        console.warn(
-          `[backfill-shihuo] poizon=${poizonId} vendorCode=${vendorCode}: search miss`,
+      if (!goodsId) {
+        const searchHit = await withRetry(`search poizon=${poizonId}`, () =>
+          provider.searchByArticle(vendorCode),
         );
-        if (i < poizonIds.length - 1) await sleep(DELAY_MS);
-        continue;
+
+        if (!searchHit) {
+          notFound++;
+          console.warn(
+            `[backfill-shihuo] poizon=${poizonId} vendorCode=${vendorCode}: search miss`,
+          );
+          if (i < poizonIds.length - 1) await sleep(DELAY_MS);
+          continue;
+        }
+
+        goodsId = searchHit.goodsId;
+        styleId = searchHit.styleId ?? undefined;
       }
 
-      const styleId = searchHit.styleId ?? undefined;
-      const priceResult = await withRetry(`price poizon=${poizonId}`, () =>
-        provider.fetchPrice(searchHit.goodsId, styleId),
+      const productFull = await withRetry(
+        `product-full poizon=${poizonId}`,
+        () => provider.fetchProductFull(goodsId!, styleId),
       );
 
-      if (!priceResult || priceResult.minPriceCny <= 0) {
-        noPrice++;
-        console.warn(
-          `[backfill-shihuo] poizon=${poizonId} goodsId=${searchHit.goodsId}: no supplier price`,
-        );
-        if (i < poizonIds.length - 1) await sleep(DELAY_MS);
-        continue;
-      }
+      let patch: Record<string, unknown>;
 
-      const prices = calculatePrices(priceResult.minPriceCny, config);
-      const patch = {
-        price_cny: Math.round(priceResult.minPriceCny * 100) / 100,
-        price_rub: prices.rub,
-        price_usdt: prices.usdt,
-        shihuo_goods_id: priceResult.goodsId,
-        shihuo_style_id: priceResult.styleId,
-        synced_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      if (productFull && Object.keys(productFull.sizePricesCny).length > 0) {
+        const sizePrices = buildSizePricesFromCny(
+          productFull.sizePricesCny,
+          config,
+        );
+        const scalar = minSizePrice(sizePrices);
+        if (!scalar) {
+          noPrice++;
+          console.warn(
+            `[backfill-shihuo] poizon=${poizonId} goodsId=${goodsId}: empty size_prices after mapping`,
+          );
+          if (i < poizonIds.length - 1) await sleep(DELAY_MS);
+          continue;
+        }
+
+        const sizeLabels = Object.keys(productFull.stock).length
+          ? Object.keys(productFull.stock)
+          : Object.keys(sizePrices);
+
+        patch = {
+          price_cny: scalar.cny,
+          price_rub: scalar.rub,
+          price_usdt: scalar.usdt,
+          size_prices: sizePrices,
+          sizes: { EU: sizeLabels },
+          stock: productFull.stock,
+          shihuo_goods_id: productFull.goodsId,
+          shihuo_style_id: productFull.styleId,
+          synced_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        const priceResult = await withRetry(`price poizon=${poizonId}`, () =>
+          provider.fetchPrice(goodsId!, styleId),
+        );
+
+        if (!priceResult || priceResult.minPriceCny <= 0) {
+          noPrice++;
+          console.warn(
+            `[backfill-shihuo] poizon=${poizonId} goodsId=${goodsId}: no supplier price (product-full miss, scalar fallback failed)`,
+          );
+          if (i < poizonIds.length - 1) await sleep(DELAY_MS);
+          continue;
+        }
+
+        const prices = calculatePrices(priceResult.minPriceCny, config);
+        patch = {
+          price_cny: Math.round(priceResult.minPriceCny * 100) / 100,
+          price_rub: prices.rub,
+          price_usdt: prices.usdt,
+          shihuo_goods_id: priceResult.goodsId,
+          shihuo_style_id: priceResult.styleId,
+          synced_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
 
       if (DRY_RUN) {
         dryRun++;
@@ -274,11 +337,13 @@ async function main(): Promise<void> {
 
         if (upErr) throw new Error(upErr.message);
         updated++;
+        if ("size_prices" in patch) updatedWithSizes++;
+        else updatedScalarFallback++;
       }
 
       if ((i + 1) % 10 === 0 || i === poizonIds.length - 1) {
         console.log(
-          `[backfill-shihuo] ${i + 1}/${poizonIds.length} updated=${updated} dryRun=${dryRun} notFound=${notFound} noPrice=${noPrice} failed=${failed}`,
+          `[backfill-shihuo] ${i + 1}/${poizonIds.length} updated=${updated} withSizes=${updatedWithSizes} scalarFallback=${updatedScalarFallback} dryRun=${dryRun} notFound=${notFound} noPrice=${noPrice} failed=${failed}`,
         );
       }
     } catch (e) {
@@ -293,7 +358,7 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    `[backfill-shihuo] done updated=${updated} dryRun=${dryRun} skippedNoVendorCode=${skippedNoVendorCode} skippedNoDbRow=${skippedNoDbRow} skippedAlreadyMapped=${skippedAlreadyMapped} notFound=${notFound} noPrice=${noPrice} failed=${failed}`,
+    `[backfill-shihuo] done updated=${updated} withSizes=${updatedWithSizes} scalarFallback=${updatedScalarFallback} dryRun=${dryRun} skippedNoVendorCode=${skippedNoVendorCode} skippedNoDbRow=${skippedNoDbRow} skippedAlreadyMapped=${skippedAlreadyMapped} notFound=${notFound} noPrice=${noPrice} failed=${failed}`,
   );
 }
 
