@@ -233,6 +233,50 @@ describe("importProductByQuery", () => {
     assert.equal(product.id, mockProduct.id);
   });
 
+  it("falls back to Shihuo when Poizon getProductDetail fails", async () => {
+    class DetailFailProvider extends TestPoisonProvider {
+      async getProductDetail() {
+        throw new Error("Poizon API error: 503 Service Unavailable");
+      }
+    }
+
+    const shihuoHit: ShihuoSearchHit = {
+      goodsId: "3550572",
+      styleId: "72253127",
+      name: "adidas Adifom Climacool",
+      priceCny: 187,
+    };
+
+    const shihuoFull: ShihuoProductFull = {
+      goodsId: "3550572",
+      styleId: "72253127",
+      name: "adidas Adifom Climacool",
+      images: ["https://images.test/if3909.jpg"],
+      sizePricesCny: { "42": 187 },
+      stock: { "42": true },
+    };
+
+    const shihuoProvider = {
+      searchByArticle: async () => shihuoHit,
+      fetchProductFull: async () => shihuoFull,
+      fetchPrice: async () => null,
+    } as unknown as ShihuoPoparceProvider;
+
+    let upsertedPoizonId = "";
+    await importProductByQuery("IF3909", {
+      provider: new DetailFailProvider(),
+      shihuoProvider,
+      buildPricingContext: async () => pricingCtx,
+      refreshRatesFn: async () => {},
+      upsertImportedProduct: async (row) => {
+        upsertedPoizonId = row.poizon_id;
+      },
+      getProductByPoizonId: async () => mockProduct,
+    });
+
+    assert.equal(upsertedPoizonId, "shihuo:3550572:72253127");
+  });
+
   it("throws invalid for garbage input", async () => {
     await assert.rejects(
       () =>

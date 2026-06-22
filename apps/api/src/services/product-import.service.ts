@@ -93,6 +93,18 @@ async function resolveSpuIdFromPoizonSearch(
   return pickSpuIdFromArticleSearch(keyword, search.items);
 }
 
+async function tryResolveSpuIdFromPoizonSearch(
+  provider: IPoisonProvider,
+  keyword: string,
+): Promise<number | null> {
+  try {
+    return await resolveSpuIdFromPoizonSearch(provider, keyword);
+  } catch (err) {
+    console.warn("[import] Poizon search failed:", err);
+    return null;
+  }
+}
+
 async function resolveSpuId(
   provider: IPoisonProvider,
   ref: NonNullable<ReturnType<typeof resolvePoizonRef>>,
@@ -182,6 +194,29 @@ async function importFromPoizonSpuId(
   return product;
 }
 
+async function tryImportFromPoizonSpuId(
+  spuId: number,
+  deps: Required<
+    Pick<
+      ImportProductDeps,
+      | "provider"
+      | "upsertImportedProduct"
+      | "getProductByPoizonId"
+      | "buildPricingContext"
+      | "refreshRatesFn"
+    >
+  >,
+  pricingCtx: SyncPricingContext,
+): Promise<ProductDetail | null> {
+  try {
+    return await importFromPoizonSpuId(spuId, deps, pricingCtx);
+  } catch (err) {
+    if (err instanceof ProductImportError) throw err;
+    console.warn("[import] Poizon detail import failed:", err);
+    return null;
+  }
+}
+
 async function importFromShihuoArticle(
   keyword: string,
   shihuo: ShihuoPoparceProvider,
@@ -200,16 +235,26 @@ async function importFromShihuoArticle(
     throw new ProductImportError("Product not found", "not_found");
   }
 
-  let full = await shihuo.fetchProductFull(
-    searchHit.goodsId,
-    searchHit.styleId,
-  );
-
-  if (!full || Object.keys(full.sizePricesCny).length === 0) {
-    const priceResult = await shihuo.fetchPrice(
+  let full: ShihuoProductFull | null = null;
+  try {
+    full = await shihuo.fetchProductFull(
       searchHit.goodsId,
       searchHit.styleId,
     );
+  } catch (err) {
+    console.warn("[import] Shihuo product-full failed:", err);
+  }
+
+  if (!full || Object.keys(full.sizePricesCny).length === 0) {
+    let priceResult = null;
+    try {
+      priceResult = await shihuo.fetchPrice(
+        searchHit.goodsId,
+        searchHit.styleId,
+      );
+    } catch (err) {
+      console.warn("[import] Shihuo price failed:", err);
+    }
     if (!priceResult || priceResult.minPriceCny <= 0) {
       throw new ProductImportError("Product not found", "not_found");
     }
@@ -286,9 +331,14 @@ export async function importProductByQuery(
   };
 
   if (ref.kind === "article") {
-    const spuId = await resolveSpuIdFromPoizonSearch(provider, ref.keyword);
+    const spuId = await tryResolveSpuIdFromPoizonSearch(provider, ref.keyword);
     if (spuId != null) {
-      return importFromPoizonSpuId(spuId, resolvedDeps, pricingCtx);
+      const product = await tryImportFromPoizonSpuId(
+        spuId,
+        resolvedDeps,
+        pricingCtx,
+      );
+      if (product) return product;
     }
 
     const shihuo = deps.shihuoProvider ?? getShihuoPoparceProvider();

@@ -39,6 +39,9 @@ export async function importProductByArticle(
     if (/invalid/i.test(message)) {
       throw new ProductImportError(t("poizon_import_invalid"), 400);
     }
+    if (/import failed/i.test(message)) {
+      throw new ProductImportError(t("poizon_import_not_found"), 500);
+    }
     throw new ProductImportError(message, 500);
   }
 }
