@@ -1,8 +1,22 @@
 import { Hono } from "hono";
 import { verifyCronAuth } from "../lib/cron-auth.js";
 import { refreshRates } from "../services/currency.service.js";
+import { setTelegramWebhooks } from "../services/webhook-setup.service.js";
 
 const cron = new Hono();
+
+cron.get("/webhooks", async (c) => {
+  if (!verifyCronAuth(c.req.header("Authorization"))) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+  try {
+    const webhooks = await setTelegramWebhooks();
+    return c.json({ ok: true, webhooks });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "webhook setup failed";
+    return c.json({ ok: false, error: message }, 500);
+  }
+});
 
 cron.get("/rates", async (c) => {
   if (!verifyCronAuth(c.req.header("Authorization"))) {
