@@ -1,4 +1,9 @@
-import { hideKeyboard, isKeyboardDismissPaused } from "./lib/keyboard.js";
+import {
+  hideKeyboard,
+  isEditableElement,
+  isKeyboardDismissPaused,
+  isWithinEditableFocusGrace,
+} from "./lib/keyboard.js";
 
 /** Фон Mini App — совпадает с --color-bg в tokens.css */
 export const TG_BG = "#111317";
@@ -128,6 +133,8 @@ function bindTelegramEvents(): void {
   const onViewportChanged = () => {
     relayout();
     if (isKeyboardDismissPaused()) return;
+    if (isEditableElement(document.activeElement)) return;
+    if (isWithinEditableFocusGrace()) return;
     const vv = window.visualViewport;
     if (vv && vv.height >= window.innerHeight * 0.92) {
       hideKeyboard();

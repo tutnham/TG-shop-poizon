@@ -14,8 +14,8 @@ import {
   importAndOpenProduct,
 } from "../lib/import-actions.js";
 import {
-  bindKeyboardDismiss,
   hideKeyboard,
+  wireFormInput,
   wireSearchInput,
 } from "../lib/keyboard.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
@@ -56,7 +56,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   renderHeader(app, { showSearch: true });
 
   const pageRoot = ensurePageRoot(app);
-  bindKeyboardDismiss(pageRoot);
 
   const main = document.createElement("main");
   main.className = "home-main";
@@ -96,7 +95,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     "#poizon-import-error",
   ) as HTMLParagraphElement;
 
-  wireSearchInput(importInput);
+  wireFormInput(importInput);
 
   async function runImport(): Promise<void> {
     const query = importInput.value.trim();
@@ -403,7 +402,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       cardIndex = 0;
       allCards.length = 0;
       grid.innerHTML = "";
-      void loadMore().finally(() => hideKeyboard());
+      void loadMore();
     }, 350);
   });
 

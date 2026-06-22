@@ -25,6 +25,17 @@ export function hideKeyboard(): void {
 }
 
 let keyboardDismissPaused = false;
+let editableFocusedAt = 0;
+
+function noteEditableFocus(): void {
+  editableFocusedAt = Date.now();
+}
+
+function isWithinEditableFocusGrace(ms = 450): boolean {
+  return Date.now() - editableFocusedAt < ms;
+}
+
+export { isWithinEditableFocusGrace };
 
 /** Отключить автозакрытие клавиатуры (checkout и другие формы). */
 export function setKeyboardDismissPaused(paused: boolean): void {
@@ -44,11 +55,26 @@ export function isEditableElement(el: EventTarget | null): boolean {
   if (el.closest("input, textarea, select, [contenteditable='true']")) {
     return true;
   }
+  // Тап по области search-bar / import — фокус на input, не закрываем клавиатуру.
+  if (el.closest(".search-bar, .poizon-import-row__input")) return true;
   // Тап по <label> или подписи поля не должен закрывать клавиатуру до фокуса на input.
   const label = el.closest("label");
   if (label?.querySelector("input, textarea, select")) return true;
   // Тап по области формы checkout (отступы между полями) не должен сбрасывать ввод.
   return isCheckoutFormElement(el);
+}
+
+function focusSearchBarInput(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  const bar = el.closest(".search-bar, .poizon-import-row__input");
+  if (!bar) return false;
+  const input = bar.querySelector("input");
+  if (!(input instanceof HTMLInputElement)) return false;
+  noteEditableFocus();
+  if (document.activeElement !== input) {
+    input.focus();
+  }
+  return true;
 }
 
 function shouldDismissKeyboard(): boolean {
@@ -63,7 +89,9 @@ export function bindKeyboardDismiss(root: HTMLElement): void {
   root.addEventListener(
     "pointerdown",
     (e) => {
-      if (keyboardDismissPaused || isEditableElement(e.target)) return;
+      if (keyboardDismissPaused) return;
+      if (isEditableElement(e.target)) return;
+      if (focusSearchBarInput(e.target)) return;
       hideKeyboard();
     },
     { passive: true },
@@ -71,7 +99,7 @@ export function bindKeyboardDismiss(root: HTMLElement): void {
 
   let scrollTimer: ReturnType<typeof setTimeout> | undefined;
   const onScroll = (): void => {
-    if (keyboardDismissPaused) return;
+    if (keyboardDismissPaused || isWithinEditableFocusGrace()) return;
     clearTimeout(scrollTimer);
     scrollTimer = setTimeout(() => {
       if (shouldDismissKeyboard()) hideKeyboard();
@@ -86,6 +114,7 @@ export function bindKeyboardDismiss(root: HTMLElement): void {
 export function wireSearchInput(input: HTMLInputElement): void {
   input.setAttribute("enterkeyhint", "search");
   input.setAttribute("inputmode", "search");
+  input.addEventListener("focus", noteEditableFocus);
 
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -93,8 +122,16 @@ export function wireSearchInput(input: HTMLInputElement): void {
       hideKeyboard();
     }
   });
+}
 
-  input.addEventListener("blur", () => {
-    requestAnimationFrame(() => hideKeyboard());
+/** Поле ввода без автозакрытия клавиатуры на blur (импорт артикула и т.п.). */
+export function wireFormInput(input: HTMLInputElement): void {
+  input.addEventListener("focus", noteEditableFocus);
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      hideKeyboard();
+    }
   });
 }
