@@ -6,6 +6,8 @@ export interface ShihuoSearchHit {
   name: string;
   /** Search-list price in CNY when present */
   priceCny: number | null;
+  /** Cover image from search list when present */
+  imageUrl?: string | null;
 }
 
 export interface ShihuoPriceResult {
@@ -115,6 +117,25 @@ function itemRelevanceScore(
   return 0;
 }
 
+function readImageUrl(row: Record<string, unknown>): string | null {
+  const candidates = [
+    row.logoUrl,
+    row.imageUrl,
+    row.image,
+    row.cover,
+    row.coverUrl,
+    row.pic,
+    row.thumb,
+    row.thumbnail,
+    row.mainImage,
+    row.img,
+  ];
+  for (const value of candidates) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
+
 function mapSearchItem(item: unknown): ShihuoSearchHit | null {
   if (!item || typeof item !== "object") return null;
   const row = item as Record<string, unknown>;
@@ -132,6 +153,7 @@ function mapSearchItem(item: unknown): ShihuoSearchHit | null {
     styleId,
     name,
     priceCny: parseNumericPrice(row.price ?? row.minPrice ?? row.lowestPrice),
+    imageUrl: readImageUrl(row),
   };
 }
 
@@ -328,12 +350,18 @@ function extractProductImages(payload: Record<string, unknown>): string[] {
     if (typeof value === "string" && value.trim()) urls.push(value.trim());
   };
 
+  pushUrl(payload.logoUrl);
+  pushUrl(payload.imageUrl);
+  pushUrl(payload.coverUrl);
+  pushUrl(payload.mainImage);
+
   const images = payload.images ?? payload.gallery ?? payload.baseImage;
   if (Array.isArray(images)) {
     for (const img of images) {
       if (typeof img === "string") pushUrl(img);
       else if (img && typeof img === "object") {
         pushUrl((img as Record<string, unknown>).url);
+        pushUrl((img as Record<string, unknown>).imageUrl);
       }
     }
   }
@@ -344,6 +372,21 @@ function extractProductImages(payload: Record<string, unknown>): string[] {
   if (Array.isArray(spuImages)) {
     for (const img of spuImages) pushUrl(img.url);
   }
+
+  const nestedProduct = payload.product as Record<string, unknown> | undefined;
+  if (nestedProduct) {
+    pushUrl(nestedProduct.logoUrl);
+    pushUrl(nestedProduct.imageUrl);
+    const nestedImages = nestedProduct.images ?? nestedProduct.baseImage;
+    if (Array.isArray(nestedImages)) {
+      for (const img of nestedImages) {
+        if (typeof img === "string") pushUrl(img);
+      }
+    }
+  }
+
+  const detail = payload.detail as Record<string, unknown> | undefined;
+  if (detail) pushUrl(detail.logoUrl);
 
   return [...new Set(urls)];
 }

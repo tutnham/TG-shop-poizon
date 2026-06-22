@@ -5,6 +5,8 @@ const DEFAULT_ALLOWED_HOSTS = [
   "cdn.poizon.com",
   "img.poizon.com",
   "static.poizon.com",
+  "static.shihuocdn.cn",
+  "shihuocdn.cn",
   "poparce.ru",
 ];
 

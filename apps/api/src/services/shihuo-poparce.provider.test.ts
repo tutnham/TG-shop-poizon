@@ -198,6 +198,24 @@ describe("shihuo-poparce.provider parsers", () => {
     assert.equal(parsed!.stock["42"], false);
   });
 
+  it("parseProductFullResponse reads logoUrl and nested gallery images", () => {
+    const parsed = parseProductFullResponse(
+      {
+        goodsId: "397",
+        logoUrl: "https://images.test/cover.jpg",
+        gallery: ["https://images.test/1.jpg", "https://images.test/2.jpg"],
+      },
+      "397",
+    );
+
+    assert.ok(parsed);
+    assert.deepEqual(parsed!.images, [
+      "https://images.test/cover.jpg",
+      "https://images.test/1.jpg",
+      "https://images.test/2.jpg",
+    ]);
+  });
+
   it("parseProductFullResponse returns empty sizePricesCny when no priced sizes", () => {
     const parsed = parseProductFullResponse({
       goodsId: "1",

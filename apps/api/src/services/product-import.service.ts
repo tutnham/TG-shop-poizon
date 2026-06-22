@@ -51,6 +51,51 @@ export type ImportProductDeps = {
 
 const ARTICLE_SEARCH_LIMIT = 20;
 
+type PoizonArticleMatch = {
+  spuId: number;
+  item: PoisonProductRaw;
+};
+
+function normalizeImageUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === "http:") {
+      parsed.protocol = "https:";
+    }
+    if (parsed.protocol !== "https:") return "";
+    return parsed.href;
+  } catch {
+    return "";
+  }
+}
+
+function mergeImageUrls(...groups: string[][]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const group of groups) {
+    for (const raw of group) {
+      const url = normalizeImageUrl(raw);
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+  }
+  return out;
+}
+
+function collectPoizonImages(item: PoisonProductRaw): string[] {
+  const urls: string[] = [];
+  const add = (url: string | undefined) => {
+    const trimmed = url?.trim();
+    if (trimmed && !urls.includes(trimmed)) urls.push(trimmed);
+  };
+  add(item.logoUrl);
+  for (const img of item.images ?? []) add(img);
+  return urls;
+}
+
 function pickSpuIdFromArticleSearch(
   keyword: string,
   items: PoisonProductRaw[],
@@ -81,28 +126,48 @@ function pickSpuIdFromArticleSearch(
   return null;
 }
 
-async function resolveSpuIdFromPoizonSearch(
+async function resolvePoizonArticleMatch(
   provider: IPoisonProvider,
   keyword: string,
-): Promise<number | null> {
+): Promise<PoizonArticleMatch | null> {
   const search = await provider.searchProducts(
     keyword,
     ARTICLE_SEARCH_LIMIT,
     0,
   );
-  return pickSpuIdFromArticleSearch(keyword, search.items);
+  const spuId = pickSpuIdFromArticleSearch(keyword, search.items);
+  if (spuId == null) return null;
+  const item = search.items.find((entry) => entry.spuId === spuId);
+  if (!item) return null;
+  return { spuId, item };
+}
+
+async function resolveSpuIdFromPoizonSearch(
+  provider: IPoisonProvider,
+  keyword: string,
+): Promise<number | null> {
+  const match = await resolvePoizonArticleMatch(provider, keyword);
+  return match?.spuId ?? null;
+}
+
+async function tryResolvePoizonArticleMatch(
+  provider: IPoisonProvider,
+  keyword: string,
+): Promise<PoizonArticleMatch | null> {
+  try {
+    return await resolvePoizonArticleMatch(provider, keyword);
+  } catch (err) {
+    console.warn("[import] Poizon search failed:", err);
+    return null;
+  }
 }
 
 async function tryResolveSpuIdFromPoizonSearch(
   provider: IPoisonProvider,
   keyword: string,
 ): Promise<number | null> {
-  try {
-    return await resolveSpuIdFromPoizonSearch(provider, keyword);
-  } catch (err) {
-    console.warn("[import] Poizon search failed:", err);
-    return null;
-  }
+  const match = await tryResolvePoizonArticleMatch(provider, keyword);
+  return match?.spuId ?? null;
 }
 
 async function resolveSpuId(
@@ -129,6 +194,7 @@ function mapShihuoProductToUpsertRow(
   full: ShihuoProductFull,
   hit: ShihuoSearchHit,
   ctx: SyncPricingContext,
+  fallbackImages: string[] = [],
 ): UpsertRow {
   const sizePrices = buildSizePricesFromCny(full.sizePricesCny, ctx);
   const scalar = minSizePrice(sizePrices);
@@ -142,13 +208,18 @@ function mapShihuoProductToUpsertRow(
 
   const name = full.name.trim() || hit.name.trim() || "Imported product";
   const brand = name.split(/\s+/)[0] ?? null;
+  const imageUrls = mergeImageUrls(
+    fallbackImages,
+    full.images,
+    hit.imageUrl ? [hit.imageUrl] : [],
+  );
 
   return {
     poizon_id: buildShihuoPoizonId(full.goodsId, full.styleId),
     name,
     brand,
     category_id: null,
-    image_urls: full.images.length ? full.images : [],
+    image_urls: imageUrls,
     price_cny: scalar.cny,
     price_rub: scalar.rub,
     price_usdt: scalar.usdt,
@@ -223,6 +294,7 @@ async function importFromShihuoArticle(
   upsertImportedProduct: typeof productRepo.upsertImportedProduct,
   getProductByPoizonId: typeof productRepo.getProductByPoizonId,
   pricingCtx: SyncPricingContext,
+  fallbackImages: string[] = [],
 ): Promise<ProductDetail> {
   let searchHit: ShihuoSearchHit | null;
   try {
@@ -264,13 +336,17 @@ async function importFromShihuoArticle(
       searchHit.goodsId,
       searchHit.styleId,
     );
+    const imageUrls = mergeImageUrls(
+      fallbackImages,
+      searchHit.imageUrl ? [searchHit.imageUrl] : [],
+    );
 
     await upsertImportedProduct({
       poizon_id: poizonId,
       name: searchHit.name.trim() || keyword,
       brand: searchHit.name.split(/\s+/)[0] ?? null,
       category_id: null,
-      image_urls: [],
+      image_urls: imageUrls,
       price_cny: Math.round(priceResult.minPriceCny * 100) / 100,
       price_rub: prices.rub,
       price_usdt: prices.usdt,
@@ -290,7 +366,12 @@ async function importFromShihuoArticle(
     return product;
   }
 
-  const row = mapShihuoProductToUpsertRow(full, searchHit, pricingCtx);
+  const row = mapShihuoProductToUpsertRow(
+    full,
+    searchHit,
+    pricingCtx,
+    fallbackImages,
+  );
   await upsertImportedProduct(row);
 
   const product = await getProductByPoizonId(row.poizon_id);
@@ -331,10 +412,13 @@ export async function importProductByQuery(
   };
 
   if (ref.kind === "article") {
-    const spuId = await tryResolveSpuIdFromPoizonSearch(provider, ref.keyword);
-    if (spuId != null) {
+    const poizonMatch = await tryResolvePoizonArticleMatch(
+      provider,
+      ref.keyword,
+    );
+    if (poizonMatch) {
       const product = await tryImportFromPoizonSpuId(
-        spuId,
+        poizonMatch.spuId,
         resolvedDeps,
         pricingCtx,
       );
@@ -348,6 +432,7 @@ export async function importProductByQuery(
       upsertImportedProduct,
       getProductByPoizonId,
       pricingCtx,
+      poizonMatch ? collectPoizonImages(poizonMatch.item) : [],
     );
   }
 

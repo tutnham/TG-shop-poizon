@@ -65,6 +65,7 @@ async function main(): Promise<void> {
   try {
     const product = await importProductByQuery(keyword);
     console.log("Import OK:", product.id, product.name, product.price_rub);
+    console.log("Import images:", product.image_urls?.length ?? 0, product.image_url);
   } catch (e) {
     console.error(
       "Import FAIL:",

@@ -263,6 +263,7 @@ describe("importProductByQuery", () => {
     } as unknown as ShihuoPoparceProvider;
 
     let upsertedPoizonId = "";
+    let upsertedImages: string[] = [];
     await importProductByQuery("IF3909", {
       provider: new DetailFailProvider(),
       shihuoProvider,
@@ -270,11 +271,13 @@ describe("importProductByQuery", () => {
       refreshRatesFn: async () => {},
       upsertImportedProduct: async (row) => {
         upsertedPoizonId = row.poizon_id;
+        upsertedImages = row.image_urls;
       },
       getProductByPoizonId: async () => mockProduct,
     });
 
     assert.equal(upsertedPoizonId, "shihuo:3550572:72253127");
+    assert.ok(upsertedImages.length > 0);
   });
 
   it("throws invalid for garbage input", async () => {
