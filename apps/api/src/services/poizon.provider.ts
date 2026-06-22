@@ -15,6 +15,8 @@ export interface PoisonProductRaw {
   /** Размер → цена в фэнях */
   sizePricesFen: Record<string, number>;
   soldCount: number;
+  /** Артикул производителя (если вернул search API) */
+  articleNumber?: string;
 }
 
 export interface IPoisonProvider {

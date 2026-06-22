@@ -65,22 +65,21 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   importSection.className = "poizon-import-section";
   importSection.innerHTML = `
     <h2 class="poizon-import-section__title">${t("poizon_import_title")}</h2>
-    <div class="poizon-import-row">
-      <div class="search-bar poizon-import-row__input">
-        <span class="material-symbols-outlined search-bar__icon">link</span>
-        <input
-          type="text"
-          id="poizon-import-input"
-          placeholder="${t("poizon_import_placeholder")}"
-          autocomplete="off"
-          enterkeyhint="go"
-          inputmode="text"
-        />
-      </div>
-      <button type="button" class="btn-primary poizon-import-row__btn" id="poizon-import-btn">
-        ${t("poizon_import_button")}
-      </button>
+    <div class="search-bar poizon-import-section__input">
+      <span class="material-symbols-outlined search-bar__icon">search</span>
+      <input
+        type="text"
+        id="poizon-import-input"
+        placeholder="${t("poizon_import_placeholder")}"
+        autocomplete="off"
+        enterkeyhint="go"
+        inputmode="text"
+      />
     </div>
+    <p class="poizon-import-section__hint">${t("poizon_import_hint")}</p>
+    <button type="button" class="btn-primary poizon-import-section__btn" id="poizon-import-btn">
+      ${t("poizon_import_button")}
+    </button>
     <p class="poizon-import-section__error" id="poizon-import-error" hidden></p>
   `;
   main.appendChild(importSection);

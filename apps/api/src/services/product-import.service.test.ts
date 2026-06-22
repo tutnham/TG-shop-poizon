@@ -4,6 +4,11 @@ import type { ProductDetail } from "@poizon-shop/shared";
 import Decimal from "decimal.js";
 import type { IPoisonProvider } from "./poizon.provider.js";
 import type { SyncPricingContext } from "./pricing.service.js";
+import type {
+  ShihuoPoparceProvider,
+  ShihuoProductFull,
+  ShihuoSearchHit,
+} from "./shihuo-poparce.provider.js";
 import {
   ProductImportError,
   importProductByQuery,
@@ -107,7 +112,7 @@ describe("importProductByQuery", () => {
     provider.searchProducts = async (keyword, limit, page) => {
       searched = true;
       assert.equal(keyword, "DD1391-100");
-      assert.equal(limit, 5);
+      assert.equal(limit, 20);
       assert.equal(page, 0);
       return originalSearch(keyword, limit, page);
     };
@@ -121,6 +126,111 @@ describe("importProductByQuery", () => {
     });
 
     assert.equal(searched, true);
+  });
+
+  it("matches articleNumber in search results instead of first item", async () => {
+    class MultiResultProvider extends TestPoisonProvider {
+      async searchProducts() {
+        return {
+          items: [
+            {
+              spuId: 999,
+              title: "Wrong shoe",
+              englishTitle: "Wrong shoe",
+              brand: "Nike",
+              logoUrl: "https://images.test/wrong.jpg",
+              priceFen: 10000,
+              inStock: true,
+              images: [],
+              sizes: {},
+              sizePricesFen: {},
+              soldCount: 0,
+              articleNumber: "ABC-123",
+            },
+            {
+              spuId: 100001,
+              title: "Air Jordan 1",
+              englishTitle: "Air Jordan 1",
+              brand: "Jordan",
+              logoUrl: "https://images.test/1.jpg",
+              priceFen: 45000,
+              inStock: true,
+              images: ["https://images.test/1.jpg"],
+              sizes: { "42": true },
+              sizePricesFen: { "42": 45000 },
+              soldCount: 1,
+              articleNumber: "DD1391-100",
+            },
+          ],
+          hasMore: false,
+          total: 2,
+        };
+      }
+    }
+
+    let importedSpuId = "";
+    await importProductByQuery("DD1391-100", {
+      provider: new MultiResultProvider(),
+      buildPricingContext: async () => pricingCtx,
+      refreshRatesFn: async () => {},
+      upsertImportedProduct: async (row) => {
+        importedSpuId = row.poizon_id;
+      },
+      getProductByPoizonId: async () => mockProduct,
+    });
+
+    assert.equal(importedSpuId, "100001");
+  });
+
+  it("falls back to Shihuo when Poizon search misses article", async () => {
+    class EmptySearchProvider extends TestPoisonProvider {
+      async searchProducts() {
+        return { items: [], hasMore: false, total: 0 };
+      }
+    }
+
+    const shihuoHit: ShihuoSearchHit = {
+      goodsId: "7600174",
+      styleId: "4244972",
+      name: "Nike Dunk Low Panda",
+      priceCny: 450,
+    };
+
+    const shihuoFull: ShihuoProductFull = {
+      goodsId: "7600174",
+      styleId: "4244972",
+      name: "Nike Dunk Low Panda",
+      images: ["https://images.test/shihuo.jpg"],
+      sizePricesCny: { "42": 450, "43": 470 },
+      stock: { "42": true, "43": true },
+    };
+
+    const shihuoProvider = {
+      searchByArticle: async (vendorCode: string) => {
+        assert.equal(vendorCode, "DD1391-100");
+        return shihuoHit;
+      },
+      fetchProductFull: async () => shihuoFull,
+      fetchPrice: async () => null,
+    } as unknown as ShihuoPoparceProvider;
+
+    let upsertedPoizonId = "";
+    const product = await importProductByQuery("DD1391-100", {
+      provider: new EmptySearchProvider(),
+      shihuoProvider,
+      buildPricingContext: async () => pricingCtx,
+      refreshRatesFn: async () => {},
+      upsertImportedProduct: async (row) => {
+        upsertedPoizonId = row.poizon_id;
+        assert.equal(row.shihuo_goods_id, "7600174");
+        assert.equal(row.shihuo_style_id, "4244972");
+        assert.equal(row.name, "Nike Dunk Low Panda");
+      },
+      getProductByPoizonId: async () => mockProduct,
+    });
+
+    assert.equal(upsertedPoizonId, "shihuo:7600174:4244972");
+    assert.equal(product.id, mockProduct.id);
   });
 
   it("throws invalid for garbage input", async () => {

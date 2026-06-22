@@ -31,6 +31,8 @@ function normalizeArticle(value: string): string {
   return value.trim().toUpperCase().replace(/[\s_-]+/g, "");
 }
 
+export { normalizeArticle };
+
 function parseNumericPrice(value: unknown): number | null {
   if (value == null || value === "") return null;
   const num = typeof value === "number" ? value : Number(String(value).trim());

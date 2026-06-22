@@ -189,6 +189,8 @@ type UpsertProductRow = {
   stock: Record<string, boolean>;
   sold_count: number;
   is_available: boolean;
+  shihuo_goods_id?: string | null;
+  shihuo_style_id?: string | null;
 };
 
 export async function upsertProductFromPoizon(

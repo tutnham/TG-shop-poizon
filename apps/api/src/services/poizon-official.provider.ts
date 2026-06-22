@@ -108,6 +108,7 @@ export class PoizonOfficialProvider implements IPoisonProvider {
           sizes: {},
           sizePricesFen: {},
           soldCount: 0,
+          articleNumber: p.articleNumber || undefined,
         }));
 
         const total = data.total ?? items.length;
