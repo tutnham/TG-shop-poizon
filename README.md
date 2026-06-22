@@ -249,6 +249,10 @@ npm run webhook:set
 | `003_exchange_rates.sql` | Таблица курсов валют |
 | `004_perf_indexes.sql` | Индексы для производительности |
 | `005_constraints.sql` | CHECK-ограничения и дополнительные индексы |
+| `006_size_prices.sql` | Колонка `size_prices` (JSONB) для цен по размерам |
+| `007_shihuo_product_ids.sql` | Колонки `shihuo_goods_id`, `shihuo_style_id` для Shihuo backfill |
+| `008_rls.sql` | Row Level Security для таблиц |
+| `009_create_order_atomic.sql` | RPC `create_shop_order` — атомарное создание заказа + оплата + очистка корзины |
 
 ---
 
@@ -267,6 +271,7 @@ npm run webhook:set
 | `npm test` | Запуск тестов |
 | `npm run rates:update` | Обновление курсов валют |
 | `npm run webhook:set` | Установка webhook для ботов |
+| `npm run cron:webhooks` | Ручной вызов `GET /cron/webhooks` (нужны `API_URL`, `CRON_SECRET`) |
 | `npm run sync:poizon` | Синхронизация товаров с Poizon |
 
 ### Скрипты API (`apps/api`)
@@ -458,7 +463,18 @@ curl -X POST "https://api.telegram.org/bot<ADMIN_TOKEN>/setWebhook" \
 
 ### 7. Vercel Cron
 
-В `vercel.json` настроен cron `GET /cron/rates` каждый час. Vercel передает `Authorization: Bearer <CRON_SECRET>`.
+В `vercel.json` настроены cron-задачи (Vercel передаёт `Authorization: Bearer <CRON_SECRET>`):
+
+| Путь | Расписание | Назначение |
+|------|----------|------------|
+| `GET /cron/rates` | `0 0 * * *` (ежедневно) | Обновление курсов CNY/RUB и USDT/RUB |
+| `GET /cron/webhooks` | `0 1 * * *` (ежедневно) | Перерегистрация Telegram webhooks после redeploy |
+
+Ручной вызов (локально с `.env`):
+
+```bash
+npm run cron:webhooks
+```
 
 ### 8. Проверка
 

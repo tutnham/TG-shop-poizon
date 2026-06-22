@@ -4,9 +4,7 @@
 
 1. Создайте проект на https://supabase.com
 2. SQL Editor → выполните по порядку:
-   - `infra/supabase/migrations/001_init.sql`
-   - `infra/supabase/migrations/002_demo_seed.sql`
-   - `infra/supabase/migrations/003_exchange_rates.sql`
+   - `infra/supabase/migrations/001_init.sql` … `009_create_order_atomic.sql` (см. README, раздел «База данных»)
 3. Settings → API: скопируйте `URL` и `service_role` key
 
 ## 2. Telegram боты
@@ -66,7 +64,20 @@ bun run --cwd apps/api webhook:set
 bun run --cwd apps/api rates:update
 ```
 
-Vercel Cron (в `vercel.json`): `GET /cron/rates` каждый час. Vercel передаёт `Authorization: Bearer <CRON_SECRET>` при совпадении env `CRON_SECRET`.
+Vercel Cron (в `vercel.json`):
+
+| Путь | Расписание |
+|------|------------|
+| `GET /cron/rates` | ежедневно 00:00 UTC |
+| `GET /cron/webhooks` | ежедневно 01:00 UTC |
+
+Vercel передаёт `Authorization: Bearer <CRON_SECRET>` при совпадении env `CRON_SECRET`.
+
+Ручной вызов webhook-cron:
+
+```bash
+npm run cron:webhooks
+```
 
 Или вручную:
 

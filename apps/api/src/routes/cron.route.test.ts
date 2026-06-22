@@ -3,6 +3,39 @@ import { afterEach, describe, it } from "node:test";
 import { Hono } from "hono";
 import { cron } from "./cron.route.js";
 
+describe("GET /cron/webhooks", () => {
+  const env = process.env;
+
+  afterEach(() => {
+    process.env = { ...env };
+  });
+
+  it("returns 401 without auth in production", async () => {
+    process.env.NODE_ENV = "production";
+    process.env.CRON_SECRET = "cron-test-secret-32-characters!!";
+    const app = new Hono().route("/cron", cron);
+    const res = await app.request("/cron/webhooks");
+    assert.equal(res.status, 401);
+  });
+
+  it("returns 500 when bot tokens are missing", async () => {
+    const secret = "cron-test-secret-32-characters!!";
+    process.env.NODE_ENV = "production";
+    process.env.CRON_SECRET = secret;
+    delete process.env.SHOP_BOT_TOKEN;
+    delete process.env.ADMIN_BOT_TOKEN;
+
+    const app = new Hono().route("/cron", cron);
+    const res = await app.request("/cron/webhooks", {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+    assert.equal(res.status, 500);
+    const body = (await res.json()) as { ok: boolean; error: string };
+    assert.equal(body.ok, false);
+    assert.match(body.error, /SHOP_BOT_TOKEN/);
+  });
+});
+
 describe("GET /cron/rates", () => {
   const env = process.env;
 

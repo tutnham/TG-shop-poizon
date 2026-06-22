@@ -29,6 +29,10 @@
     {
       "path": "/cron/rates",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/cron/webhooks",
+      "schedule": "0 1 * * *"
     }
   ]
 }
