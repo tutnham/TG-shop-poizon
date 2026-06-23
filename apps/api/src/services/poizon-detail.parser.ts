@@ -29,6 +29,61 @@ type DetailPayload = {
   skuList?: Parameters<typeof mapGoodsInfoSkuList>[0];
 };
 
+type PriceInfoSku = {
+  quantity?: number;
+  prices?: Array<{ price?: number; floorPrice?: number }>;
+};
+
+/** Merge /productDetail skus with /priceInfo map into productDetailWithPrice shape. */
+export function mergeOfficialDetailWithPriceInfo(
+  detailRaw: unknown,
+  priceInfoRaw: unknown,
+): unknown {
+  if (!detailRaw || typeof detailRaw !== "object") return detailRaw;
+
+  const detailRoot = detailRaw as Record<string, unknown>;
+  const detailPayload = (
+    detailRoot.result && typeof detailRoot.result === "object"
+      ? detailRoot.result
+      : detailRoot
+  ) as Record<string, unknown>;
+
+  if (!priceInfoRaw || typeof priceInfoRaw !== "object") return detailRaw;
+
+  const priceRoot = priceInfoRaw as Record<string, unknown>;
+  const pricePayload =
+    priceRoot.result && typeof priceRoot.result === "object"
+      ? (priceRoot.result as Record<string, unknown>)
+      : priceRoot;
+  const skusMap = pricePayload.skus as Record<string, PriceInfoSku> | undefined;
+  if (!skusMap || typeof skusMap !== "object") return detailRaw;
+
+  const detailSkus = detailPayload.skus;
+  if (!Array.isArray(detailSkus)) return detailRaw;
+
+  const mergedSkus = detailSkus.map((sku) => {
+    if (!sku || typeof sku !== "object") return sku;
+    const row = sku as Record<string, unknown>;
+    const skuId = row.skuId;
+    if (skuId == null) return sku;
+
+    const priceEntry = skusMap[String(skuId)];
+    if (!priceEntry?.prices?.length) return sku;
+
+    return {
+      ...row,
+      status: row.status ?? 1,
+      price: { prices: priceEntry.prices },
+    };
+  });
+
+  const mergedPayload = { ...detailPayload, skus: mergedSkus };
+  if (detailRoot.result && typeof detailRoot.result === "object") {
+    return { ...detailRoot, result: mergedPayload };
+  }
+  return mergedPayload;
+}
+
 /** Нормализует ответ productDetailWithPrice / goodsInfo в PoisonProductRaw */
 export function parsePoizonDetailResponse(
   raw: unknown,

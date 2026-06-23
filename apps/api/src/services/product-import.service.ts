@@ -1,5 +1,6 @@
 import type { ProductDetail } from "@poizon-shop/shared";
 import * as productRepo from "../db/product.repository.js";
+import { isRetryableUpstreamError } from "../lib/upstream-error.js";
 import { refreshRates } from "./currency.service.js";
 import { resolvePoizonRef } from "./poizon-ref-resolver.js";
 import {
@@ -26,7 +27,10 @@ import {
   type ShihuoSearchHit,
 } from "./shihuo-poparce.provider.js";
 
-export type ProductImportErrorCode = "invalid" | "not_found";
+export type ProductImportErrorCode =
+  | "invalid"
+  | "not_found"
+  | "upstream_unavailable";
 
 export class ProductImportError extends Error {
   readonly code: ProductImportErrorCode;
@@ -35,6 +39,19 @@ export class ProductImportError extends Error {
     super(message);
     this.name = "ProductImportError";
     this.code = code;
+  }
+}
+
+function upstreamUnavailableError(): ProductImportError {
+  return new ProductImportError(
+    "Import service temporarily unavailable",
+    "upstream_unavailable",
+  );
+}
+
+function throwIfRetryableUpstream(err: unknown): void {
+  if (isRetryableUpstreamError(err)) {
+    throw upstreamUnavailableError();
   }
 }
 
@@ -121,7 +138,7 @@ function pickSpuIdFromArticleSearch(
     }
   }
 
-  if (items.length === 1) return items[0].spuId;
+  if (items.length === 1) return items[0]!.spuId;
 
   return null;
 }
@@ -247,7 +264,14 @@ async function importFromPoizonSpuId(
   >,
   pricingCtx: SyncPricingContext,
 ): Promise<ProductDetail> {
-  const detail = await deps.provider.getProductDetail(spuId);
+  let detail: PoisonProductRaw | null;
+  try {
+    detail = await deps.provider.getProductDetail(spuId);
+  } catch (err) {
+    throwIfRetryableUpstream(err);
+    throw err;
+  }
+
   if (!detail) {
     throw new ProductImportError("Product not found", "not_found");
   }
@@ -283,6 +307,7 @@ async function tryImportFromPoizonSpuId(
     return await importFromPoizonSpuId(spuId, deps, pricingCtx);
   } catch (err) {
     if (err instanceof ProductImportError) throw err;
+    throwIfRetryableUpstream(err);
     console.warn("[import] Poizon detail import failed:", err);
     return null;
   }
@@ -295,11 +320,14 @@ async function importFromShihuoArticle(
   getProductByPoizonId: typeof productRepo.getProductByPoizonId,
   pricingCtx: SyncPricingContext,
   fallbackImages: string[] = [],
+  hadPoizonMatch = false,
 ): Promise<ProductDetail> {
   let searchHit: ShihuoSearchHit | null;
   try {
     searchHit = await shihuo.searchByArticle(keyword);
-  } catch {
+  } catch (err) {
+    if (hadPoizonMatch) throw upstreamUnavailableError();
+    throwIfRetryableUpstream(err);
     throw new ProductImportError("Product not found", "not_found");
   }
 
@@ -315,6 +343,7 @@ async function importFromShihuoArticle(
     );
   } catch (err) {
     console.warn("[import] Shihuo product-full failed:", err);
+    throwIfRetryableUpstream(err);
   }
 
   if (!full || Object.keys(full.sizePricesCny).length === 0) {
@@ -326,8 +355,10 @@ async function importFromShihuoArticle(
       );
     } catch (err) {
       console.warn("[import] Shihuo price failed:", err);
+      throwIfRetryableUpstream(err);
     }
     if (!priceResult || priceResult.minPriceCny <= 0) {
+      if (hadPoizonMatch) throw upstreamUnavailableError();
       throw new ProductImportError("Product not found", "not_found");
     }
 
@@ -417,12 +448,21 @@ export async function importProductByQuery(
       ref.keyword,
     );
     if (poizonMatch) {
-      const product = await tryImportFromPoizonSpuId(
-        poizonMatch.spuId,
-        resolvedDeps,
-        pricingCtx,
-      );
-      if (product) return product;
+      try {
+        const product = await tryImportFromPoizonSpuId(
+          poizonMatch.spuId,
+          resolvedDeps,
+          pricingCtx,
+        );
+        if (product) return product;
+      } catch (err) {
+        if (
+          err instanceof ProductImportError &&
+          err.code === "upstream_unavailable"
+        ) {
+          throw err;
+        }
+      }
     }
 
     const shihuo = deps.shihuoProvider ?? getShihuoPoparceProvider();
@@ -433,6 +473,7 @@ export async function importProductByQuery(
       getProductByPoizonId,
       pricingCtx,
       poizonMatch ? collectPoizonImages(poizonMatch.item) : [],
+      Boolean(poizonMatch),
     );
   }
 

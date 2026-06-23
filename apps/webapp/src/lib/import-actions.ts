@@ -38,6 +38,11 @@ export async function importProductByArticle(
     if (/rate limit/i.test(message)) {
       throw new ProductImportError(t("poizon_import_rate_limited"), 429);
     }
+    if (
+      /temporarily unavailable|service unavailable|503/i.test(message)
+    ) {
+      throw new ProductImportError(t("poizon_import_upstream"), 503);
+    }
     if (/not found/i.test(message)) {
       throw new ProductImportError(t("poizon_import_not_found"), 404);
     }

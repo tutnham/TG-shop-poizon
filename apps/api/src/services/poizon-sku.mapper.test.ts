@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { parsePoizonDetailResponse } from "./poizon-detail.parser.js";
+import {
+  mergeOfficialDetailWithPriceInfo,
+  parsePoizonDetailResponse,
+} from "./poizon-detail.parser.js";
 import {
   mapDetailWithPriceSkus,
   mapGoodsInfoSkuList,
@@ -157,5 +160,56 @@ describe("poizon-detail.parser", () => {
     assert.ok(parsed);
     assert.equal(parsed!.englishTitle, "Jordan 1 Retro High");
     assert.equal(parsed!.sizePricesFen["40"], 499700);
+  });
+
+  it("mergeOfficialDetailWithPriceInfo attaches sku prices from priceInfo", () => {
+    const merged = mergeOfficialDetailWithPriceInfo(
+      {
+        detail: {
+          spuId: 3771712,
+          title: "Adidas AdiFOM Q",
+          logoUrl: "https://images.test/1.jpg",
+          status: 1,
+          articleNumber: "HQ4322",
+        },
+        skus: [
+          {
+            skuId: 1001,
+            spuId: 3771712,
+            status: 1,
+            properties: [
+              {
+                level: 2,
+                saleProperty: { name: "Size", value: "42" },
+              },
+            ],
+          },
+          {
+            skuId: 1002,
+            spuId: 3771712,
+            status: 1,
+            properties: [
+              {
+                level: 2,
+                saleProperty: { name: "Size", value: "43" },
+              },
+            ],
+          },
+        ],
+      },
+      {
+        skus: {
+          "1001": { prices: [{ price: 450000 }] },
+          "1002": { prices: [{ price: 470000 }] },
+        },
+      },
+    );
+
+    const parsed = parsePoizonDetailResponse(merged, 3771712);
+    assert.ok(parsed);
+    assert.equal(parsed!.spuId, 3771712);
+    assert.equal(parsed!.sizePricesFen["42"], 450000);
+    assert.equal(parsed!.sizePricesFen["43"], 470000);
+    assert.equal(parsed!.priceFen, 450000);
   });
 });

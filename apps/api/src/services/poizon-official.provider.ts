@@ -1,12 +1,17 @@
+import { isRetryableUpstreamError } from "../lib/upstream-error.js";
 import { getEnvOptional } from "../types/env.types.js";
 import { withCache } from "./cache.service.js";
-import { parsePoizonDetailResponse } from "./poizon-detail.parser.js";
+import {
+  mergeOfficialDetailWithPriceInfo,
+  parsePoizonDetailResponse,
+} from "./poizon-detail.parser.js";
 import type { IPoisonProvider, PoisonProductRaw } from "./poizon.provider.js";
 
 const NOT_CONFIGURED =
   "Poizon official API not configured. Set POIZON_OFFICIAL_API_URL and POIZON_OFFICIAL_API_KEY, or use POIZON_PROVIDER=poparce|mock.";
 
 const PLACEHOLDER_HOSTS = new Set(["api.poizon-api.example"]);
+const FETCH_TIMEOUT_MS = 15_000;
 
 /**
  * Провайдер для https://github.com/Poizon-API/public-api (poizon-api.com).
@@ -54,7 +59,7 @@ export class PoizonOfficialProvider implements IPoisonProvider {
 
     const res = await fetch(url.toString(), {
       headers: { "x-api-key": key, "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
 
     if (!res.ok) {
@@ -64,6 +69,24 @@ export class PoizonOfficialProvider implements IPoisonProvider {
       );
     }
     return res.json() as Promise<T>;
+  }
+
+  private async fetchDetailWithPriceFallback(spuId: number): Promise<unknown> {
+    try {
+      return await this.fetch<unknown>("/productDetailWithPrice", { spuId });
+    } catch (err) {
+      if (!isRetryableUpstreamError(err)) throw err;
+    }
+
+    const detail = await this.fetch<unknown>("/productDetail", { spuId });
+
+    try {
+      const priceInfo = await this.fetch<unknown>("/priceInfo", { spuId });
+      return mergeOfficialDetailWithPriceInfo(detail, priceInfo);
+    } catch (err) {
+      if (!isRetryableUpstreamError(err)) throw err;
+      return detail;
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -119,12 +142,12 @@ export class PoizonOfficialProvider implements IPoisonProvider {
   }
 
   // -----------------------------------------------------------------------
-  // getProductDetail (через productDetailWithPrice)
+  // getProductDetail (productDetailWithPrice → productDetail + priceInfo)
   // -----------------------------------------------------------------------
   async getProductDetail(spuId: number): Promise<PoisonProductRaw | null> {
     this.ensureConfigured();
     return withCache(`official-product:${spuId}`, 30 * 60, async () => {
-      const raw = await this.fetch<unknown>("/productDetailWithPrice", { spuId });
+      const raw = await this.fetchDetailWithPriceFallback(spuId);
       return parsePoizonDetailResponse(raw, spuId);
     });
   }

@@ -233,10 +233,10 @@ describe("importProductByQuery", () => {
     assert.equal(product.id, mockProduct.id);
   });
 
-  it("falls back to Shihuo when Poizon getProductDetail fails", async () => {
+  it("falls back to Shihuo when Poizon getProductDetail fails with non-retryable error", async () => {
     class DetailFailProvider extends TestPoisonProvider {
       async getProductDetail() {
-        throw new Error("Poizon API error: 503 Service Unavailable");
+        throw new Error("Poizon API error: 400 Bad Request — invalid spu");
       }
     }
 
@@ -278,6 +278,51 @@ describe("importProductByQuery", () => {
 
     assert.equal(upsertedPoizonId, "shihuo:3550572:72253127");
     assert.ok(upsertedImages.length > 0);
+  });
+
+  it("throws upstream_unavailable when Poizon match found but detail is retryable", async () => {
+    class MatchThenFailProvider extends TestPoisonProvider {
+      async searchProducts() {
+        return {
+          items: [
+            {
+              spuId: 3771712,
+              title: "Adidas AdiFOM Q",
+              englishTitle: "Adidas AdiFOM Q",
+              brand: "adidas",
+              logoUrl: "https://images.test/1.jpg",
+              priceFen: 0,
+              inStock: true,
+              images: ["https://images.test/1.jpg"],
+              sizes: {},
+              sizePricesFen: {},
+              soldCount: 0,
+              articleNumber: "HQ4322",
+            },
+          ],
+          hasMore: false,
+          total: 1,
+        };
+      }
+
+      async getProductDetail() {
+        throw new Error("Poizon API error: 503 Service Unavailable");
+      }
+    }
+
+    await assert.rejects(
+      () =>
+        importProductByQuery("HQ4322", {
+          provider: new MatchThenFailProvider(),
+          buildPricingContext: async () => pricingCtx,
+          refreshRatesFn: async () => {},
+        }),
+      (err: unknown) => {
+        assert.ok(err instanceof ProductImportError);
+        assert.equal(err.code, "upstream_unavailable");
+        return true;
+      },
+    );
   });
 
   it("throws invalid for garbage input", async () => {

@@ -176,6 +176,9 @@ shop.post(
         if (err.code === "invalid") {
           return c.json({ error: err.message }, 400);
         }
+        if (err.code === "upstream_unavailable") {
+          return c.json({ error: err.message }, 503);
+        }
         return c.json({ error: err.message }, 404);
       }
       console.error("[products/import]", err);

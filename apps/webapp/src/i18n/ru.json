@@ -10,6 +10,7 @@
   "poizon_import_hint": "Артикул Nike/Adidas · числовой spuId · ссылка Poizon или Dewu",
   "poizon_import_button": "Найти товар",
   "poizon_import_not_found": "Товар не найден. Проверьте артикул или ссылку",
+  "poizon_import_upstream": "Сервис Poizon временно перегружен. Попробуйте повторить через минуту",
   "poizon_import_invalid": "Не удалось распознать артикул или ссылку",
   "poizon_import_rate_limited": "Слишком много запросов. Попробуйте через минуту",
   "poizon_import_success": "Товар добавлен в каталог",
