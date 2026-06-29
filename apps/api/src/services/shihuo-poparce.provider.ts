@@ -496,7 +496,7 @@ export class ShihuoPoparceProvider {
 
     const res = await fetch(url, {
       headers: { "x-api-key": key!, "Content-Type": "application/json" },
-      signal: AbortSignal.timeout(30000),
+      signal: AbortSignal.timeout(90000),
     });
 
     if (!res.ok) {

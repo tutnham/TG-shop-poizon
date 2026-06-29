@@ -22,7 +22,10 @@ import {
   buildSyncPricingContext,
   calculateProductPrices,
 } from "../src/services/pricing.service.js";
+import { getPoisonProvider } from "../src/services/poizon.service.js";
+import { mapPoizonItemToUpsertRow } from "../src/services/poizon-sync.service.js";
 import { getShihuoPoparceProvider } from "../src/services/shihuo-poparce.provider.js";
+import type { SyncPricingContext } from "../src/services/pricing.service.js";
 
 loadDotEnv();
 
@@ -38,7 +41,7 @@ const DRY_RUN = args.includes("--dry-run");
 const FORCE = args.includes("--force");
 const LIMIT = limitArg ? Number(limitArg.split("=")[1]) : null;
 const OFFSET = offsetArg ? Number(offsetArg.split("=")[1]) : 0;
-const DELAY_MS = Number(delayArg?.split("=")[1] ?? "2500");
+const DELAY_MS = Number(delayArg?.split("=")[1] ?? "4000");
 const DEFAULT_MAX_RETRIES = 6;
 const MAX_RETRIES_RAW = retriesArg
   ? Number(retriesArg.split("=")[1])
@@ -51,7 +54,7 @@ const ONLY_POIZON_ID = onlyPoizonArg?.split("=")[1]?.trim() ?? null;
 
 const BACKOFF_BASE_MS = 2000;
 const MAX_BACKOFF_MS = 30000;
-const POIZON_CHUNK = 200;
+const RATE_LIMIT_COOLDOWN_MS = 90_000;
 const RATE_LIMIT_PATTERN =
   /429|503|403|too many|forbidden resource|service unavailable|service temporarily unavailable/i;
 const TRANSIENT_ERROR_PATTERN =
@@ -60,6 +63,7 @@ const TRANSIENT_ERROR_PATTERN =
 interface Pop2Product {
   productId: number;
   vendorCode: string;
+  price?: number;
 }
 
 interface Pop2Data {
@@ -131,28 +135,110 @@ async function withRetry<T>(
   throw lastError ?? new Error(`${label} failed`);
 }
 
-async function fetchProductsByPoizonIds(
-  poizonIds: string[],
-): Promise<Map<string, ProductRow>> {
-  const map = new Map<string, ProductRow>();
+async function tryPoizonSizePrices(
+  vendorCode: string,
+  ctx: SyncPricingContext,
+): Promise<Record<string, unknown> | null> {
+  for (let attempt = 0; attempt <= 2; attempt++) {
+    try {
+      const provider = getPoisonProvider();
+      const search = await provider.searchProducts(vendorCode, 3, 0);
+      const hit = search.items[0];
+      if (!hit) return null;
 
-  for (let i = 0; i < poizonIds.length; i += POIZON_CHUNK) {
-    const chunk = poizonIds.slice(i, i + POIZON_CHUNK);
-    const { data, error } = await getSupabase()
-      .from("products")
-      .select(
-        "id, poizon_id, shihuo_goods_id, shihuo_style_id, price_cny, size_prices",
-      )
-      .in("poizon_id", chunk);
+      await sleep(1500);
+      const detail = await provider.getProductDetail(hit.spuId);
+      if (!detail || Object.keys(detail.sizePricesFen).length === 0) return null;
 
-    if (error) throw new Error(error.message);
+      const row = mapPoizonItemToUpsertRow(detail, ctx);
+      if (!row.size_prices || Object.keys(row.size_prices).length === 0) {
+        return null;
+      }
 
-    for (const row of (data ?? []) as ProductRow[]) {
-      map.set(row.poizon_id, row);
+      return {
+        name: row.name,
+        price_cny: row.price_cny,
+        price_rub: row.price_rub,
+        price_usdt: row.price_usdt,
+        size_prices: row.size_prices,
+        sizes: row.sizes,
+        stock: row.stock,
+        synced_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (RATE_LIMIT_PATTERN.test(msg) && attempt < 2) {
+        const waitMs = jitter(BACKOFF_BASE_MS * 2 ** (attempt + 2));
+        console.warn(
+          `[backfill-shihuo] poizon fallback vendorCode=${vendorCode}: ${msg}, wait ${waitMs}ms`,
+        );
+        await sleep(waitMs);
+        continue;
+      }
+      console.warn(
+        `[backfill-shihuo] poizon fallback vendorCode=${vendorCode}:`,
+        msg,
+      );
+      return null;
     }
   }
+  return null;
+}
 
-  return map;
+async function fetchProductsByPoizonIds(
+  keepSet: Set<string>,
+): Promise<Map<string, ProductRow>> {
+  const map = new Map<string, ProductRow>();
+  let lastId = "00000000-0000-0000-0000-000000000000";
+  const pageSize = 200;
+
+  while (true) {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const { data, error } = await getSupabase()
+          .from("products")
+          .select(
+            "id, poizon_id, shihuo_goods_id, shihuo_style_id, price_cny, size_prices",
+          )
+          .eq("source", "poizon")
+          .gt("id", lastId)
+          .order("id", { ascending: true })
+          .limit(pageSize);
+
+        if (error) throw new Error(error.message);
+
+        const batch = (data ?? []) as ProductRow[];
+        if (batch.length === 0) return map;
+
+        for (const row of batch) {
+          lastId = row.id;
+          if (keepSet.has(row.poizon_id)) {
+            map.set(row.poizon_id, row);
+          }
+        }
+
+        if (batch.length < pageSize) return map;
+        lastError = null;
+        break;
+      } catch (e) {
+        lastError = e instanceof Error ? e : new Error(String(e));
+        if (attempt < MAX_RETRIES) {
+          const waitMs = jitter(
+            Math.min(MAX_BACKOFF_MS, BACKOFF_BASE_MS * 2 ** attempt),
+          );
+          console.warn(
+            `[backfill-shihuo] fetch page after ${lastId}: ${lastError.message}, retry in ${waitMs}ms`,
+          );
+          await sleep(waitMs);
+        }
+      }
+    }
+
+    if (lastError) throw lastError;
+  }
 }
 
 async function main(): Promise<void> {
@@ -179,6 +265,7 @@ async function main(): Promise<void> {
 
   const pop2ByPoizonId = new Map<string, Pop2Product>();
   for (const p of data.products) {
+    if (p.price != null && p.price <= 0) continue;
     pop2ByPoizonId.set(String(p.productId), p);
   }
 
@@ -187,14 +274,38 @@ async function main(): Promise<void> {
     poizonIds = poizonIds.filter((id) => id === ONLY_POIZON_ID);
   }
 
-  if (OFFSET > 0) poizonIds = poizonIds.slice(OFFSET);
-  if (LIMIT != null) poizonIds = poizonIds.slice(0, LIMIT);
-
   console.log(
     `[backfill-shihuo] candidates=${poizonIds.length} dryRun=${DRY_RUN} force=${FORCE}`,
   );
 
-  const productsByPoizonId = await fetchProductsByPoizonIds(poizonIds);
+  const productsByPoizonId = await fetchProductsByPoizonIds(new Set(poizonIds));
+  console.log(`[backfill-shihuo] loaded ${productsByPoizonId.size} DB rows for candidates`);
+
+  poizonIds.sort((a, b) => {
+    const rowA = productsByPoizonId.get(a);
+    const rowB = productsByPoizonId.get(b);
+    const score = (row: ProductRow | undefined): number => {
+      if (!row) return 3;
+      if (!FORCE && hasSizePrices(row.size_prices)) return 4;
+      if (row.shihuo_goods_id) return 0;
+      return 1;
+    };
+    return score(rowA) - score(rowB);
+  });
+
+  if (!FORCE) {
+    poizonIds = poizonIds.filter((id) => {
+      const row = productsByPoizonId.get(id);
+      return row != null && !hasSizePrices(row.size_prices);
+    });
+  }
+
+  console.log(`[backfill-shihuo] work queue=${poizonIds.length} (without size_prices)`);
+
+  if (OFFSET > 0) poizonIds = poizonIds.slice(OFFSET);
+  if (LIMIT != null) poizonIds = poizonIds.slice(0, LIMIT);
+
+  console.log(`[backfill-shihuo] processing=${poizonIds.length} offset=${OFFSET} limit=${LIMIT ?? "all"}`);
 
   let updated = 0;
   let updatedWithSizes = 0;
@@ -225,102 +336,110 @@ async function main(): Promise<void> {
       continue;
     }
 
-    if (
-      !FORCE &&
-      dbRow.shihuo_goods_id &&
-      dbRow.shihuo_style_id &&
-      dbRow.price_cny != null &&
-      Number(dbRow.price_cny) > 0 &&
-      hasSizePrices(dbRow.size_prices)
-    ) {
+    if (!FORCE && hasSizePrices(dbRow.size_prices)) {
       skippedAlreadyMapped++;
       continue;
     }
 
     try {
-      let goodsId = dbRow.shihuo_goods_id ?? undefined;
-      let styleId = dbRow.shihuo_style_id ?? undefined;
+      let patch: Record<string, unknown> | null =
+        await tryPoizonSizePrices(vendorCode, pricingCtx);
 
-      if (!goodsId) {
-        const searchHit = await withRetry(`search poizon=${poizonId}`, () =>
-          provider.searchByArticle(vendorCode),
+      if (patch) {
+        console.log(
+          `[backfill-shihuo] poizon=${poizonId} vendorCode=${vendorCode}: poizon primary OK`,
         );
-
-        if (!searchHit) {
-          notFound++;
-          console.warn(
-            `[backfill-shihuo] poizon=${poizonId} vendorCode=${vendorCode}: search miss`,
-          );
-          if (i < poizonIds.length - 1) await sleep(DELAY_MS);
-          continue;
-        }
-
-        goodsId = searchHit.goodsId;
-        styleId = searchHit.styleId ?? undefined;
       }
 
-      const productFull = await withRetry(
-        `product-full poizon=${poizonId}`,
-        () => provider.fetchProductFull(goodsId!, styleId),
-      );
+      if (!patch || !("size_prices" in patch)) {
+        try {
+          let goodsId = dbRow.shihuo_goods_id ?? undefined;
+          let styleId = dbRow.shihuo_style_id ?? undefined;
 
-      let patch: Record<string, unknown>;
+          if (!goodsId) {
+            const searchHit = await withRetry(`search poizon=${poizonId}`, () =>
+              provider.searchByArticle(vendorCode),
+            );
 
-      if (productFull && Object.keys(productFull.sizePricesCny).length > 0) {
-        const sizePrices = buildSizePricesFromCny(
-          productFull.sizePricesCny,
-          pricingCtx,
-        );
-        const scalar = minSizePrice(sizePrices);
-        if (!scalar) {
-          noPrice++;
-          console.warn(
-            `[backfill-shihuo] poizon=${poizonId} goodsId=${goodsId}: empty size_prices after mapping`,
+            if (!searchHit) {
+              throw new Error("shihuo search miss");
+            }
+
+            goodsId = searchHit.goodsId;
+            styleId = searchHit.styleId ?? undefined;
+          }
+
+          const productFull = await withRetry(
+            `product-full poizon=${poizonId}`,
+            () => provider.fetchProductFull(goodsId!, styleId),
           );
-          if (i < poizonIds.length - 1) await sleep(DELAY_MS);
-          continue;
-        }
 
-        const sizeLabels = Object.keys(productFull.stock).length
-          ? Object.keys(productFull.stock)
-          : Object.keys(sizePrices);
+          if (productFull && Object.keys(productFull.sizePricesCny).length > 0) {
+            const sizePrices = buildSizePricesFromCny(
+              productFull.sizePricesCny,
+              pricingCtx,
+            );
+            const scalar = minSizePrice(sizePrices);
+            if (!scalar) throw new Error("empty size_prices after shihuo mapping");
 
-        patch = {
-          price_cny: scalar.cny,
-          price_rub: scalar.rub,
-          price_usdt: scalar.usdt,
-          size_prices: sizePrices,
-          sizes: { EU: sizeLabels },
-          stock: productFull.stock,
-          shihuo_goods_id: productFull.goodsId,
-          shihuo_style_id: productFull.styleId,
-          synced_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-      } else {
-        const priceResult = await withRetry(`price poizon=${poizonId}`, () =>
-          provider.fetchPrice(goodsId!, styleId),
-        );
+            const sizeLabels = Object.keys(productFull.stock).length
+              ? Object.keys(productFull.stock)
+              : Object.keys(sizePrices);
 
-        if (!priceResult || priceResult.minPriceCny <= 0) {
-          noPrice++;
+            patch = {
+              price_cny: scalar.cny,
+              price_rub: scalar.rub,
+              price_usdt: scalar.usdt,
+              size_prices: sizePrices,
+              sizes: { EU: sizeLabels },
+              stock: productFull.stock,
+              shihuo_goods_id: productFull.goodsId,
+              shihuo_style_id: productFull.styleId,
+              synced_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+          } else {
+            const priceResult = await withRetry(`price poizon=${poizonId}`, () =>
+              provider.fetchPrice(goodsId!, styleId),
+            );
+
+            if (!priceResult || priceResult.minPriceCny <= 0) {
+              throw new Error("shihuo scalar fallback failed");
+            }
+
+            const prices = calculateProductPrices(
+              priceResult.minPriceCny,
+              pricingCtx,
+            );
+            patch = {
+              price_cny: Math.round(priceResult.minPriceCny * 100) / 100,
+              price_rub: prices.rub,
+              price_usdt: prices.usdt,
+              shihuo_goods_id: priceResult.goodsId,
+              shihuo_style_id: priceResult.styleId,
+              synced_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+          }
+        } catch (shihuoErr) {
           console.warn(
-            `[backfill-shihuo] poizon=${poizonId} goodsId=${goodsId}: no supplier price (product-full miss, scalar fallback failed)`,
+            `[backfill-shihuo] poizon=${poizonId} shihuo path failed:`,
+            (shihuoErr as Error).message,
           );
-          if (i < poizonIds.length - 1) await sleep(DELAY_MS);
-          continue;
         }
+      }
 
-        const prices = calculateProductPrices(priceResult.minPriceCny, pricingCtx);
-        patch = {
-          price_cny: Math.round(priceResult.minPriceCny * 100) / 100,
-          price_rub: prices.rub,
-          price_usdt: prices.usdt,
-          shihuo_goods_id: priceResult.goodsId,
-          shihuo_style_id: priceResult.styleId,
-          synced_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
+      if (!patch) {
+        noPrice++;
+        console.warn(
+          `[backfill-shihuo] poizon=${poizonId} vendorCode=${vendorCode}: no price from shihuo or poizon`,
+        );
+        if (i < poizonIds.length - 1) await sleep(DELAY_MS);
+        continue;
+      }
+
+      if (!("size_prices" in patch)) {
+        notFound++;
       }
 
       if (DRY_RUN) {
@@ -348,10 +467,14 @@ async function main(): Promise<void> {
       }
     } catch (e) {
       failed++;
-      console.warn(
-        `[backfill-shihuo] poizon=${poizonId}:`,
-        (e as Error).message,
-      );
+      const msg = e instanceof Error ? e.message : String(e);
+      console.warn(`[backfill-shihuo] poizon=${poizonId}:`, msg);
+      if (RATE_LIMIT_PATTERN.test(msg) || TRANSIENT_ERROR_PATTERN.test(msg)) {
+        console.warn(
+          `[backfill-shihuo] cooldown ${RATE_LIMIT_COOLDOWN_MS}ms after upstream error`,
+        );
+        await sleep(RATE_LIMIT_COOLDOWN_MS);
+      }
     }
 
     if (i < poizonIds.length - 1) await sleep(DELAY_MS);
