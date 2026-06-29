@@ -11,6 +11,10 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
 import { refreshRates } from "../src/services/currency.service.js";
+import {
+  minSizePrice,
+  type SizePricesMap,
+} from "../src/services/product-pricing.js";
 import { stripCjk } from "../src/services/poizon-sku.mapper.js";
 import { loadShopPricingSettings } from "../src/services/pricing.service.js";
 
@@ -120,6 +124,13 @@ interface Pop2Property {
   value: string;
 }
 
+interface Pop2Child {
+  params?: Pop2Property[];
+  price?: number;
+  purchasePrice?: number;
+  available?: boolean;
+}
+
 interface Pop2Product {
   productId: number;
   variantId: string;
@@ -142,6 +153,7 @@ interface Pop2Product {
   currency: string;
   keywords: string[];
   vendor: string;
+  children?: Pop2Child[];
 }
 
 interface Pop2Data {
@@ -227,6 +239,62 @@ function buildProductName(p: Pop2Product): string {
   return `${p.vendor || "Unknown"} #${p.productId}`;
 }
 
+/** pop2.json: children[].params[key=Размер].value → size label */
+function extractSizeLabel(params: Pop2Property[] | undefined): string | null {
+  if (!params?.length) return null;
+  const sizeParam = params.find((param) => /размер|size/i.test(param.key));
+  const value = sizeParam?.value?.trim();
+  return value || null;
+}
+
+function rubToSizePrice(
+  priceRub: number,
+  rateCnyRub: number,
+  rateCnyUsd: number,
+): { cny: number; rub: number; usdt: number } {
+  const priceCny = Math.round((priceRub / rateCnyRub) * 100) / 100;
+  const priceUsdt = Math.round((priceCny / rateCnyUsd) * 10000) / 10000;
+  return { rub: priceRub, cny: priceCny, usdt: priceUsdt };
+}
+
+/** pop2.json: children[].price / purchasePrice (RUB) → size_prices, sizes, stock */
+function buildVariantPricing(
+  product: Pop2Product,
+  rateCnyRub: number,
+  rateCnyUsd: number,
+): {
+  size_prices: SizePricesMap;
+  sizes: string[];
+  stock: Record<string, boolean>;
+} {
+  const sizePrices: SizePricesMap = {};
+  const stock: Record<string, boolean> = {};
+
+  for (const child of product.children ?? []) {
+    const size = extractSizeLabel(child.params);
+    if (!size) continue;
+
+    const priceRub = child.price || child.purchasePrice || 0;
+    if (priceRub <= 0) continue;
+
+    const prices = rubToSizePrice(priceRub, rateCnyRub, rateCnyUsd);
+    const existing = sizePrices[size];
+    if (!existing || prices.rub < existing.rub) {
+      sizePrices[size] = prices;
+    }
+    stock[size] = child.available !== false;
+  }
+
+  const sizes = Object.keys(sizePrices).sort((a, b) => {
+    const na = Number.parseFloat(a.replace(",", "."));
+    const nb = Number.parseFloat(b.replace(",", "."));
+    if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
+    return a.localeCompare(b, "ru");
+  });
+
+  return { size_prices: sizePrices, sizes, stock };
+}
+
 // ── Основная функция импорта ────────────────────────────────────────
 
 async function main() {
@@ -283,6 +351,7 @@ async function main() {
     price_cny: number;
     price_rub: number;
     price_usdt: number;
+    size_prices: SizePricesMap;
     sizes: Record<string, string[]>;
     stock: Record<string, boolean>;
     sold_count: number;
@@ -305,11 +374,31 @@ async function main() {
     }
 
     const name = buildProductName(p);
+    const variantPricing = buildVariantPricing(p, rateCnyRub, rateCnyUsd);
+    const scalarFromSizes = minSizePrice(variantPricing.size_prices);
 
-    // Цена в pop2.json уже в RUB, пересчитываем в CNY и USDT
-    const priceRub = p.price;
-    const priceCny = Math.round((priceRub / rateCnyRub) * 100) / 100;
-    const priceUsdt = Math.round((priceCny / rateCnyUsd) * 10000) / 10000;
+    // pop2.json: price (RUB) → price_rub; min(children[].price) если есть размерные цены
+    const priceRub = scalarFromSizes?.rub ?? p.price;
+    const priceCny =
+      scalarFromSizes?.cny ??
+      Math.round((priceRub / rateCnyRub) * 100) / 100;
+    const priceUsdt =
+      scalarFromSizes?.usdt ??
+      Math.round((priceCny / rateCnyUsd) * 10000) / 10000;
+
+    const sizeLabels =
+      variantPricing.sizes.length > 0
+        ? variantPricing.sizes
+        : p.sizes && p.sizes.length > 0
+          ? p.sizes
+          : [];
+
+    const stock =
+      variantPricing.sizes.length > 0
+        ? variantPricing.stock
+        : sizeLabels.length > 0
+          ? Object.fromEntries(sizeLabels.map((s) => [s, true]))
+          : {};
 
     // Категория
     const categoryId = categoryCache.get(p.categoryId) ?? null;
@@ -323,13 +412,11 @@ async function main() {
       price_cny: priceCny,
       price_rub: priceRub,
       price_usdt: priceUsdt,
-      sizes: p.sizes && p.sizes.length > 0 ? { EU: p.sizes } : {},
-      stock:
-        p.sizes && p.sizes.length > 0
-          ? Object.fromEntries(p.sizes.map((s) => [s, true]))
-          : {},
+      size_prices: variantPricing.size_prices,
+      sizes: sizeLabels.length > 0 ? { EU: sizeLabels } : {},
+      stock,
       sold_count: p.favoriteCount || 0,
-      is_available: p.price > 0,
+      is_available: priceRub > 0,
     });
   }
 
@@ -365,6 +452,7 @@ async function main() {
             price_cny: product.price_cny,
             price_rub: product.price_rub,
             price_usdt: product.price_usdt,
+            size_prices: product.size_prices,
             sizes: product.sizes,
             stock: product.stock,
             sold_count: product.sold_count,
