@@ -3,10 +3,12 @@ import { Bot, InlineKeyboard } from "grammy";
 import { getAdminTelegramIds } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
 import { refreshRates } from "../services/currency.service.js";
-import { notifyOrderStatus } from "../services/notification.service.js";
-import * as orderService from "../services/order.service.js";
+import { applyOrderStatusChange } from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
-import { loadShopPricingSettings, setMarkup } from "../services/pricing.service.js";
+import {
+  loadShopPricingSettings,
+  setMarkup,
+} from "../services/pricing.service.js";
 import { getEnvOptional } from "../types/env.types.js";
 
 let adminBot: Bot | null = null;
@@ -289,50 +291,147 @@ function setupAdminBot(bot: Bot): void {
     status: OrderStatus,
     adminId: number,
     paymentMethod?: PaymentMethod,
-  ) {
-    const row = await orderRepo.getOrderWithUser(orderId);
-    if (!row) return;
-
-    if (paymentMethod) {
-      await orderService.confirmManualPayment(orderId, paymentMethod, adminId);
-    } else {
-      await orderService.transitionOrder(orderId, status);
+  ): Promise<{ notifySent: boolean }> {
+    const result = await applyOrderStatusChange({
+      orderId,
+      status,
+      adminTelegramId: adminId,
+      paymentMethod,
+    });
+    if (!result.ok) {
+      throw new Error(result.error);
     }
-
-    const shortId = (row.order.short_id as string) ?? orderId.slice(0, 8);
-    if (row.telegram_id) {
-      const notifyStatus = paymentMethod ? "paid" : status;
-      await notifyOrderStatus(row.telegram_id, notifyStatus, shortId);
-    }
+    return { notifySent: result.notifySent };
   }
 
   bot.callbackQuery(/^ord:cf:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "confirmed", ctx.from.id);
-    await ctx.answerCallbackQuery({ text: "OK" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "confirmed",
+        ctx.from.id,
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "OK" : "OK, но уведомление клиенту не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:cx:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "cancelled", ctx.from.id);
-    await ctx.answerCallbackQuery({ text: "OK" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "cancelled",
+        ctx.from.id,
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "OK" : "OK, но уведомление клиенту не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:pr:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "paid", ctx.from.id, "rub_manual");
-    await ctx.answerCallbackQuery({ text: "RUB" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "paid",
+        ctx.from.id,
+        "rub_manual",
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "RUB" : "RUB, уведомление не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:pu:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "paid", ctx.from.id, "usdt_manual");
-    await ctx.answerCallbackQuery({ text: "USDT" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "paid",
+        ctx.from.id,
+        "usdt_manual",
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "USDT" : "USDT, уведомление не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:pt:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "paid", ctx.from.id, "ton");
-    await ctx.answerCallbackQuery({ text: "TON" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "paid",
+        ctx.from.id,
+        "ton",
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "TON" : "TON, уведомление не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:sh:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "shipped", ctx.from.id);
-    await ctx.answerCallbackQuery({ text: "OK" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "shipped",
+        ctx.from.id,
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "OK" : "OK, но уведомление клиенту не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:dl:(.+)$/, async (ctx) => {
-    await applyStatus(ctx.match[1] ?? "", "delivered", ctx.from.id);
-    await ctx.answerCallbackQuery({ text: "OK" });
+    try {
+      const { notifySent } = await applyStatus(
+        ctx.match[1] ?? "",
+        "delivered",
+        ctx.from.id,
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent ? "OK" : "OK, но уведомление клиенту не доставлено",
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
 
   // Обработчики из уведомления о новом заказе (callback_data содержит short_id)
@@ -343,8 +442,24 @@ function setupAdminBot(bot: Bot): void {
       await ctx.answerCallbackQuery({ text: "Не найден", show_alert: true });
       return;
     }
-    await applyStatus(row.id, "confirmed", ctx.from.id);
-    await ctx.answerCallbackQuery({ text: `✅ #${shortId} подтверждён` });
+    try {
+      const { notifySent } = await applyStatus(
+        row.id,
+        "confirmed",
+        ctx.from.id,
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent
+          ? `✅ #${shortId} подтверждён`
+          : `✅ #${shortId} подтверждён, уведомление не доставлено`,
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
   bot.callbackQuery(/^ord:cx:byshort:(.+)$/, async (ctx) => {
     const shortId = ctx.match[1] ?? "";
@@ -353,8 +468,24 @@ function setupAdminBot(bot: Bot): void {
       await ctx.answerCallbackQuery({ text: "Не найден", show_alert: true });
       return;
     }
-    await applyStatus(row.id, "cancelled", ctx.from.id);
-    await ctx.answerCallbackQuery({ text: `❌ #${shortId} отменён` });
+    try {
+      const { notifySent } = await applyStatus(
+        row.id,
+        "cancelled",
+        ctx.from.id,
+      );
+      await ctx.answerCallbackQuery({
+        text: notifySent
+          ? `❌ #${shortId} отменён`
+          : `❌ #${shortId} отменён, уведомление не доставлено`,
+        show_alert: !notifySent,
+      });
+    } catch (e) {
+      await ctx.answerCallbackQuery({
+        text: e instanceof Error ? e.message : "Ошибка",
+        show_alert: true,
+      });
+    }
   });
 }
 

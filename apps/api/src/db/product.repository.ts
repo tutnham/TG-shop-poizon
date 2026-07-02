@@ -1,5 +1,6 @@
 import type {
   ProductDetail,
+  ProductGender,
   ProductListItem,
   SizePricesMap,
 } from "@poizon-shop/shared";
@@ -24,6 +25,7 @@ type ProductRow = {
   stock: Record<string, boolean>;
   category_id: string | null;
   source: string;
+  gender: ProductGender | null;
 };
 
 function toListItem(row: ProductRow): ProductListItem {
@@ -36,12 +38,13 @@ function toListItem(row: ProductRow): ProductListItem {
     price_usdt: Number(row.price_usdt),
     is_available: row.is_available,
     sold_count: row.sold_count,
+    gender: row.gender ?? null,
     synced_at: row.synced_at,
   };
 }
 
 const LIST_PRODUCT_COLUMNS =
-  "id, name, name_ru, brand, image_urls, price_rub, price_usdt, is_available, sold_count, synced_at";
+  "id, name, name_ru, brand, image_urls, price_rub, price_usdt, is_available, sold_count, synced_at, gender";
 
 export async function listProducts(opts: {
   page: number;
@@ -52,6 +55,8 @@ export async function listProducts(opts: {
   sort: string;
   min_price?: number;
   max_price?: number;
+  size?: string;
+  gender?: ProductGender;
 }): Promise<{ items: ProductListItem[]; total: number }> {
   let query = getSupabase()
     .from("products")
@@ -76,6 +81,13 @@ export async function listProducts(opts: {
   }
   if (opts.min_price != null) query = query.gte("price_rub", opts.min_price);
   if (opts.max_price != null) query = query.lte("price_rub", opts.max_price);
+  if (opts.gender) query = query.eq("gender", opts.gender);
+  if (opts.size) {
+    const sizeKey = opts.size.trim();
+    if (sizeKey) {
+      query = query.contains("stock", { [sizeKey]: true });
+    }
+  }
 
   switch (opts.sort) {
     case "price_asc":
@@ -164,6 +176,56 @@ export async function listBrands(): Promise<string[]> {
   return dedupeDisplayLabels(brands);
 }
 
+const GENDER_ORDER: ProductGender[] = [
+  "male",
+  "female",
+  "unisex",
+  "kids",
+  "unknown",
+];
+
+function numericSizeSort(a: string, b: string): number {
+  const na = Number.parseFloat(a.replace(",", "."));
+  const nb = Number.parseFloat(b.replace(",", "."));
+  if (Number.isFinite(na) && Number.isFinite(nb) && na !== nb) return na - nb;
+  return a.localeCompare(b, undefined, { numeric: true });
+}
+
+/** Distinct available sizes from in-stock products (for catalog filter chips). */
+export async function listAvailableSizes(): Promise<string[]> {
+  const { data, error } = await getSupabase()
+    .from("products")
+    .select("stock")
+    .eq("is_available", true);
+  if (error) throw new Error(error.message);
+
+  const sizes = new Set<string>();
+  for (const row of data ?? []) {
+    const stock = (row.stock as Record<string, boolean> | null) ?? {};
+    for (const [label, available] of Object.entries(stock)) {
+      if (available !== false && label.trim()) sizes.add(label.trim());
+    }
+  }
+  return [...sizes].sort(numericSizeSort);
+}
+
+/** Distinct normalized genders present in available catalog. */
+export async function listAvailableGenders(): Promise<ProductGender[]> {
+  const { data, error } = await getSupabase()
+    .from("products")
+    .select("gender")
+    .eq("is_available", true)
+    .not("gender", "is", null);
+  if (error) throw new Error(error.message);
+
+  const seen = new Set<ProductGender>();
+  for (const row of data ?? []) {
+    const g = row.gender as ProductGender | null;
+    if (g) seen.add(g);
+  }
+  return GENDER_ORDER.filter((g) => seen.has(g));
+}
+
 export async function setProductVisibility(
   id: string,
   visible: boolean,
@@ -189,6 +251,7 @@ type UpsertProductRow = {
   stock: Record<string, boolean>;
   sold_count: number;
   is_available: boolean;
+  gender?: ProductGender | null;
   shihuo_goods_id?: string | null;
   shihuo_style_id?: string | null;
 };

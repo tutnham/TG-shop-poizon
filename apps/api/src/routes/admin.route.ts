@@ -8,10 +8,12 @@ import * as orderRepo from "../db/order.repository.js";
 import * as productRepo from "../db/product.repository.js";
 import { adminAuth } from "../middleware/admin-auth.middleware.js";
 import { refreshRates } from "../services/currency.service.js";
-import { notifyOrderStatus } from "../services/notification.service.js";
 import * as orderService from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
-import { loadShopPricingSettings, setMarkup } from "../services/pricing.service.js";
+import {
+  loadShopPricingSettings,
+  setMarkup,
+} from "../services/pricing.service.js";
 import type { AppEnv } from "../types/env.types.js";
 
 const admin = new Hono<AppEnv>();
@@ -93,28 +95,24 @@ admin.patch(
     if (body.tracking_number) extra.tracking_number = body.tracking_number;
     if (body.admin_comment) extra.admin_comment = body.admin_comment;
 
-    const result = await orderService.transitionOrder(id, body.status, extra);
-    if (!result.ok) {
-      const err = (
-        result as { ok: false; error: { message: string; status: number } }
-      ).error;
-      return c.json({ error: err.message }, err.status as 400 | 404);
+    const applyResult = await orderService.applyOrderStatusChange({
+      orderId: id,
+      status: body.status,
+      adminTelegramId: 0,
+      tracking: body.tracking_number,
+      adminComment: body.admin_comment,
+    });
+
+    if (!applyResult.ok) {
+      const statusCode = applyResult.error === "Order not found" ? 404 : 400;
+      return c.json({ error: applyResult.error }, statusCode);
     }
 
-    // Уведомить пользователя
-    const row = await orderRepo.getOrderWithUser(id);
-    if (row?.telegram_id) {
-      const order = row.order as Record<string, unknown>;
-      const shortId = (order.short_id as string) ?? id.slice(0, 8);
-      await notifyOrderStatus(
-        row.telegram_id,
-        body.status,
-        shortId,
-        body.tracking_number,
-      );
-    }
-
-    return c.json({ ok: true, status: body.status });
+    return c.json({
+      ok: true,
+      status: body.status,
+      notify_sent: applyResult.notifySent,
+    });
   },
 );
 

@@ -203,6 +203,14 @@ shop.get("/brands", publicCache(300, 600), async (c) => {
   return c.json({ data: brands });
 });
 
+shop.get("/product-filters", publicCache(300, 600), async (c) => {
+  const [sizes, genders] = await Promise.all([
+    productRepo.listAvailableSizes(),
+    productRepo.listAvailableGenders(),
+  ]);
+  return c.json({ data: { sizes, genders } });
+});
+
 shop.use("/cart", requireTmaAuth);
 shop.use("/cart/*", requireTmaAuth);
 shop.use("/orders", requireTmaAuth);

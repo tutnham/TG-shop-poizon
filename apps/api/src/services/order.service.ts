@@ -11,6 +11,7 @@ import type { AppError } from "../types/app-error.types.js";
 import { getEnvOptional } from "../types/env.types.js";
 import {
   notifyAdminNewOrder,
+  notifyOrderStatus,
   notifyUserOrderCreated,
 } from "./notification.service.js";
 import { resolveProductSizePrice } from "./product-pricing.js";
@@ -235,6 +236,81 @@ export async function confirmManualPayment(
 
   await orderRepo.updateOrderStatus(orderId, "paid");
   return { ok: true, data: undefined };
+}
+
+export type ApplyOrderStatusResult =
+  | { ok: true; notifySent: boolean }
+  | { ok: false; error: string };
+
+/** Admin/bot: transition order and notify customer via Shop Bot. */
+export async function applyOrderStatusChange(params: {
+  orderId: string;
+  status: OrderStatus;
+  adminTelegramId: number;
+  paymentMethod?: PaymentMethod;
+  tracking?: string;
+  adminComment?: string;
+}): Promise<ApplyOrderStatusResult> {
+  const {
+    orderId,
+    status,
+    adminTelegramId,
+    paymentMethod,
+    tracking,
+    adminComment,
+  } = params;
+
+  const row = await orderRepo.getOrderWithUser(orderId);
+  if (!row) return { ok: false, error: "Order not found" };
+
+  if (paymentMethod) {
+    const result = await confirmManualPayment(
+      orderId,
+      paymentMethod,
+      adminTelegramId,
+    );
+    if (!result.ok) {
+      return {
+        ok: false,
+        error: result.error.message,
+      };
+    }
+  } else {
+    const extra: { tracking_number?: string; admin_comment?: string } = {};
+    if (tracking) extra.tracking_number = tracking;
+    if (adminComment) extra.admin_comment = adminComment;
+    const result = await transitionOrder(orderId, status, extra);
+    if (!result.ok) {
+      return { ok: false, error: result.error.message };
+    }
+  }
+
+  const shortId = (row.order.short_id as string) ?? orderId.slice(0, 8);
+  let notifySent = false;
+  if (row.telegram_id) {
+    const notifyStatus = paymentMethod ? "paid" : status;
+    try {
+      notifySent = await notifyOrderStatus(
+        row.telegram_id,
+        notifyStatus,
+        shortId,
+        tracking,
+      );
+      if (!notifySent) {
+        console.warn(
+          `[order] notifyOrderStatus failed for order #${shortId}, telegram_id=${row.telegram_id}`,
+        );
+      }
+    } catch (err) {
+      console.error("[order] notifyOrderStatus error:", err);
+    }
+  } else {
+    console.warn(
+      `[order] no telegram_id for order #${shortId}, skipping user notification`,
+    );
+  }
+
+  return { ok: true, notifySent };
 }
 
 export function buildTonTransferLink(

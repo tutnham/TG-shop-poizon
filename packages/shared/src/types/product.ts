@@ -1,3 +1,6 @@
+/** Normalized wearer gender for catalog filters */
+export type ProductGender = "male" | "female" | "unisex" | "kids" | "unknown";
+
 export interface ProductListItem {
   id: string;
   name: string;
@@ -7,6 +10,7 @@ export interface ProductListItem {
   price_usdt: number;
   is_available: boolean;
   sold_count: number;
+  gender?: ProductGender | null;
   synced_at?: string | null;
 }
 

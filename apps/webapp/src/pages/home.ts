@@ -1,4 +1,4 @@
-import type { ProductListItem } from "@poizon-shop/shared";
+import type { ProductGender, ProductListItem } from "@poizon-shop/shared";
 import { apiGet } from "../api/client.js";
 import { mountCartPeek } from "../components/cart-peek.js";
 import {
@@ -13,16 +13,13 @@ import {
   ProductImportError,
   importAndOpenProduct,
 } from "../lib/import-actions.js";
-import {
-  hideKeyboard,
-  wireFormInput,
-} from "../lib/keyboard.js";
 import { looksLikeImportQuery } from "../lib/import-query.js";
-import { clearPageRoot, ensurePageRoot } from "../shell.js";
+import { hideKeyboard, wireFormInput } from "../lib/keyboard.js";
 import {
   capturePageRenderGeneration,
   isActivePageRender,
 } from "../lib/page-render-guard.js";
+import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
 const PENDING_BRAND_KEY = "poizon_pending_brand";
@@ -46,12 +43,18 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let loading = false;
   let hasMore = true;
   let activeBrand = "";
+  let activeSize = "";
+  let activeGender = "";
   let search = "";
+
+  function filtersActive(): boolean {
+    return Boolean(activeBrand || activeSize || activeGender || search);
+  }
 
   function badgeForIndex(
     index: number,
   ): { text: string; variant: "top" | "new" } | undefined {
-    if (page > 1 || activeBrand || search) return undefined;
+    if (page > 1 || filtersActive()) return undefined;
     if (index === 0) return { text: "Top 1", variant: "top" };
     if (index === 1) return { text: "New", variant: "new" };
     return undefined;
@@ -200,6 +203,16 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   chips.className = "chips-row hide-scrollbar";
   main.appendChild(chips);
 
+  const sizeChips = document.createElement("section");
+  sizeChips.className = "chips-row hide-scrollbar";
+  sizeChips.id = "size-chips";
+  main.appendChild(sizeChips);
+
+  const genderChips = document.createElement("section");
+  genderChips.className = "chips-row hide-scrollbar";
+  genderChips.id = "gender-chips";
+  main.appendChild(genderChips);
+
   const trust = document.createElement("section");
   trust.innerHTML = `
     <div class="trust-banner">
@@ -250,10 +263,60 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   allChip.onclick = () => filterBrand("");
   chips.appendChild(allChip);
 
+  function renderFilterChip(
+    container: HTMLElement,
+    label: string,
+    value: string,
+    active: boolean,
+    onSelect: (value: string) => void,
+  ): void {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = `chip${active ? " active" : ""}`;
+    chip.dataset.value = value;
+    chip.textContent = label;
+    chip.onclick = () => onSelect(value);
+    container.appendChild(chip);
+  }
+
+  function syncChipActive(container: HTMLElement, value: string): void {
+    for (const c of container.querySelectorAll(".chip")) {
+      const chipValue = (c as HTMLElement).dataset.value ?? "";
+      c.classList.toggle("active", chipValue === value);
+    }
+  }
+
+  async function filterSize(size: string) {
+    if (stale()) return;
+    activeSize = size;
+    page = 1;
+    hasMore = true;
+    cardIndex = 0;
+    allCards.length = 0;
+    grid.innerHTML = "";
+    syncChipActive(sizeChips, size);
+    await loadMore();
+  }
+
+  async function filterGender(gender: string) {
+    if (stale()) return;
+    activeGender = gender;
+    page = 1;
+    hasMore = true;
+    cardIndex = 0;
+    allCards.length = 0;
+    grid.innerHTML = "";
+    syncChipActive(genderChips, gender);
+    await loadMore();
+  }
+
   try {
-    const { data: brands } = await apiGet<{
-      data: string[];
-    }>("/api/brands");
+    const [{ data: brands }, { data: filters }] = await Promise.all([
+      apiGet<{ data: string[] }>("/api/brands"),
+      apiGet<{
+        data: { sizes: string[]; genders: ProductGender[] };
+      }>("/api/product-filters"),
+    ]);
     if (stale()) return;
     for (const brandName of brands) {
       const chip = document.createElement("button");
@@ -263,6 +326,44 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       chip.textContent = brandName;
       chip.onclick = () => filterBrand(brandName);
       chips.appendChild(chip);
+    }
+
+    if (filters.sizes.length > 0) {
+      renderFilterChip(
+        sizeChips,
+        t("filter_size_all"),
+        "",
+        !activeSize,
+        (v) => void filterSize(v),
+      );
+      for (const size of filters.sizes) {
+        renderFilterChip(
+          sizeChips,
+          `${t("filter_size")} ${size}`,
+          size,
+          activeSize === size,
+          (v) => void filterSize(v),
+        );
+      }
+    }
+
+    if (filters.genders.length > 0) {
+      renderFilterChip(
+        genderChips,
+        t("filter_gender_all"),
+        "",
+        !activeGender,
+        (v) => void filterGender(v),
+      );
+      for (const gender of filters.genders) {
+        renderFilterChip(
+          genderChips,
+          t(`filter_gender_${gender}`),
+          gender,
+          activeGender === gender,
+          (v) => void filterGender(v),
+        );
+      }
     }
   } catch {
     /* ignore */
@@ -359,6 +460,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       });
       if (activeBrand) q.set("brand", activeBrand);
       if (activeCategory) q.set("category", activeCategory);
+      if (activeSize) q.set("size", activeSize);
+      if (activeGender) q.set("gender", activeGender);
       if (search) q.set("search", search);
       const res = await apiGet<{
         data: ProductListItem[];

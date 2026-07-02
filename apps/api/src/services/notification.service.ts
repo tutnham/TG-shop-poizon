@@ -104,13 +104,26 @@ export async function notifyOrderStatus(
   orderShortId: string,
   tracking?: string,
   lang = "ru",
-): Promise<void> {
+): Promise<boolean> {
   const msg = STATUS_MESSAGES[status];
-  if (!msg) return;
+  if (!msg) return false;
   const text = lang === "en" ? msg.en : msg.ru;
   let body = `${text}\n\n#${orderShortId}`;
   if (tracking) body += `\n\nTrack: ${tracking}`;
-  await sendShopMessage(telegramId, body);
+
+  const webappUrl = getEnvOptional("WEBAPP_URL", "https://example.com");
+  const keyboard = {
+    inline_keyboard: [
+      [
+        {
+          text: "📋 Мои заказы",
+          web_app: { url: `${webappUrl}/#/orders` },
+        },
+      ],
+    ],
+  };
+
+  return sendShopMessage(telegramId, body, keyboard);
 }
 
 export async function notifyCartUpdate(
@@ -205,13 +218,12 @@ export async function notifyUserOrderCreated(params: {
     );
   }
 
-  lines.push(
-    "",
-    `<b>Итого:</b> ${totalRub} ₽ / ${totalUsdt} USDT`,
-  );
+  lines.push("", `<b>Итого:</b> ${totalRub} ₽ / ${totalUsdt} USDT`);
 
   if (paymentMethod !== "none") {
-    lines.push(`<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`);
+    lines.push(
+      `<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`,
+    );
   }
 
   lines.push(
@@ -295,13 +307,12 @@ export async function notifyAdminNewOrder(params: {
     );
   }
 
-  lines.push(
-    "",
-    `<b>Итого:</b> ${totalRub} ₽`,
-  );
+  lines.push("", `<b>Итого:</b> ${totalRub} ₽`);
 
   if (paymentMethod !== "none") {
-    lines.push(`<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`);
+    lines.push(
+      `<b>Оплата:</b> ${PAYMENT_LABELS[paymentMethod] ?? paymentMethod}`,
+    );
   }
 
   const text = lines.join("\n");

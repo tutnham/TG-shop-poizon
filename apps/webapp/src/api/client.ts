@@ -60,6 +60,15 @@ export async function apiGet<T>(path: string): Promise<T> {
   return data;
 }
 
+/** GET without in-memory cache (orders, live status). */
+export async function apiGetFresh<T>(path: string): Promise<T> {
+  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
+    headers: headers(),
+  });
+  if (!res.ok) await parseErrorResponse(res);
+  return res.json() as Promise<T>;
+}
+
 export async function apiPost<T>(
   path: string,
   body?: unknown,

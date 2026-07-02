@@ -1,5 +1,5 @@
 import type { OrderDetail, OrderListItem } from "@poizon-shop/shared";
-import { apiGet } from "../api/client.js";
+import { apiGetFresh } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { escapeHtml } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
@@ -17,7 +17,9 @@ export async function renderOrders(app: HTMLElement): Promise<void> {
   hideMainButton();
 
   try {
-    const { data } = await apiGet<{ data: OrderListItem[] }>("/api/orders");
+    const { data } = await apiGetFresh<{ data: OrderListItem[] }>(
+      "/api/orders",
+    );
     if (!data.length) {
       list.innerHTML = `<div class="empty-state">${t("empty_orders")}</div>`;
       return;
@@ -75,7 +77,7 @@ export async function renderOrderDetail(app: HTMLElement): Promise<void> {
   hideMainButton();
 
   try {
-    const { data: o } = await apiGet<{ data: OrderDetail }>(
+    const { data: o } = await apiGetFresh<{ data: OrderDetail }>(
       `/api/orders/${id}`,
     );
 

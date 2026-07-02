@@ -10,13 +10,14 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
+import { normalizeProductGender } from "../src/lib/normalize-gender.js";
 import { refreshRates } from "../src/services/currency.service.js";
-import {
-  minSizePrice,
-  type SizePricesMap,
-} from "../src/services/product-pricing.js";
 import { stripCjk } from "../src/services/poizon-sku.mapper.js";
 import { loadShopPricingSettings } from "../src/services/pricing.service.js";
+import {
+  type SizePricesMap,
+  minSizePrice,
+} from "../src/services/product-pricing.js";
 
 loadDotEnv();
 
@@ -356,6 +357,7 @@ async function main() {
     stock: Record<string, boolean>;
     sold_count: number;
     is_available: boolean;
+    gender: string | null;
   }> = [];
   let skippedNoPrice = 0;
   let skippedNoImages = 0;
@@ -380,8 +382,7 @@ async function main() {
     // pop2.json: price (RUB) → price_rub; min(children[].price) если есть размерные цены
     const priceRub = scalarFromSizes?.rub ?? p.price;
     const priceCny =
-      scalarFromSizes?.cny ??
-      Math.round((priceRub / rateCnyRub) * 100) / 100;
+      scalarFromSizes?.cny ?? Math.round((priceRub / rateCnyRub) * 100) / 100;
     const priceUsdt =
       scalarFromSizes?.usdt ??
       Math.round((priceCny / rateCnyUsd) * 10000) / 10000;
@@ -403,6 +404,13 @@ async function main() {
     // Категория
     const categoryId = categoryCache.get(p.categoryId) ?? null;
 
+    const normalizedGender = normalizeProductGender(p.gender);
+    if (p.gender?.trim() && normalizedGender === "unknown") {
+      console.warn(
+        `[import-pop2] Неизвестный gender "${p.gender}" для productId=${p.productId}`,
+      );
+    }
+
     batch.push({
       poizon_id: String(p.productId),
       name,
@@ -417,6 +425,7 @@ async function main() {
       stock,
       sold_count: p.favoriteCount || 0,
       is_available: priceRub > 0,
+      gender: normalizedGender,
     });
   }
 
@@ -457,6 +466,7 @@ async function main() {
             stock: product.stock,
             sold_count: product.sold_count,
             is_available: product.is_available,
+            gender: product.gender,
             source: "poizon",
             synced_at: now,
             updated_at: now,
