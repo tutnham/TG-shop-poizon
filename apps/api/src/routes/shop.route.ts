@@ -204,9 +204,10 @@ shop.get("/brands", publicCache(300, 600), async (c) => {
 });
 
 shop.get("/product-filters", publicCache(300, 600), async (c) => {
+  const category = c.req.query("category")?.trim() || undefined;
   const [sizes, genders] = await Promise.all([
-    productRepo.listAvailableSizes(),
-    productRepo.listAvailableGenders(),
+    productRepo.listAvailableSizes({ category }),
+    productRepo.listAvailableGenders({ category }),
   ]);
   return c.json({ data: { sizes, genders } });
 });

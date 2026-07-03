@@ -45,6 +45,12 @@ function buildNavItems(path: string): HTMLElement {
       dot: true,
     },
     {
+      href: "/menu",
+      icon: "category",
+      label: t("menu"),
+      match: (p: string) => p === "/menu",
+    },
+    {
       href: "/profile",
       icon: "person",
       label: t("nav_profile"),
@@ -87,6 +93,7 @@ function updateActiveState(nav: HTMLElement, path: string): void {
     (p: string) => p === "/",
     (p: string) => p === "/orders" || p.startsWith("/orders/"),
     (p: string) => p === "/cart",
+    (p: string) => p === "/menu",
     (p: string) => p === "/profile",
   ];
   links.forEach((a, i) => {

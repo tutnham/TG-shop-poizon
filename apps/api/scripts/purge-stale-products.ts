@@ -1,12 +1,21 @@
 /**
- * Удаление товаров source=poizon, которых нет в pop2.json (с price > 0).
+ * Удаление товаров, которых нет в Export3.json / pop2.json.
  *
  * Использование:
- *   npx tsx scripts/purge-stale-products.ts [pop2.json] [--dry-run]
+ *   npx tsx scripts/purge-stale-products.ts [Export3.json] [--dry-run]
+ *   npx tsx scripts/purge-stale-products.ts [Export3.json] [--poizon-only]
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadDotEnv } from "../src/lib/load-dotenv.js";
+import {
+  type Pop2Data,
+  buildImportableProductIdSet,
+} from "../src/services/export3-import.mapper.js";
+import {
+  type CatalogProductIdentity,
+  selectStaleProducts,
+} from "../src/services/export3-replace.service.js";
 
 loadDotEnv();
 
@@ -19,15 +28,7 @@ const PAGE_SIZE = 200;
 const args = process.argv.slice(2);
 const fileArg = args.find((a) => !a.startsWith("--"));
 const DRY_RUN = args.includes("--dry-run");
-
-interface Pop2Product {
-  productId: number;
-  price: number;
-}
-
-interface Pop2Data {
-  products: Pop2Product[];
-}
+const POIZON_ONLY = args.includes("--poizon-only");
 
 function headers(): Record<string, string> {
   return {
@@ -53,27 +54,19 @@ async function safeFetch(
   }
 }
 
-async function fetchAllPoizonProducts(): Promise<
-  { id: string; poizon_id: string }[]
-> {
-  const rows: { id: string; poizon_id: string }[] = [];
+async function fetchAllCatalogProducts(): Promise<CatalogProductIdentity[]> {
+  const rows: CatalogProductIdentity[] = [];
   let lastId = "00000000-0000-0000-0000-000000000000";
 
   while (true) {
-    const url =
-      `${SUPABASE_URL}/rest/v1/products` +
-      `?select=id,poizon_id` +
-      `&source=eq.poizon` +
-      `&id=gt.${lastId}` +
-      `&order=id.asc` +
-      `&limit=${PAGE_SIZE}`;
+    const url = `${SUPABASE_URL}/rest/v1/products?select=id,poizon_id,source&id=gt.${lastId}&order=id.asc&limit=${PAGE_SIZE}`;
 
     const res = await safeFetch(url, { headers: headers() });
     if (!res.ok) {
       throw new Error(`GET products: ${res.status} ${await res.text()}`);
     }
 
-    const batch = (await res.json()) as { id: string; poizon_id: string }[];
+    const batch = (await res.json()) as CatalogProductIdentity[];
     if (batch.length === 0) break;
 
     for (const row of batch) {
@@ -100,7 +93,9 @@ async function deleteBatch(poizonIds: string[]): Promise<void> {
       });
       if (res.ok) return;
       const text = await res.text().catch(() => "");
-      lastError = new Error(`DELETE batch: ${res.status} - ${text.slice(0, 200)}`);
+      lastError = new Error(
+        `DELETE batch: ${res.status} - ${text.slice(0, 200)}`,
+      );
     } catch (e) {
       lastError = e instanceof Error ? e : new Error(String(e));
     }
@@ -111,25 +106,16 @@ async function deleteBatch(poizonIds: string[]): Promise<void> {
   throw lastError ?? new Error("DELETE batch failed");
 }
 
-function buildKeepSet(data: Pop2Data): Set<string> {
-  const keep = new Set<string>();
-  for (const p of data.products) {
-    if (p.price && p.price > 0) {
-      keep.add(String(p.productId));
-    }
-  }
-  return keep;
-}
-
 async function main(): Promise<void> {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
-    console.error("[purge-stale] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY required");
+    console.error(
+      "[purge-stale] SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY required",
+    );
     process.exit(1);
   }
 
   const filePath =
-    fileArg ??
-    fileURLToPath(new URL("../../../pop2.json", import.meta.url));
+    fileArg ?? fileURLToPath(new URL("../../../Export3.json", import.meta.url));
 
   let data: Pop2Data;
   try {
@@ -140,20 +126,22 @@ async function main(): Promise<void> {
   }
 
   if (!Array.isArray(data.products)) {
-    console.error("[purge-stale] pop2.json must contain products[]");
+    console.error("[purge-stale] Export3/pop2 JSON must contain products[]");
     process.exit(1);
   }
 
-  const keepSet = buildKeepSet(data);
+  const keepSet = buildImportableProductIdSet(data);
   console.log(
-    `[purge-stale] keepSet=${keepSet.size} products from pop2.json (price>0) dryRun=${DRY_RUN}`,
+    `[purge-stale] keepSet=${keepSet.size} importable products from Export3 dryRun=${DRY_RUN} poizonOnly=${POIZON_ONLY}`,
   );
 
-  console.log("[purge-stale] Loading poizon products from DB...");
-  const dbProducts = await fetchAllPoizonProducts();
-  console.log(`[purge-stale] DB poizon products: ${dbProducts.length}`);
+  console.log("[purge-stale] Loading catalog products from DB...");
+  const dbProducts = await fetchAllCatalogProducts();
+  console.log(`[purge-stale] DB catalog products: ${dbProducts.length}`);
 
-  const stale = dbProducts.filter((row) => !keepSet.has(row.poizon_id));
+  const stale = selectStaleProducts(dbProducts, keepSet, {
+    poizonOnly: POIZON_ONLY,
+  });
   console.log(`[purge-stale] Stale (to delete): ${stale.length}`);
 
   if (stale.length === 0) {
@@ -188,7 +176,7 @@ async function main(): Promise<void> {
     }
 
     if (
-      (i + DELETE_BATCH_SIZE >= stalePoizonIds.length) ||
+      i + DELETE_BATCH_SIZE >= stalePoizonIds.length ||
       (i + DELETE_BATCH_SIZE) % (DELETE_BATCH_SIZE * 5) === 0
     ) {
       console.log(

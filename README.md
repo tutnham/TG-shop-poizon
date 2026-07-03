@@ -253,6 +253,7 @@ npm run webhook:set
 | `007_shihuo_product_ids.sql` | Колонки `shihuo_goods_id`, `shihuo_style_id` для Shihuo backfill |
 | `008_rls.sql` | Row Level Security для таблиц |
 | `009_create_order_atomic.sql` | RPC `create_shop_order` — атомарное создание заказа + оплата + очистка корзины |
+| `010_product_filters.sql` | Фильтры каталога: `gender`, GIN-индекс по `stock` для размеров |
 
 ---
 
@@ -273,6 +274,9 @@ npm run webhook:set
 | `npm run webhook:set` | Установка webhook для ботов |
 | `npm run cron:webhooks` | Ручной вызов `GET /cron/webhooks` (нужны `API_URL`, `CRON_SECRET`) |
 | `npm run sync:poizon` | Синхронизация товаров с Poizon |
+| `npm run purge:stale:dry` | Dry-run очистки товаров, которых нет в `Export3.json` |
+| `npm run import:export3` | Импорт товаров из `Export3.json` в корне проекта |
+| `npm run purge:stale` | Очистка stale-товаров после проверки dry-run |
 
 ### Скрипты API (`apps/api`)
 
@@ -283,8 +287,34 @@ npm run webhook:set
 | `npm run rates:update` | Обновление курсов |
 | `npm run sync:poizon` | Синхронизация с Poizon |
 | `npm run import:pop2` | Импорт из pop2.json |
+| `npm run import:export3` | Импорт из `Export3.json` (`../../Export3.json` относительно `apps/api`) |
+| `npm run purge:stale:dry` | Предпросмотр replace-очистки каталога по `Export3.json` |
+| `npm run purge:stale` | Удаление товаров, отсутствующих в переданной выгрузке |
 | `npm run delete:demo` | Удаление демо-данных |
 | `npm run fetch:prices` | Получение недостающих цен |
+
+### Replace-импорт каталога из Export3.json
+
+`Export3.json` должен лежать в корне проекта. Процесс replace-каталога удаляет из `products` товары, которых нет в новой выгрузке, включая ранее импортированные вручную `source=user_import`. Товары, которые остались в выгрузке, обновляются через upsert по `poizon_id`, поэтому их UUID сохраняются.
+
+Рекомендуемый порядок:
+
+```bash
+# 1. Проверить, что будет удалено
+npm run purge:stale:dry
+
+# 2. Импортировать / обновить товары из Export3.json
+npm run import:export3
+
+# 3. Удалить stale-товары после проверки dry-run
+npm run purge:stale
+```
+
+Если нужно сохранить старое поведение и чистить только `source=poizon`, используйте API-скрипт с флагом `--poizon-only`:
+
+```bash
+npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
+```
 
 ---
 
@@ -299,6 +329,7 @@ npm run webhook:set
 | GET | `/api/products` | Каталог товаров (с фильтрами) |
 | GET | `/api/products/:id` | Карточка товара |
 | GET | `/api/categories` | Список категорий |
+| GET | `/api/product-filters` | Доступные размеры и полы для фильтров каталога |
 | GET | `/api/cart` | Корзина пользователя |
 | POST | `/api/cart` | Добавить в корзину |
 | PATCH | `/api/cart/:itemId` | Обновить количество/размер |
@@ -320,6 +351,14 @@ npm run webhook:set
 | `sort` | string | `popular` | `popular`, `price_asc`, `price_desc`, `new` |
 | `min_price` | number | — | Минимальная цена (RUB) |
 | `max_price` | number | — | Максимальная цена (RUB) |
+| `size` | string | — | Фильтр по доступному размеру из JSONB `stock` |
+| `gender` | string | — | `male`, `female`, `unisex`, `kids`, `unknown` |
+
+#### Параметры GET /api/product-filters
+
+| Параметр | Тип | По умолчанию | Описание |
+|----------|-----|--------------|----------|
+| `category` | string | — | Slug категории; если передан, размеры и полы возвращаются только для этой категории |
 
 ### Admin API
 
@@ -410,6 +449,33 @@ npm run webhook:set
 - Цены с Poizon приходят в **фенях** (1 CNY = 100 фень)
 - Пересчет: `price_rub = (price_cny * rate_cny_rub) * (1 + markup/100) + delivery_fee`
 - Курсы обновляются из ЦБ РФ + Binance через Vercel Cron
+
+### Проблемные вопросы Export3 и решения
+
+| Вопрос | Решение |
+|--------|---------|
+| Где лежит новая выгрузка? | Используется `Export3.json` в корне проекта. Скрипты `import:export3` и `purge:stale:dry` ожидают именно этот путь. |
+| Что делать со старыми товарами? | Replace-очистка удаляет все товары, чей `poizon_id` отсутствует в новой выгрузке, включая `source=user_import`. Перед реальным удалением запускать `npm run purge:stale:dry`. |
+| Как не показывать старые категории? | `/api/categories` возвращает только категории, у которых есть доступные товары. Пустые старые категории исчезают из меню. |
+| Что с вкладкой “Часы”? | В текущем Export3 категория часов может отсутствовать, поэтому UI показывает пустую вкладку `watches`. Когда в выгрузке появятся часы, импорт должен связать их с тем же slug. |
+| Что будет с корзинами при удалении товара? | `cart_items.product_id` настроен с `ON DELETE CASCADE`, поэтому позиции удалённых товаров исчезнут из корзин. История заказов хранит JSONB snapshot и не ломается. |
+| Как работает фильтр пола? | `gender` нормализуется при bulk-импорте через `normalizeProductGender()` и отдаётся в `/api/product-filters`; каталог фильтруется через `GET /api/products?gender=...`. |
+| Как работает фильтр размера не только для обуви? | UI использует нейтральную подпись “Размер”. Backend фильтрует по ключам JSONB `stock`; товары без размеров показываются как “Без размера” в карточке. |
+
+### Нерешённые проблемы
+
+| Проблема | Статус | Что нужно сделать |
+|----------|--------|-------------------|
+| В `Export3.json` нет категории/товаров «Часы» | Открыто | Вкладка `watches` в UI показывается пустой. После появления часов в выгрузке — повторить `import:export3`; slug `watches` уже нормализуется в mapper. |
+| Пустые строки категорий в БД | Открыто | `/api/categories` скрывает категории без доступных товаров, но физически orphan-строки в `categories` не удаляются (риск FK). Нужен отдельный cleanup-скрипт или RPC. |
+| Replace-импорт — два шага, не один | Открыто | Сейчас оператор запускает `purge:stale`, затем `import:export3` вручную. Единый orchestrator (`replace-products-from-export.ts`) не реализован. |
+| Неизвестные значения `gender` в выгрузке | Частично | Mapper логирует unknown gender и импортирует товар с `gender=null`. После replace-импорта: **42 SKU** с raw-значением `"Малыши"` — chips пола для них не появятся, пока не добавить alias в `normalize-gender.ts` (например, `kids`). |
+| Товары без цены или без картинок | Открыто | Такие позиции пропускаются при импорте и не попадают в keep-set purge. Список пропусков виден только в stdout CLI — нет отдельного отчёта/файла. |
+| Миграция `010_product_filters.sql` | Требует проверки | GIN-индекс и колонка `gender` должны быть применены в Supabase до production replace. Если миграция не накатывалась — фильтры size/gender будут медленными или сломаны. |
+| `Export3.json` не в git | Осознанно | Файл выгрузки лежит локально в корне проекта и не коммитится (объём + операционные данные). Для CI/CD импорт нужно запускать вручную или через отдельный pipeline с артефактом. |
+| Линт старых CLI-скриптов | Открыто | `npm run lint` падает на legacy-файлах (`backfill-shihuo-prices.ts`, `capture-poizon-har.ts` и др.), не связанных с Export3. Новые файлы проходят scoped check. |
+| UI-фильтры без автотестов | Открыто | Webapp не имеет DOM/e2e тестов для chips категорий, size и gender; регрессии проверяются только `build` и ручным просмотром. |
+| Производительность фильтра по `stock` JSONB | Наблюдение | При росте каталога фильтр `size` через `@>` по JSONB может тормозить без GIN. После replace стоит проверить explain на production-объёме. |
 
 ---
 

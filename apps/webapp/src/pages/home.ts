@@ -24,6 +24,7 @@ import { hideBackButton, hideMainButton } from "../telegram.js";
 
 const PENDING_BRAND_KEY = "poizon_pending_brand";
 const PENDING_CATEGORY_KEY = "poizon_pending_category";
+const WATCHES_CATEGORY_SLUG = "watches";
 
 // ── Конфигурация DOM-рециклинга для 9000+ товаров ──
 const MAX_VISIBLE_CARDS = 120; // Максимум карточек в DOM одновременно
@@ -45,10 +46,13 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let activeBrand = "";
   let activeSize = "";
   let activeGender = "";
+  let activeCategory = "";
   let search = "";
 
   function filtersActive(): boolean {
-    return Boolean(activeBrand || activeSize || activeGender || search);
+    return Boolean(
+      activeBrand || activeSize || activeGender || activeCategory || search,
+    );
   }
 
   function badgeForIndex(
@@ -203,6 +207,11 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   chips.className = "chips-row hide-scrollbar";
   main.appendChild(chips);
 
+  const categoryChips = document.createElement("section");
+  categoryChips.className = "chips-row hide-scrollbar";
+  categoryChips.id = "category-chips";
+  main.appendChild(categoryChips);
+
   const sizeChips = document.createElement("section");
   sizeChips.className = "chips-row hide-scrollbar";
   sizeChips.id = "size-chips";
@@ -310,12 +319,84 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     await loadMore();
   }
 
+  async function filterCategory(category: string) {
+    if (stale()) return;
+    activeCategory = category;
+    activeSize = "";
+    activeGender = "";
+    page = 1;
+    hasMore = true;
+    cardIndex = 0;
+    allCards.length = 0;
+    grid.innerHTML = "";
+    syncChipActive(categoryChips, category);
+    await refreshProductFilters();
+    await loadMore();
+  }
+
+  async function refreshProductFilters() {
+    const requestCategory = activeCategory;
+    const q = new URLSearchParams();
+    if (requestCategory) q.set("category", requestCategory);
+
+    try {
+      const { data: filters } = await apiGet<{
+        data: { sizes: string[]; genders: ProductGender[] };
+      }>(`/api/product-filters${q.size ? `?${q}` : ""}`);
+      if (stale() || requestCategory !== activeCategory) return;
+
+      sizeChips.innerHTML = "";
+      genderChips.innerHTML = "";
+
+      if (filters.sizes.length > 0) {
+        renderFilterChip(
+          sizeChips,
+          t("filter_size_all"),
+          "",
+          !activeSize,
+          (v) => void filterSize(v),
+        );
+        for (const size of filters.sizes) {
+          renderFilterChip(
+            sizeChips,
+            `${t("filter_size")} ${size}`,
+            size,
+            activeSize === size,
+            (v) => void filterSize(v),
+          );
+        }
+      }
+
+      if (filters.genders.length > 0) {
+        renderFilterChip(
+          genderChips,
+          t("filter_gender_all"),
+          "",
+          !activeGender,
+          (v) => void filterGender(v),
+        );
+        for (const gender of filters.genders) {
+          renderFilterChip(
+            genderChips,
+            t(`filter_gender_${gender}`),
+            gender,
+            activeGender === gender,
+            (v) => void filterGender(v),
+          );
+        }
+      }
+    } catch {
+      sizeChips.innerHTML = "";
+      genderChips.innerHTML = "";
+    }
+  }
+
   try {
-    const [{ data: brands }, { data: filters }] = await Promise.all([
+    const [{ data: brands }, { data: categories }] = await Promise.all([
       apiGet<{ data: string[] }>("/api/brands"),
       apiGet<{
-        data: { sizes: string[]; genders: ProductGender[] };
-      }>("/api/product-filters"),
+        data: { slug: string; name_ru: string }[];
+      }>("/api/categories"),
     ]);
     if (stale()) return;
     for (const brandName of brands) {
@@ -328,43 +409,33 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       chips.appendChild(chip);
     }
 
-    if (filters.sizes.length > 0) {
+    renderFilterChip(
+      categoryChips,
+      t("chip_all_categories"),
+      "",
+      !activeCategory,
+      (v) => void filterCategory(v),
+    );
+    renderFilterChip(
+      categoryChips,
+      t("category_watches"),
+      WATCHES_CATEGORY_SLUG,
+      activeCategory === WATCHES_CATEGORY_SLUG,
+      (v) => void filterCategory(v),
+    );
+
+    for (const category of categories) {
+      if (category.slug === WATCHES_CATEGORY_SLUG) continue;
       renderFilterChip(
-        sizeChips,
-        t("filter_size_all"),
-        "",
-        !activeSize,
-        (v) => void filterSize(v),
+        categoryChips,
+        category.name_ru,
+        category.slug,
+        activeCategory === category.slug,
+        (v) => void filterCategory(v),
       );
-      for (const size of filters.sizes) {
-        renderFilterChip(
-          sizeChips,
-          `${t("filter_size")} ${size}`,
-          size,
-          activeSize === size,
-          (v) => void filterSize(v),
-        );
-      }
     }
 
-    if (filters.genders.length > 0) {
-      renderFilterChip(
-        genderChips,
-        t("filter_gender_all"),
-        "",
-        !activeGender,
-        (v) => void filterGender(v),
-      );
-      for (const gender of filters.genders) {
-        renderFilterChip(
-          genderChips,
-          t(`filter_gender_${gender}`),
-          gender,
-          activeGender === gender,
-          (v) => void filterGender(v),
-        );
-      }
-    }
+    await refreshProductFilters();
   } catch {
     /* ignore */
   }
@@ -379,7 +450,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   let cardIndex = 0;
   const allCards: HTMLElement[] = [];
-  let activeCategory = "";
 
   /** Удаляет карточки далеко за пределами viewport для экономии DOM */
   function recycleCards(): void {
@@ -551,8 +621,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
   if (pendingCategory !== null) {
     sessionStorage.removeItem(PENDING_CATEGORY_KEY);
-    activeCategory = pendingCategory;
-    if (!stale()) await loadMore();
+    if (!stale()) await filterCategory(pendingCategory);
   } else if (pendingBrand !== null) {
     sessionStorage.removeItem(PENDING_BRAND_KEY);
     if (!stale()) await filterBrand(pendingBrand);

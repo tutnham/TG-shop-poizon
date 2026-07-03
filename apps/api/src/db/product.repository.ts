@@ -46,6 +46,16 @@ function toListItem(row: ProductRow): ProductListItem {
 const LIST_PRODUCT_COLUMNS =
   "id, name, name_ru, brand, image_urls, price_rub, price_usdt, is_available, sold_count, synced_at, gender";
 
+async function resolveCategoryIdBySlug(slug: string): Promise<string | null> {
+  const { data, error } = await getSupabase()
+    .from("categories")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  return (data?.id as string | undefined) ?? null;
+}
+
 export async function listProducts(opts: {
   page: number;
   limit: number;
@@ -64,12 +74,9 @@ export async function listProducts(opts: {
     .eq("is_available", true);
 
   if (opts.category) {
-    const { data: cat } = await getSupabase()
-      .from("categories")
-      .select("id")
-      .eq("slug", opts.category)
-      .maybeSingle();
-    if (cat) query = query.eq("category_id", cat.id);
+    const categoryId = await resolveCategoryIdBySlug(opts.category);
+    if (!categoryId) return { items: [], total: 0 };
+    query = query.eq("category_id", categoryId);
   }
   if (opts.brand) {
     const brand = sanitizeSearchQuery(opts.brand);
@@ -156,9 +163,26 @@ function rowToProductDetail(row: ProductRow): ProductDetail {
 export async function listCategories(): Promise<
   { id: string; name: string; name_ru: string; slug: string }[]
 > {
+  const { data: productRows, error: productError } = await getSupabase()
+    .from("products")
+    .select("category_id")
+    .eq("is_available", true)
+    .not("category_id", "is", null);
+  if (productError) throw new Error(productError.message);
+
+  const categoryIds = [
+    ...new Set(
+      (productRows ?? [])
+        .map((row) => row.category_id as string | null)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  if (categoryIds.length === 0) return [];
+
   const { data, error } = await getSupabase()
     .from("categories")
-    .select("id, name, name_ru, slug");
+    .select("id, name, name_ru, slug")
+    .in("id", categoryIds);
   if (error) throw new Error(error.message);
   return dedupeByNameRu(data ?? []);
 }
@@ -192,11 +216,23 @@ function numericSizeSort(a: string, b: string): number {
 }
 
 /** Distinct available sizes from in-stock products (for catalog filter chips). */
-export async function listAvailableSizes(): Promise<string[]> {
-  const { data, error } = await getSupabase()
+export async function listAvailableSizes(
+  opts: {
+    category?: string;
+  } = {},
+): Promise<string[]> {
+  const categoryId = opts.category
+    ? await resolveCategoryIdBySlug(opts.category)
+    : null;
+  if (opts.category && !categoryId) return [];
+
+  let query = getSupabase()
     .from("products")
     .select("stock")
     .eq("is_available", true);
+  if (categoryId) query = query.eq("category_id", categoryId);
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   const sizes = new Set<string>();
@@ -210,12 +246,24 @@ export async function listAvailableSizes(): Promise<string[]> {
 }
 
 /** Distinct normalized genders present in available catalog. */
-export async function listAvailableGenders(): Promise<ProductGender[]> {
-  const { data, error } = await getSupabase()
+export async function listAvailableGenders(
+  opts: {
+    category?: string;
+  } = {},
+): Promise<ProductGender[]> {
+  const categoryId = opts.category
+    ? await resolveCategoryIdBySlug(opts.category)
+    : null;
+  if (opts.category && !categoryId) return [];
+
+  let query = getSupabase()
     .from("products")
     .select("gender")
     .eq("is_available", true)
     .not("gender", "is", null);
+  if (categoryId) query = query.eq("category_id", categoryId);
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
 
   const seen = new Set<ProductGender>();

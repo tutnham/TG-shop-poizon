@@ -5,6 +5,8 @@ import { navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
+const WATCHES_CATEGORY_SLUG = "watches";
+
 export async function renderMenu(app: HTMLElement): Promise<void> {
   hideMainButton();
   hideBackButton();
@@ -35,12 +37,26 @@ export async function renderMenu(app: HTMLElement): Promise<void> {
   allBtn.addEventListener("click", () => navigate("/"));
   list.appendChild(allBtn);
 
+  const watchesBtn = document.createElement("button");
+  watchesBtn.type = "button";
+  watchesBtn.className = "menu-category-card";
+  watchesBtn.innerHTML = `
+    <span class="material-symbols-outlined">watch</span>
+    <span>${t("category_watches")}</span>
+  `;
+  watchesBtn.addEventListener("click", () => {
+    sessionStorage.setItem("poizon_pending_category", WATCHES_CATEGORY_SLUG);
+    navigate("/");
+  });
+  list.appendChild(watchesBtn);
+
   try {
     const { data: cats } = await apiGet<{
       data: { slug: string; name_ru: string; name_en?: string }[];
     }>("/api/categories");
 
     for (const c of cats) {
+      if (c.slug === WATCHES_CATEGORY_SLUG) continue;
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "menu-category-card";

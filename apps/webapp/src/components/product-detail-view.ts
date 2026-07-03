@@ -160,13 +160,12 @@ export function renderProductDetailView(
   window.addEventListener("poizon-cart-changed", cartChangeHandler);
 
   const rawSizes = Object.values(p.sizes ?? {}).flat();
-  const DEFAULT_EU_SIZES = ["39", "40", "41", "42", "43", "44", "45", "46"];
   const sizes =
-    rawSizes.length > 0 ? rawSizes : p.is_available ? DEFAULT_EU_SIZES : [];
+    rawSizes.length > 0 ? rawSizes : p.is_available ? [t("one_size")] : [];
   const stock =
     rawSizes.length > 0
       ? (p.stock ?? {})
-      : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
+      : Object.fromEntries(sizes.map((size) => [size, true]));
 
   const defaultUnit = {
     rub: p.price_rub,
