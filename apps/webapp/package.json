@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --import tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.5",

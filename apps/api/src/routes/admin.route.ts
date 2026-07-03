@@ -95,10 +95,11 @@ admin.patch(
     if (body.tracking_number) extra.tracking_number = body.tracking_number;
     if (body.admin_comment) extra.admin_comment = body.admin_comment;
 
+    const adminUser = c.get("telegramUser");
     const applyResult = await orderService.applyOrderStatusChange({
       orderId: id,
       status: body.status,
-      adminTelegramId: 0,
+      adminTelegramId: adminUser?.id ?? 0,
       tracking: body.tracking_number,
       adminComment: body.admin_comment,
     });

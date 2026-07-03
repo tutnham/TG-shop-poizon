@@ -46,9 +46,7 @@ export function buildSizePricesFromCny(
   return result;
 }
 
-export function minSizePrice(
-  sizePrices: SizePricesMap,
-): SizePrice | null {
+export function minSizePrice(sizePrices: SizePricesMap): SizePrice | null {
   const values = Object.values(sizePrices);
   if (!values.length) return null;
   return values.reduce((min, p) => (p.rub < min.rub ? p : min));

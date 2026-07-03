@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Hono } from "hono";
-import {
-  bodySizeLimit,
-  DEFAULT_MAX_BODY_BYTES,
-} from "./request-body-limit.js";
+import { DEFAULT_MAX_BODY_BYTES, bodySizeLimit } from "./request-body-limit.js";
 
 describe("bodySizeLimit middleware", () => {
   it("allows requests within the limit", async () => {

@@ -1,8 +1,11 @@
 # Spec-First документация: Telegram Mini App — Магазин на базе Poizon
 
+> **Historical draft.** Этот документ описывает первоначальную spec (Bun, self-hosted Supabase, docker-compose).
+> Актуальная архитектура и инструкции — в [README.md](README.md) и [docs/deploy-vercel.md](docs/deploy-vercel.md).
+
 **Версия:** 1.0  
 **Дата:** 2026-06-01  
-**Стек:** TypeScript · Hono · Bun · Supabase (self-hosted) · Telegram Bot API
+**Стек (устарело):** TypeScript · Hono · Bun · Supabase (self-hosted) · Telegram Bot API
 
 ---
 

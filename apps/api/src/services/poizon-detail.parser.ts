@@ -1,9 +1,9 @@
 import {
+  type SkuParseResult,
   mapDetailWithPriceSkus,
   mapGoodsInfoSkuList,
   minPriceFen,
   resolveEnglishTitle,
-  type SkuParseResult,
 } from "./poizon-sku.mapper.js";
 import type { PoisonProductRaw } from "./poizon.provider.js";
 
@@ -93,30 +93,19 @@ export function parsePoizonDetailResponse(
 
   const root = raw as Record<string, unknown>;
   const payload = (
-    root.result && typeof root.result === "object"
-      ? root.result
-      : root
+    root.result && typeof root.result === "object" ? root.result : root
   ) as DetailPayload;
 
   const detail = payload.detail;
-  const spuId =
-    detail?.spuId ??
-    payload.dwSpuId ??
-    spuIdFallback ??
-    0;
+  const spuId = detail?.spuId ?? payload.dwSpuId ?? spuIdFallback ?? 0;
   if (!spuId) return null;
 
   const title =
-    detail?.title ??
-    payload.dwSpuTitle ??
-    payload.distSpuTitle ??
-    "";
+    detail?.title ?? payload.dwSpuTitle ?? payload.distSpuTitle ?? "";
   if (!title && !payload.distSpuTitle) return null;
 
   const brand =
-    detail?.sourceName?.split(" ")[0] ??
-    title.split(" ")[0] ??
-    "Unknown";
+    detail?.sourceName?.split(" ")[0] ?? title.split(" ")[0] ?? "Unknown";
 
   const englishTitle = resolveEnglishTitle({
     distSpuTitle: payload.distSpuTitle,

@@ -1,7 +1,10 @@
 /** Normalized wearer gender for catalog filters (men / women only) */
 export type ProductGender = "male" | "female";
 
-export const CATALOG_GENDERS = ["male", "female"] as const satisfies readonly ProductGender[];
+export const CATALOG_GENDERS = [
+  "male",
+  "female",
+] as const satisfies readonly ProductGender[];
 
 export interface ProductListItem {
   id: string;

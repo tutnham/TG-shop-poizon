@@ -34,7 +34,7 @@ describe("requireTmaAuth middleware", () => {
       headers: { "X-Telegram-Init-Data": "user=%7B%22id%22%3A1%7D&hash=bad" },
     });
     assert.equal(res.status, 403);
-    delete process.env.SHOP_BOT_TOKEN;
+    process.env.SHOP_BOT_TOKEN = undefined;
   });
 });
 

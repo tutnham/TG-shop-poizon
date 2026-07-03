@@ -4,15 +4,15 @@ import type { ProductDetail } from "@poizon-shop/shared";
 import Decimal from "decimal.js";
 import type { IPoisonProvider } from "./poizon.provider.js";
 import type { SyncPricingContext } from "./pricing.service.js";
+import {
+  ProductImportError,
+  importProductByQuery,
+} from "./product-import.service.js";
 import type {
   ShihuoPoparceProvider,
   ShihuoProductFull,
   ShihuoSearchHit,
 } from "./shihuo-poparce.provider.js";
-import {
-  ProductImportError,
-  importProductByQuery,
-} from "./product-import.service.js";
 
 const pricingCtx: SyncPricingContext = {
   rateCnyRub: new Decimal(10),

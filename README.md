@@ -16,7 +16,9 @@
 - [Telegram боты](#telegram-боты)
 - [Poizon-провайдеры](#poizon-провайдеры)
 - [Деплой на Vercel](#деплой-на-vercel)
+- [Frontend (webapp)](#frontend-webapp)
 - [Безопасность](#безопасность)
+- [Оптимизация и backlog](#оптимизация-и-backlog)
 - [Тестирование](#тестирование)
 
 ---
@@ -52,7 +54,7 @@ Telegram Servers
                     │  (Vercel/Node)  │
                     │                 │
     ┌───────────────┤  /api/*         │
-    │               │  /admin/*       │
+    │               │  /api/admin/*   │
     │               │  /cron/*        │
     │               └───────┬─────────┘
     │                       │
@@ -88,7 +90,9 @@ WebApp (Vite)         Supabase Cloud
 ## Структура проекта
 
 ```
-poizon-shop/
+TG-shop/   (npm workspaces, root для Vercel)
+├── api/                        # Vercel serverless entry (rewrites → Hono app)
+│   └── index.ts
 ├── apps/
 │   ├── api/                    # Hono API сервер
 │   │   ├── src/
@@ -223,6 +227,7 @@ npm run webhook:set
 | `VERCEL_AUTOMATION_BYPASS_SECRET` | — | Bypass Deployment Protection |
 | `CORS_ORIGINS` | — | Дополнительные CORS origins (через запятую) |
 | `IMAGE_PROXY_ALLOWED_HOSTS` | — | Дополнительные хосты для image proxy |
+| `VITE_API_URL` | — | Базовый URL API для webapp; пусто = same-origin `/api` (Vercel rewrites) |
 
 ### Pricing module (продвинутые)
 
@@ -244,9 +249,9 @@ npm run webhook:set
 
 | Файл | Описание |
 |------|----------|
-| `001_init.sql` | Таблицы, RLS, базовая структура |
+| `001_init.sql` | Таблицы, индексы, базовая схема (без RLS) |
 | `002_demo_seed.sql` | Демо-данные для разработки |
-| `003_exchange_rates.sql` | Таблица курсов валют |
+| `003_exchange_rates.sql` | Расширение `pricing_config` (курсы CNY/RUB, USDT/RUB) |
 | `004_perf_indexes.sql` | Индексы для производительности |
 | `005_constraints.sql` | CHECK-ограничения и дополнительные индексы |
 | `006_size_prices.sql` | Колонка `size_prices` (JSONB) для цен по размерам |
@@ -254,6 +259,9 @@ npm run webhook:set
 | `008_rls.sql` | Row Level Security для таблиц |
 | `009_create_order_atomic.sql` | RPC `create_shop_order` — атомарное создание заказа + оплата + очистка корзины |
 | `010_product_filters.sql` | Фильтры каталога: `gender`, GIN-индекс по `stock` для размеров |
+| `011_security_hardening.sql` | REVOKE EXECUTE на `create_shop_order`; ужесточение public RLS для `products` |
+
+> **Важно:** миграции `001`–`010` обязательны до production. `011` — рекомендуется сразу после `010`.
 
 ---
 
@@ -282,12 +290,14 @@ npm run webhook:set
 
 | Скрипт | Описание |
 |--------|----------|
-| `npm run db:migrate` | Выполнение миграций БД |
+| `npm run db:migrate` | Печатает список миграций для ручного применения в Supabase SQL Editor (stub) |
 | `npm run webhook:set` | Установка webhook |
 | `npm run rates:update` | Обновление курсов |
 | `npm run sync:poizon` | Синхронизация с Poizon |
 | `npm run import:pop2` | Импорт из pop2.json |
 | `npm run import:export3` | Импорт из `Export3.json` (`../../Export3.json` относительно `apps/api`) |
+| `npm run import:clock` | Импорт из `clock.json` в корне проекта |
+| `npm run patch:clock` | Патч каталога часов из `clock.json` |
 | `npm run purge:stale:dry` | Предпросмотр replace-очистки каталога по `Export3.json` |
 | `npm run purge:stale` | Удаление товаров, отсутствующих в переданной выгрузке |
 | `npm run delete:demo` | Удаление демо-данных |
@@ -322,22 +332,29 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 
 ### Shop API (Mini App)
 
-Все эндпоинты защищены middleware валидации Telegram initData (`X-Telegram-Init-Data`).
+**Публичный каталог (без initData):** `GET /api/products`, `/categories`, `/brands`, `/product-filters`, `/rates`, `/config`, `/products/:id`, `/ping`.
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| GET | `/api/products` | Каталог товаров (с фильтрами) |
-| GET | `/api/products/:id` | Карточка товара |
-| GET | `/api/categories` | Список категорий |
-| GET | `/api/product-filters` | Доступные размеры и полы для фильтров каталога |
-| GET | `/api/cart` | Корзина пользователя |
-| POST | `/api/cart` | Добавить в корзину |
-| PATCH | `/api/cart/:itemId` | Обновить количество/размер |
-| DELETE | `/api/cart/:itemId` | Удалить из корзины |
-| POST | `/api/orders` | Создать заказ |
-| GET | `/api/orders` | История заказов |
-| GET | `/api/orders/:id` | Детали заказа |
-| GET | `/api/config` | Публичный конфиг магазина |
+**Требуют `X-Telegram-Init-Data`:** корзина, заказы, `/user/language`, `/api/image-proxy`, `POST /api/products/import`.
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| GET | `/api/ping` | optional | Health + статус Supabase |
+| GET | `/api/config` | — | Публичный конфиг магазина |
+| GET | `/api/rates` | — | Курсы CNY/RUB, USDT/RUB |
+| GET | `/api/products` | — | Каталог товаров (с фильтрами) |
+| POST | `/api/products/import` | initData | Импорт товара по артикулу/spuId (см. [Безопасность](#безопасность)) |
+| GET | `/api/products/:id` | — | Карточка товара |
+| GET | `/api/categories` | — | Список категорий |
+| GET | `/api/brands` | — | Список брендов (опционально `?category=`) |
+| GET | `/api/product-filters` | — | Размеры и полы для фильтров каталога |
+| GET | `/api/cart` | initData | Корзина пользователя |
+| POST | `/api/cart` | initData | Добавить в корзину |
+| PATCH | `/api/cart/:itemId` | initData | Обновить количество/размер |
+| DELETE | `/api/cart/:itemId` | initData | Удалить из корзины |
+| POST | `/api/orders` | initData | Создать заказ |
+| GET | `/api/orders` | initData | История заказов |
+| GET | `/api/orders/:id` | initData | Детали заказа |
+| PATCH | `/api/user/language` | initData | Обновить язык пользователя |
 
 #### Параметры GET /api/products
 
@@ -362,7 +379,7 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 
 ### Admin API
 
-Защищен проверкой Telegram ID администратора из белого списка.
+Защищён `adminAuth`: initData подписывается **ADMIN_BOT_TOKEN** (в production fallback на `SHOP_BOT_TOKEN` отключён) + Telegram ID из белого списка.
 
 | Метод | Путь | Описание |
 |-------|------|----------|
@@ -443,7 +460,7 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 | Poparce | `poparce` | Сторонний DEWU API (`POIZON_API_KEY`) |
 | Official | `official` | Poizon-API/public-api (`POIZON_OFFICIAL_API_KEY`) |
 
-По умолчанию: `mock`.
+По умолчанию: `mock`, если `POIZON_PROVIDER` не задан и нет `POIZON_API_KEY`. Если задан `POIZON_API_KEY` без явного провайдера — используется `poparce`.
 
 **Ценообразование:**
 - Цены с Poizon приходят в **фенях** (1 CNY = 100 фень)
@@ -468,12 +485,12 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 |----------|--------|-------------------|
 | В `Export3.json` нет категории/товаров «Часы» | Открыто | Вкладка `watches` в UI показывается пустой. После появления часов в выгрузке — повторить `import:export3`; slug `watches` уже нормализуется в mapper. |
 | Пустые строки категорий в БД | Открыто | `/api/categories` скрывает категории без доступных товаров, но физически orphan-строки в `categories` не удаляются (риск FK). Нужен отдельный cleanup-скрипт или RPC. |
-| Replace-импорт — два шага, не один | Открыто | Сейчас оператор запускает `purge:stale`, затем `import:export3` вручную. Единый orchestrator (`replace-products-from-export.ts`) не реализован. |
+| Replace-импорт — два шага, не один | Открыто | Рекомендуемый порядок: `purge:stale:dry` → `import:export3` → `purge:stale`. Единый orchestrator не реализован. |
 | Неизвестные значения `gender` в выгрузке | Закрыто | В каталог попадают только `male`/`female`. Детское, унисекс и прочие значения (в т.ч. `"Малыши"`) пропускаются при импорте и удаляются replace-purge. |
 | Товары без цены или без картинок | Открыто | Такие позиции пропускаются при импорте и не попадают в keep-set purge. Список пропусков виден только в stdout CLI — нет отдельного отчёта/файла. |
 | Миграция `010_product_filters.sql` | Требует проверки | GIN-индекс и колонка `gender` должны быть применены в Supabase до production replace. Если миграция не накатывалась — фильтры size/gender будут медленными или сломаны. |
 | `Export3.json` не в git | Осознанно | Файл выгрузки лежит локально в корне проекта и не коммитится (объём + операционные данные). Для CI/CD импорт нужно запускать вручную или через отдельный pipeline с артефактом. |
-| Линт старых CLI-скриптов | Открыто | `npm run lint` падает на legacy-файлах (`backfill-shihuo-prices.ts`, `capture-poizon-har.ts` и др.), не связанных с Export3. Новые файлы проходят scoped check. |
+| Линт legacy CLI-скриптов | Закрыто | Операционные backfill/probe-скрипты исключены из Biome (`biome.json`); core API/webapp проходят `npm run lint`. |
 | UI-фильтры без автотестов | Открыто | Webapp не имеет DOM/e2e тестов для chips категорий, size и gender; регрессии проверяются только `build` и ручным просмотром. |
 | Производительность фильтра по `stock` JSONB | Наблюдение | При росте каталога фильтр `size` через `@>` по JSONB может тормозить без GIN. После replace стоит проверить explain на production-объёме. |
 
@@ -484,7 +501,7 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 ### 1. Подготовка Supabase
 
 - Создайте проект на [Supabase](https://supabase.com)
-- Выполните миграции из `infra/supabase/migrations/` **по порядку** (001 → 005)
+- Выполните миграции из `infra/supabase/migrations/` **по порядку** (001 → 011)
 - Скопируйте URL и `service_role` key
 
 ### 2. Telegram боты
@@ -550,28 +567,65 @@ npm run cron:webhooks
 
 ---
 
+## Frontend (webapp)
+
+| Параметр | Значение |
+|----------|----------|
+| Стек | Vanilla TypeScript, Vite, hash-router, imperative DOM |
+| Маршруты | `/`, `/menu`, `/product/:id`, `/cart`, `/checkout`, `/orders`, `/orders/:id`, `/profile` |
+| Auth | Заголовок `X-Telegram-Init-Data` на write-запросах; каталог читается без аккаунта |
+| `VITE_API_URL` | Пусто = same-origin `/api`; в dev proxy на `localhost:3000` через `vite.config.ts` |
+| i18n | Только `ru.json`; язык из Telegram initData пока не переключает UI |
+| Checkout | Упрощённый flow: `payment_method: "none"` — менеджер подтверждает заказ в Admin Bot |
+| Без Telegram | `DEMO_MODE=true` на API не создаёт сессию; корзина/заказы вернут `401` без initData |
+| Тесты | Webapp без unit/e2e; регрессии — `npm run build` + ручной просмотр в Telegram |
+
+---
+
 ## Безопасность
 
-- **Каталог (read-only):** `GET /api/products`, `/categories`, `/rates`, `/config` — доступны без аккаунта; guest-пользователь в БД не создаётся
-- **Личные действия (write):** корзина, заказы, профиль — только с валидным `X-Telegram-Init-Data` (HMAC-подпись Telegram Mini App); без initData → `401`
-- **Image proxy:** `/api/image-proxy` — только для авторизованных клиентов Mini App (initData обязателен)
-- Admin API защищён проверкой Telegram ID из белого списка
-- `WEBHOOK_SECRET` и `CRON_SECRET` должны быть ≥32 символов в production; сравнение секретов — constant-time
+- **Каталог (read-only):** `GET /api/products`, `/categories`, `/brands`, `/product-filters`, `/rates`, `/config`, `/products/:id` — без initData; guest-пользователь в БД не создаётся
+- **Личные действия (write):** корзина, заказы, `/user/language` — только с валидным `X-Telegram-Init-Data` (HMAC Telegram Mini App, TTL 24ч); без initData → `401`
+- **Image proxy:** `/api/image-proxy` — только для клиентов Mini App с initData; allowlist хостов
+- **Import по артикулу:** `POST /api/products/import` доступен любому авторизованному пользователю Mini App (10 req/min на userId). Рекомендуется ограничить admin-only в будущем
+- **Admin API:** initData подписывается `ADMIN_BOT_TOKEN` + whitelist Telegram ID
+- **Rate limits:** webhook/mutation/import лимиты in-process (`Map`) — на Vercel serverless не глобальны между инстансами; см. [Оптимизация](#оптимизация-и-backlog)
+- **RPC `create_shop_order`:** атомарное создание заказа; миграция `011` ограничивает `EXECUTE` только для `service_role`
+- **RLS:** backend использует `service_role` и обходит RLS; миграция `011` синхронизирует anon policy для `products` с app-фильтрами
+- `WEBHOOK_SECRET` и `CRON_SECRET` ≥32 символов в production; constant-time сравнение
 - `service_role` key никогда не передаётся на клиент
 - Bot tokens только в переменных окружения
-- Cron endpoint требует `Authorization: Bearer $CRON_SECRET`
-- Статические ассеты (/assets/*) кешируются на 1 год с immutable
+- Cron endpoint: `Authorization: Bearer $CRON_SECRET`
+- Статические ассеты (`/assets/*`) — `Cache-Control: public, max-age=31536000, immutable`
+
+---
+
+## Оптимизация и backlog
+
+Приоритетные улучшения (подробнее — [docs/optimization-backlog.md](docs/optimization-backlog.md)):
+
+| Приоритет | Область | Действие |
+|-----------|---------|----------|
+| Высокий | Rate limits | Upstash Redis / Vercel KV вместо in-memory `Map` |
+| Высокий | Каталог | Cursor/keyset pagination вместо offset `.range()` |
+| Средний | Фильтры | SQL/RPC aggregates для `listAvailableSizes` / brands |
+| Средний | Image proxy | Streaming response вместо `arrayBuffer()` до 5 MB |
+| Средний | Webapp bundle | Subset иконок/шрифтов, lazy CSS per-route |
+| Низкий | Import orchestrator | Единый скрипт replace-каталога с отчётом |
 
 ---
 
 ## Тестирование
 
 ```bash
-# Запуск всех тестов
+# Запуск всех тестов (API + webapp)
 npm test
 
-# Тесты API
+# Только API
 npm run test -w @poizon-shop/api
+
+# Только webapp (escapeHtml и др.)
+npm run test -w @poizon-shop/webapp
 ```
 
 ---

@@ -30,7 +30,10 @@ const DEFAULT_BASE_URL = "https://poparce.ru/api/shihuo";
 const SIZE_NAME_REGEX = /size|尺码|尺寸|码/i;
 
 function normalizeArticle(value: string): string {
-  return value.trim().toUpperCase().replace(/[\s_-]+/g, "");
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_-]+/g, "");
 }
 
 export { normalizeArticle };
@@ -192,7 +195,9 @@ export function parseSearchByArticleResponse(
 
   const firstItem = items[0];
   if (!firstItem || typeof firstItem !== "object") return null;
-  if (hasExplicitArticleMismatch(firstItem as Record<string, unknown>, vendorCode)) {
+  if (
+    hasExplicitArticleMismatch(firstItem as Record<string, unknown>, vendorCode)
+  ) {
     return null;
   }
 
@@ -229,13 +234,15 @@ function readBool(value: unknown): boolean | null {
 }
 
 function extractSizeLabelFromAttrs(
-  attrs: Array<{
-    cnName?: string;
-    enName?: string;
-    cnValue?: string;
-    enValue?: string;
-    level?: string | number;
-  }> | undefined,
+  attrs:
+    | Array<{
+        cnName?: string;
+        enName?: string;
+        cnValue?: string;
+        enValue?: string;
+        level?: string | number;
+      }>
+    | undefined,
 ): string | null {
   if (!attrs?.length) return null;
 
@@ -253,17 +260,17 @@ function extractSizeLabelFromAttrs(
 }
 
 function extractSizeLabelFromProperties(
-  properties: Array<{
-    level?: number;
-    saleProperty?: { name?: string; value?: string };
-  }> | undefined,
+  properties:
+    | Array<{
+        level?: number;
+        saleProperty?: { name?: string; value?: string };
+      }>
+    | undefined,
 ): string | null {
   if (!properties?.length) return null;
 
   const sizeProp =
-    properties.find((p) =>
-      SIZE_NAME_REGEX.test(p.saleProperty?.name ?? ""),
-    ) ??
+    properties.find((p) => SIZE_NAME_REGEX.test(p.saleProperty?.name ?? "")) ??
     properties.find((p) => p.level === 2) ??
     properties[properties.length - 1];
 
@@ -367,7 +374,9 @@ function extractProductImages(payload: Record<string, unknown>): string[] {
   }
 
   const spuImages = (
-    payload.image as { spuImage?: { images?: Array<{ url: string }> } } | undefined
+    payload.image as
+      | { spuImage?: { images?: Array<{ url: string }> } }
+      | undefined
   )?.spuImage?.images;
   if (Array.isArray(spuImages)) {
     for (const img of spuImages) pushUrl(img.url);
@@ -421,9 +430,7 @@ export function parseProductFullResponse(
     (typeof payload.name === "string" && payload.name.trim()) ||
     (typeof (payload.product as Record<string, unknown> | undefined)?.title ===
       "string" &&
-      (
-        (payload.product as Record<string, unknown>).title as string
-      ).trim()) ||
+      ((payload.product as Record<string, unknown>).title as string).trim()) ||
     "";
 
   const sizePricesCny: Record<string, number> = {};
@@ -436,7 +443,9 @@ export function parseProductFullResponse(
     if (!size) continue;
 
     const priceCny = extractSizePriceCny(row);
-    const explicitAvailable = readBool(row.available ?? row.inStock ?? row.in_stock);
+    const explicitAvailable = readBool(
+      row.available ?? row.inStock ?? row.in_stock,
+    );
     const available =
       explicitAvailable != null ? explicitAvailable : priceCny != null;
 
@@ -444,8 +453,7 @@ export function parseProductFullResponse(
     if (!available || priceCny == null) continue;
 
     const prev = sizePricesCny[size];
-    sizePricesCny[size] =
-      prev == null || priceCny < prev ? priceCny : prev;
+    sizePricesCny[size] = prev == null || priceCny < prev ? priceCny : prev;
   }
 
   const sortedLabels = Object.keys(stock).sort(numericSizeSort);
@@ -495,7 +503,7 @@ export class ShihuoPoparceProvider {
     const url = `${this.baseUrl()}${path}`;
 
     const res = await fetch(url, {
-      headers: { "x-api-key": key!, "Content-Type": "application/json" },
+      headers: { "x-api-key": key ?? "", "Content-Type": "application/json" },
       signal: AbortSignal.timeout(90000),
     });
 

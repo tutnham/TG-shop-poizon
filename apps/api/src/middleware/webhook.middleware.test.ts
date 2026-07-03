@@ -40,7 +40,7 @@ describe("webhookSecret middleware", () => {
   });
 
   it("rejects production requests when WEBHOOK_SECRET is missing", async () => {
-    delete process.env.WEBHOOK_SECRET;
+    process.env.WEBHOOK_SECRET = undefined;
     process.env.NODE_ENV = "production";
     const app = new Hono();
     app.use("*", webhookSecret);

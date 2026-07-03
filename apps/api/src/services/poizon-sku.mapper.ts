@@ -6,10 +6,7 @@ const CJK_REGEX =
 const SIZE_NAME_REGEX = /size|尺码|尺寸|码/i;
 
 export function stripCjk(text: string): string {
-  return text
-   .replace(CJK_REGEX, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return text.replace(CJK_REGEX, " ").replace(/\s+/g, " ").trim();
 }
 
 export function resolveEnglishTitle(opts: {
@@ -48,17 +45,20 @@ export type SkuParseResult = {
 
 /** goodsInfo / dist API: skuList с minBidPrice и saleAttr */
 export function mapGoodsInfoSkuList(
-  skuList: Array<{
-    minBidPrice?: number;
-    distStatus?: string;
-    saleAttr?: Array<{
-      cnName?: string;
-      enName?: string;
-      cnValue?: string;
-      enValue?: string;
-      level?: string | number;
-    }>;
-  }> | null | undefined,
+  skuList:
+    | Array<{
+        minBidPrice?: number;
+        distStatus?: string;
+        saleAttr?: Array<{
+          cnName?: string;
+          enName?: string;
+          cnValue?: string;
+          enValue?: string;
+          level?: string | number;
+        }>;
+      }>
+    | null
+    | undefined,
 ): SkuParseResult {
   const sizePricesFen: Record<string, number> = {};
   const stock: Record<string, boolean> = {};
@@ -76,8 +76,7 @@ export function mapGoodsInfoSkuList(
     stock[size] = available;
     if (available) {
       const prev = sizePricesFen[size];
-      sizePricesFen[size] =
-        prev == null || fen < prev ? fen : prev;
+      sizePricesFen[size] = prev == null || fen < prev ? fen : prev;
     }
   }
 
@@ -90,17 +89,20 @@ export function mapGoodsInfoSkuList(
 
 /** productDetailWithPrice: skus[] с authPrice / price.prices */
 export function mapDetailWithPriceSkus(
-  skus: Array<{
-    authPrice?: number;
-    status?: number;
-    properties?: Array<{
-      level?: number;
-      saleProperty?: { name?: string; value?: string };
-    }>;
-    price?: {
-      prices?: Array<{ price?: number; floorPrice?: number }>;
-    };
-  }> | null | undefined,
+  skus:
+    | Array<{
+        authPrice?: number;
+        status?: number;
+        properties?: Array<{
+          level?: number;
+          saleProperty?: { name?: string; value?: string };
+        }>;
+        price?: {
+          prices?: Array<{ price?: number; floorPrice?: number }>;
+        };
+      }>
+    | null
+    | undefined,
 ): SkuParseResult {
   const sizePricesFen: Record<string, number> = {};
   const stock: Record<string, boolean> = {};
@@ -115,8 +117,7 @@ export function mapDetailWithPriceSkus(
     stock[size] = available;
     if (available) {
       const prev = sizePricesFen[size];
-      sizePricesFen[size] =
-        prev == null || fen < prev ? fen : prev;
+      sizePricesFen[size] = prev == null || fen < prev ? fen : prev;
     }
   }
 
@@ -143,13 +144,15 @@ function resolveSkuPriceFen(sku: {
 }
 
 function extractSizeFromSaleAttrs(
-  attrs: Array<{
-    cnName?: string;
-    enName?: string;
-    cnValue?: string;
-    enValue?: string;
-    level?: string | number;
-  }> | undefined,
+  attrs:
+    | Array<{
+        cnName?: string;
+        enName?: string;
+        cnValue?: string;
+        enValue?: string;
+        level?: string | number;
+      }>
+    | undefined,
 ): string | null {
   if (!attrs?.length) return null;
 
@@ -167,17 +170,17 @@ function extractSizeFromSaleAttrs(
 }
 
 function extractSizeFromProperties(
-  properties: Array<{
-    level?: number;
-    saleProperty?: { name?: string; value?: string };
-  }> | undefined,
+  properties:
+    | Array<{
+        level?: number;
+        saleProperty?: { name?: string; value?: string };
+      }>
+    | undefined,
 ): string | null {
   if (!properties?.length) return null;
 
   const sizeProp =
-    properties.find((p) =>
-      SIZE_NAME_REGEX.test(p.saleProperty?.name ?? ""),
-    ) ??
+    properties.find((p) => SIZE_NAME_REGEX.test(p.saleProperty?.name ?? "")) ??
     properties.find((p) => p.level === 2) ??
     properties[properties.length - 1];
 

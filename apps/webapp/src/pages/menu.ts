@@ -1,6 +1,7 @@
 import { apiGet } from "../api/client.js";
 import { renderHeader } from "../components/header.js";
 import { t } from "../i18n/index.js";
+import { escapeHtml } from "../lib/escape.js";
 import { navigate } from "../router.js";
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
@@ -62,7 +63,7 @@ export async function renderMenu(app: HTMLElement): Promise<void> {
       btn.className = "menu-category-card";
       btn.innerHTML = `
         <span class="material-symbols-outlined">category</span>
-        <span>${c.name_ru}</span>
+        <span>${escapeHtml(c.name_ru)}</span>
       `;
       btn.addEventListener("click", () => {
         sessionStorage.setItem("poizon_pending_category", c.slug);

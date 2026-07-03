@@ -16,7 +16,21 @@
       "pop2_test3.json",
       "temp_brands.json",
       "tmp_detail.json",
-      "tmp_detail2.json"
+      "tmp_detail2.json",
+      "Export3.json",
+      "clock.json",
+      "apps/api/scripts/backfill-shihuo-prices.ts",
+      "apps/api/scripts/backfill-size-prices-loop.ts",
+      "apps/api/scripts/backfill-size-prices.ts",
+      "apps/api/scripts/capture-poizon-har.ts",
+      "apps/api/scripts/compare-shihuo-dewu.ts",
+      "apps/api/scripts/fetch-missing-prices.ts",
+      "apps/api/scripts/probe-import-article.ts",
+      "apps/api/scripts/probe-poizon-api.ts",
+      "apps/api/scripts/probe-poizon-size-prices.ts",
+      "apps/api/scripts/probe-shihuo-poparce.ts",
+      "apps/api/scripts/run-shihuo-backfill-loop.ts",
+      "apps/api/scripts/verify-size-prices.ts"
     ]
   }
 }

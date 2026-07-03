@@ -22,8 +22,8 @@ describe("GET /cron/webhooks", () => {
     const secret = "cron-test-secret-32-characters!!";
     process.env.NODE_ENV = "production";
     process.env.CRON_SECRET = secret;
-    delete process.env.SHOP_BOT_TOKEN;
-    delete process.env.ADMIN_BOT_TOKEN;
+    process.env.SHOP_BOT_TOKEN = undefined;
+    process.env.ADMIN_BOT_TOKEN = undefined;
 
     const app = new Hono().route("/cron", cron);
     const res = await app.request("/cron/webhooks", {

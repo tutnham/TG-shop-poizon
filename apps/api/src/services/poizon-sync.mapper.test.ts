@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import Decimal from "decimal.js";
-import type { PoisonProductRaw } from "./poizon.provider.js";
 import { mapPoizonItemToUpsertRow } from "./poizon-sync.service.js";
+import type { PoisonProductRaw } from "./poizon.provider.js";
 import type { SyncPricingContext } from "./pricing.service.js";
 
 const ctx: SyncPricingContext = {

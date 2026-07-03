@@ -11,20 +11,17 @@ import type { IPoisonProvider } from "./poizon.provider.js";
 import type { PoisonProductRaw } from "./poizon.provider.js";
 import { getPoisonProvider } from "./poizon.service.js";
 import {
-  buildSizePricesFromCny,
-  minSizePrice,
-} from "./product-pricing.js";
-import {
+  type SyncPricingContext,
   buildSyncPricingContext,
   calculateProductPrices,
-  type SyncPricingContext,
 } from "./pricing.service.js";
+import { buildSizePricesFromCny, minSizePrice } from "./product-pricing.js";
 import {
-  getShihuoPoparceProvider,
-  normalizeArticle,
   type ShihuoPoparceProvider,
   type ShihuoProductFull,
   type ShihuoSearchHit,
+  getShihuoPoparceProvider,
+  normalizeArticle,
 } from "./shihuo-poparce.provider.js";
 
 export type ProductImportErrorCode =
@@ -138,7 +135,7 @@ function pickSpuIdFromArticleSearch(
     }
   }
 
-  if (items.length === 1) return items[0]!.spuId;
+  if (items.length === 1) return items[0]?.spuId;
 
   return null;
 }
@@ -200,10 +197,7 @@ async function resolveSpuId(
   return spuId;
 }
 
-function buildShihuoPoizonId(
-  goodsId: string,
-  styleId: string | null,
-): string {
+function buildShihuoPoizonId(goodsId: string, styleId: string | null): string {
   return `shihuo:${goodsId}:${styleId ?? "0"}`;
 }
 
@@ -337,10 +331,7 @@ async function importFromShihuoArticle(
 
   let full: ShihuoProductFull | null = null;
   try {
-    full = await shihuo.fetchProductFull(
-      searchHit.goodsId,
-      searchHit.styleId,
-    );
+    full = await shihuo.fetchProductFull(searchHit.goodsId, searchHit.styleId);
   } catch (err) {
     console.warn("[import] Shihuo product-full failed:", err);
     throwIfRetryableUpstream(err);
@@ -363,10 +354,7 @@ async function importFromShihuoArticle(
     }
 
     const prices = calculateProductPrices(priceResult.minPriceCny, pricingCtx);
-    const poizonId = buildShihuoPoizonId(
-      searchHit.goodsId,
-      searchHit.styleId,
-    );
+    const poizonId = buildShihuoPoizonId(searchHit.goodsId, searchHit.styleId);
     const imageUrls = mergeImageUrls(
       fallbackImages,
       searchHit.imageUrl ? [searchHit.imageUrl] : [],

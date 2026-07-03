@@ -7,18 +7,18 @@ import {
 } from "../lib/runtime.js";
 import { refreshRates } from "./currency.service.js";
 import type { IPoisonProvider } from "./poizon.provider.js";
-import { getPoisonProvider } from "./poizon.service.js";
 import type { PoisonProductRaw } from "./poizon.provider.js";
+import { getPoisonProvider } from "./poizon.service.js";
 import {
-  buildSizePricesFromFen,
-  minSizePrice,
-  type SizePricesMap,
-} from "./product-pricing.js";
-import {
+  type SyncPricingContext,
   buildSyncPricingContext,
   calculateProductPricesFromFen,
-  type SyncPricingContext,
 } from "./pricing.service.js";
+import {
+  type SizePricesMap,
+  buildSizePricesFromFen,
+  minSizePrice,
+} from "./product-pricing.js";
 
 const SYNC_KEYWORDS = [
   "nike",
@@ -69,9 +69,7 @@ export function mapPoizonItemToUpsertRow(
   const stock = hasSizes
     ? item.sizes
     : hasSkuPrices
-      ? Object.fromEntries(
-          sizeLabels.map((s) => [s, sizePrices[s] != null]),
-        )
+      ? Object.fromEntries(sizeLabels.map((s) => [s, sizePrices[s] != null]))
       : Object.fromEntries(DEFAULT_EU_SIZES.map((s) => [s, true]));
 
   return {

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   parseMinSupplierPriceCny,
   parseProductFullResponse,
@@ -32,10 +32,10 @@ describe("shihuo-poparce.provider parsers", () => {
     );
 
     assert.ok(hit);
-    assert.equal(hit!.goodsId, "397");
-    assert.equal(hit!.styleId, "4244972");
-    assert.equal(hit!.name, "Nike Air Force 1");
-    assert.equal(hit!.priceCny, 529);
+    assert.equal(hit?.goodsId, "397");
+    assert.equal(hit?.styleId, "4244972");
+    assert.equal(hit?.name, "Nike Air Force 1");
+    assert.equal(hit?.priceCny, 529);
   });
 
   it("parseSearchByArticleResponse rejects non-relevant search results", () => {
@@ -73,9 +73,9 @@ describe("shihuo-poparce.provider parsers", () => {
     );
 
     assert.ok(hit);
-    assert.equal(hit!.goodsId, "1795432");
-    assert.equal(hit!.styleId, "46219528");
-    assert.equal(hit!.priceCny, 699);
+    assert.equal(hit?.goodsId, "1795432");
+    assert.equal(hit?.styleId, "46219528");
+    assert.equal(hit?.priceCny, 699);
   });
 
   it("parseSearchByArticleResponse accepts normalized article match", () => {
@@ -94,7 +94,7 @@ describe("shihuo-poparce.provider parsers", () => {
     );
 
     assert.ok(hit);
-    assert.equal(hit!.goodsId, "100");
+    assert.equal(hit?.goodsId, "100");
   });
 
   it("parseMinSupplierPriceCny returns min from string supplier prices", () => {
@@ -140,15 +140,15 @@ describe("shihuo-poparce.provider parsers", () => {
     );
 
     assert.ok(parsed);
-    assert.equal(parsed!.goodsId, "397");
-    assert.equal(parsed!.styleId, "4244972");
-    assert.equal(parsed!.name, "Nike AF1");
-    assert.equal(parsed!.sizePricesCny["42"], 529);
-    assert.equal(parsed!.sizePricesCny["43"], 586);
-    assert.equal(parsed!.sizePricesCny["44"], undefined);
-    assert.equal(parsed!.stock["42"], true);
-    assert.equal(parsed!.stock["43"], true);
-    assert.equal(parsed!.stock["44"], false);
+    assert.equal(parsed?.goodsId, "397");
+    assert.equal(parsed?.styleId, "4244972");
+    assert.equal(parsed?.name, "Nike AF1");
+    assert.equal(parsed?.sizePricesCny["42"], 529);
+    assert.equal(parsed?.sizePricesCny["43"], 586);
+    assert.equal(parsed?.sizePricesCny["44"], undefined);
+    assert.equal(parsed?.stock["42"], true);
+    assert.equal(parsed?.stock["43"], true);
+    assert.equal(parsed?.stock["44"], false);
   });
 
   it("parseProductFullResponse reads skuList[] with saleAttr and minBidPrice (fen)", () => {
@@ -167,8 +167,8 @@ describe("shihuo-poparce.provider parsers", () => {
     });
 
     assert.ok(parsed);
-    assert.equal(parsed!.sizePricesCny["42"], 450);
-    assert.equal(parsed!.sizePricesCny["43"], 520);
+    assert.equal(parsed?.sizePricesCny["42"], 450);
+    assert.equal(parsed?.sizePricesCny["43"], 520);
   });
 
   it("parseProductFullResponse reads nested suppliers[] per size entry", () => {
@@ -183,8 +183,8 @@ describe("shihuo-poparce.provider parsers", () => {
     });
 
     assert.ok(parsed);
-    assert.equal(parsed!.sizePricesCny["42"], 417);
-    assert.equal(parsed!.stock["42"], true);
+    assert.equal(parsed?.sizePricesCny["42"], 417);
+    assert.equal(parsed?.stock["42"], true);
   });
 
   it("parseProductFullResponse excludes available=false even with price", () => {
@@ -194,8 +194,8 @@ describe("shihuo-poparce.provider parsers", () => {
     });
 
     assert.ok(parsed);
-    assert.equal(parsed!.sizePricesCny["42"], undefined);
-    assert.equal(parsed!.stock["42"], false);
+    assert.equal(parsed?.sizePricesCny["42"], undefined);
+    assert.equal(parsed?.stock["42"], false);
   });
 
   it("parseProductFullResponse reads logoUrl and nested gallery images", () => {
@@ -209,7 +209,7 @@ describe("shihuo-poparce.provider parsers", () => {
     );
 
     assert.ok(parsed);
-    assert.deepEqual(parsed!.images, [
+    assert.deepEqual(parsed?.images, [
       "https://images.test/cover.jpg",
       "https://images.test/1.jpg",
       "https://images.test/2.jpg",
@@ -223,6 +223,6 @@ describe("shihuo-poparce.provider parsers", () => {
     });
 
     assert.ok(parsed);
-    assert.deepEqual(parsed!.sizePricesCny, {});
+    assert.deepEqual(parsed?.sizePricesCny, {});
   });
 });

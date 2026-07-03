@@ -102,20 +102,20 @@ describe("export3-import mapper", () => {
       ],
     };
 
-    assert.deepEqual(
-      [...buildImportableProductIdSet(data)].sort(),
-      ["1", "2", "4", "5", "6"],
-    );
+    assert.deepEqual([...buildImportableProductIdSet(data)].sort(), [
+      "1",
+      "2",
+      "4",
+      "5",
+      "6",
+    ]);
   });
 
   it("imports products with an empty gender field as gender=null", () => {
-    const row = mapExport3ProductToUpsertRow(
-      product({ gender: "" }),
-      {
-        ...rates,
-        categoryCache: new Map([[10, "category-uuid"]]),
-      },
-    );
+    const row = mapExport3ProductToUpsertRow(product({ gender: "" }), {
+      ...rates,
+      categoryCache: new Map([[10, "category-uuid"]]),
+    });
 
     assert.equal(row.status, "mapped");
     if (row.status === "mapped") {
@@ -124,13 +124,10 @@ describe("export3-import mapper", () => {
   });
 
   it("imports explicit non-catalog gender labels with gender=null", () => {
-    const row = mapExport3ProductToUpsertRow(
-      product({ gender: "Малыши" }),
-      {
-        ...rates,
-        categoryCache: new Map([[10, "category-uuid"]]),
-      },
-    );
+    const row = mapExport3ProductToUpsertRow(product({ gender: "Малыши" }), {
+      ...rates,
+      categoryCache: new Map([[10, "category-uuid"]]),
+    });
 
     assert.equal(row.status, "mapped");
     if (row.status === "mapped") {
@@ -247,6 +244,9 @@ describe("export3-import mapper", () => {
       ],
     };
 
-    assert.deepEqual([...buildImportableProductIdSet(data)].sort(), ["10", "11"]);
+    assert.deepEqual([...buildImportableProductIdSet(data)].sort(), [
+      "10",
+      "11",
+    ]);
   });
 });

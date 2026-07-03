@@ -476,7 +476,11 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       renderWizard();
       return;
     }
-    if (currentStep === "brand" || currentStep === "size" || currentStep === "gender") {
+    if (
+      currentStep === "brand" ||
+      currentStep === "size" ||
+      currentStep === "gender"
+    ) {
       currentStep = nextFilterStep(currentStep);
       renderWizard();
     }
@@ -514,8 +518,11 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       );
       if (stale() || requestCategory !== activeCategory) return;
       for (const brandName of brands) {
-        renderFilterChip(stepChips, brandName, brandName, (value) =>
-          void selectBrand(value),
+        renderFilterChip(
+          stepChips,
+          brandName,
+          brandName,
+          (value) => void selectBrand(value),
         );
       }
     } catch {

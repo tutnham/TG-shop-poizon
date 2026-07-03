@@ -15,8 +15,6 @@ describe("ProductsQuerySchema", () => {
   });
 
   it("rejects invalid gender", () => {
-    assert.throws(() =>
-      ProductsQuerySchema.parse({ gender: "alien" }),
-    );
+    assert.throws(() => ProductsQuerySchema.parse({ gender: "alien" }));
   });
 });

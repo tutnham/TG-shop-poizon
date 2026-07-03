@@ -1,7 +1,7 @@
 import { getEnvOptional } from "../types/env.types.js";
 import { withCache } from "./cache.service.js";
-import { PoizonOfficialProvider } from "./poizon-official.provider.js";
 import { parsePoizonDetailResponse } from "./poizon-detail.parser.js";
+import { PoizonOfficialProvider } from "./poizon-official.provider.js";
 import type { IPoisonProvider, PoisonProductRaw } from "./poizon.provider.js";
 
 const BASE_URL = () =>

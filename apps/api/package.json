@@ -7,7 +7,7 @@
     "typecheck": "tsc -p tsconfig.json",
     "start": "npx tsx src/index.ts",
     "test": "node --import tsx --test src/**/*.test.ts",
-    "db:migrate": "bun run scripts/migrate.ts",
+    "db:migrate": "npx tsx scripts/migrate.ts",
     "webhook:set": "npx tsx scripts/webhook-set.ts",
     "cron:webhooks": "npx tsx scripts/invoke-webhook-cron.ts",
     "rates:update": "npx tsx scripts/rates-update.ts",

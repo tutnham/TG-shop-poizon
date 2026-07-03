@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import Decimal from "decimal.js";
+import type { SyncPricingContext } from "./pricing.service.js";
 import {
   buildSizePricesFromCny,
   buildSizePricesFromFen,
   minSizePrice,
   resolveProductSizePrice,
 } from "./product-pricing.js";
-import type { SyncPricingContext } from "./pricing.service.js";
 
 const ctx: SyncPricingContext = {
   rateCnyRub: new Decimal(10),
@@ -18,10 +18,7 @@ const ctx: SyncPricingContext = {
 
 describe("product-pricing", () => {
   it("buildSizePricesFromFen converts each size", () => {
-    const map = buildSizePricesFromFen(
-      { "42": 450000, "43": 480000 },
-      ctx,
-    );
+    const map = buildSizePricesFromFen({ "42": 450000, "43": 480000 }, ctx);
     assert.equal(map["42"].cny, 4500);
     assert.equal(map["42"].rub, 45000);
     assert.equal(map["43"].cny, 4800);
@@ -36,13 +33,10 @@ describe("product-pricing", () => {
   });
 
   it("minSizePrice picks lowest rub", () => {
-    const map = buildSizePricesFromFen(
-      { "42": 450000, "43": 480000 },
-      ctx,
-    );
+    const map = buildSizePricesFromFen({ "42": 450000, "43": 480000 }, ctx);
     const min = minSizePrice(map);
     assert.ok(min);
-    assert.equal(min!.rub, 45000);
+    assert.equal(min?.rub, 45000);
   });
 
   it("resolveProductSizePrice prefers size_prices entry", () => {

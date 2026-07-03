@@ -194,7 +194,9 @@ function hintHasExplicitCatalogGender(hint: string): boolean {
 }
 
 /** Resolves catalog gender from field, then from title/keywords when export marks Unisex. */
-export function resolveImportGender(product: Pop2Product): ProductGender | null {
+export function resolveImportGender(
+  product: Pop2Product,
+): ProductGender | null {
   const direct = normalizeProductGender(product.gender);
   if (isCatalogGender(direct)) return direct;
 

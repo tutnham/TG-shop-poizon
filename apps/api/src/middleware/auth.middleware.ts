@@ -1,5 +1,5 @@
-import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
+import { createMiddleware } from "hono/factory";
 import { upsertTelegramUser } from "../db/user.repository.js";
 import { parseTelegramUser, validateInitData } from "../lib/telegram-auth.js";
 import { getEnvOptional } from "../types/env.types.js";

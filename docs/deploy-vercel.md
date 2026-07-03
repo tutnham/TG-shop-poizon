@@ -3,8 +3,8 @@
 ## 1. Supabase Cloud
 
 1. Создайте проект на https://supabase.com
-2. SQL Editor → выполните по порядку:
-   - `infra/supabase/migrations/001_init.sql` … `009_create_order_atomic.sql` (см. README, раздел «База данных»)
+2. SQL Editor → выполните **строго по порядку**:
+   - `infra/supabase/migrations/001_init.sql` … `011_security_hardening.sql` (см. README, раздел «База данных»)
 3. Settings → API: скопируйте `URL` и `service_role` key
 
 ## 2. Telegram боты
@@ -30,7 +30,7 @@
 | `CRON_SECRET` | Случайная строка ≥32 символов (Vercel Cron `/cron/rates`) |
 | `POIZON_PROVIDER` | `mock` / `poparce` / `official` |
 | `POIZON_API_KEY` | Ключ Poparce |
-| `POIZON_OFFICIAL_API_URL` / `POIZON_OFFICIAL_API_KEY` | Poizon-API/public-api (позже) |
+| `POIZON_OFFICIAL_API_URL` / `POIZON_OFFICIAL_API_KEY` | Poizon-API/public-api |
 | `TON_WALLET_ADDRESS` | Адрес TON для оплаты |
 
 ## 4. Деплой
@@ -40,11 +40,13 @@
 - **Settings → General → Root Directory** = пусто (корень репозитория, **не** `apps/api` и **не** `apps/webapp`)
 - **Build Command** и **Install Command** — Override **выключен** (берётся из `vercel.json`)
 - **Output Directory** — Override **выключен** (в `vercel.json` указано `dist` в корне репозитория)
-- **Root Directory** — пусто (`.`). Если указано `apps/webapp`, деплой сломается.
+
+Локальная проверка сборки:
 
 ```bash
-bun install
-bun run build
+npm ci --workspaces --include-workspace-root
+npm run build
+npm run build:api
 ```
 
 Подключите репозиторий к Vercel. Root directory: **корень проекта** (`.`).
@@ -60,8 +62,8 @@ bun run build
 После деплоя локально с `.env`:
 
 ```bash
-bun run --cwd apps/api webhook:set
-bun run --cwd apps/api rates:update
+npm run webhook:set
+npm run rates:update
 ```
 
 Vercel Cron (в `vercel.json`):

@@ -137,9 +137,9 @@ describe("poizon-detail.parser", () => {
     );
 
     assert.ok(parsed);
-    assert.equal(parsed!.englishTitle, "Nike Dunk Low Panda");
-    assert.equal(parsed!.priceFen, 450000);
-    assert.equal(parsed!.sizePricesFen["43"], 480000);
+    assert.equal(parsed?.englishTitle, "Nike Dunk Low Panda");
+    assert.equal(parsed?.priceFen, 450000);
+    assert.equal(parsed?.sizePricesFen["43"], 480000);
   });
 
   it("parses goodsInfo skuList wrapper", () => {
@@ -158,8 +158,8 @@ describe("poizon-detail.parser", () => {
     });
 
     assert.ok(parsed);
-    assert.equal(parsed!.englishTitle, "Jordan 1 Retro High");
-    assert.equal(parsed!.sizePricesFen["40"], 499700);
+    assert.equal(parsed?.englishTitle, "Jordan 1 Retro High");
+    assert.equal(parsed?.sizePricesFen["40"], 499700);
   });
 
   it("mergeOfficialDetailWithPriceInfo attaches sku prices from priceInfo", () => {
@@ -207,9 +207,9 @@ describe("poizon-detail.parser", () => {
 
     const parsed = parsePoizonDetailResponse(merged, 3771712);
     assert.ok(parsed);
-    assert.equal(parsed!.spuId, 3771712);
-    assert.equal(parsed!.sizePricesFen["42"], 450000);
-    assert.equal(parsed!.sizePricesFen["43"], 470000);
-    assert.equal(parsed!.priceFen, 450000);
+    assert.equal(parsed?.spuId, 3771712);
+    assert.equal(parsed?.sizePricesFen["42"], 450000);
+    assert.equal(parsed?.sizePricesFen["43"], 470000);
+    assert.equal(parsed?.priceFen, 450000);
   });
 });

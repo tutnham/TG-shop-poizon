@@ -7,14 +7,14 @@ The API isolates product sync behind `IPoisonProvider`. Switch providers with `P
 | Value | Class | When to use |
 |-------|--------|-------------|
 | `mock` | `MockPoisonProvider` | Local UI/dev without keys |
-| `poparce` | `PoparcePoisonProvider` | Current third-party DEWU API (`POIZON_API_KEY`) |
+| `poparce` | `PoparcePoisonProvider` | Third-party DEWU API (`POIZON_API_KEY`) |
 | `official` | `PoizonOfficialProvider` | [Poizon-API/public-api](https://github.com/Poizon-API/public-api) (Basic tier) |
 
-Default (empty `POIZON_PROVIDER`): `poparce` if `POIZON_API_KEY` is set, otherwise `mock`.
+**Default:** `mock` if `POIZON_PROVIDER` is unset and `POIZON_API_KEY` is empty. If `POIZON_API_KEY` is set without an explicit provider — `poparce`.
 
 ## Official API (poizon-api.com)
 
-Готово к использованию. Реализован в `PoizonOfficialProvider`.
+Implemented in `PoizonOfficialProvider`.
 
 Set in `.env`:
 
@@ -24,10 +24,10 @@ POIZON_OFFICIAL_API_URL=https://poizon-api.com/api/dewu
 POIZON_OFFICIAL_API_KEY=<your key>
 ```
 
-Эндпоинты (из [OpenAPI-спеки](http://poizon-api.com/api/dewu/api-json)):
-- `GET /searchProducts` — поиск по ключевому слову
-- `GET /productDetailWithPrice` — карточка товара + цена
-- `GET /getCategories` — категории (RU/EN/ZH)
+Endpoints (from [OpenAPI spec](http://poizon-api.com/api/dewu/api-json)):
+- `GET /searchProducts` — keyword search
+- `GET /productDetailWithPrice` — product card + price
+- `GET /getCategories` — categories (RU/EN/ZH)
 
 ## Price mapping
 
@@ -38,14 +38,18 @@ const cny = priceFen / 100
 calculatePricesFromFen(priceFen, pricingConfig)
 ```
 
-Rates for conversion come from CBR (CNY/RUB) + Binance (USDT/RUB), refreshed hourly via Vercel Cron or `bun run rates:update`.
+Rates: CBR (CNY/RUB) + Binance (USDT/RUB), refreshed **daily** via Vercel Cron (`GET /cron/rates`, `0 0 * * *`) or manually:
+
+```bash
+npm run rates:update
+```
 
 ## Sync limits on Vercel
 
-`runFullSync` may exceed the 30s serverless limit. Prefer:
+`runFullSync` may exceed the 60s serverless limit. Prefer running from a long-running host or CI:
 
 ```bash
-bun run --cwd apps/api sync:poizon
+npm run sync:poizon
 ```
 
-from CI or a long-running host.
+See also [optimization-backlog.md](./optimization-backlog.md).
