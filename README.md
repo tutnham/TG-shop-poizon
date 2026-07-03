@@ -352,7 +352,7 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 | `min_price` | number | — | Минимальная цена (RUB) |
 | `max_price` | number | — | Максимальная цена (RUB) |
 | `size` | string | — | Фильтр по доступному размеру из JSONB `stock` |
-| `gender` | string | — | `male`, `female`, `unisex`, `kids`, `unknown` |
+| `gender` | string | — | `male`, `female` (только мужское/женское в каталоге) |
 
 #### Параметры GET /api/product-filters
 
@@ -469,7 +469,7 @@ npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 | В `Export3.json` нет категории/товаров «Часы» | Открыто | Вкладка `watches` в UI показывается пустой. После появления часов в выгрузке — повторить `import:export3`; slug `watches` уже нормализуется в mapper. |
 | Пустые строки категорий в БД | Открыто | `/api/categories` скрывает категории без доступных товаров, но физически orphan-строки в `categories` не удаляются (риск FK). Нужен отдельный cleanup-скрипт или RPC. |
 | Replace-импорт — два шага, не один | Открыто | Сейчас оператор запускает `purge:stale`, затем `import:export3` вручную. Единый orchestrator (`replace-products-from-export.ts`) не реализован. |
-| Неизвестные значения `gender` в выгрузке | Частично | Mapper логирует unknown gender и импортирует товар с `gender=null`. После replace-импорта: **42 SKU** с raw-значением `"Малыши"` — chips пола для них не появятся, пока не добавить alias в `normalize-gender.ts` (например, `kids`). |
+| Неизвестные значения `gender` в выгрузке | Закрыто | В каталог попадают только `male`/`female`. Детское, унисекс и прочие значения (в т.ч. `"Малыши"`) пропускаются при импорте и удаляются replace-purge. |
 | Товары без цены или без картинок | Открыто | Такие позиции пропускаются при импорте и не попадают в keep-set purge. Список пропусков виден только в stdout CLI — нет отдельного отчёта/файла. |
 | Миграция `010_product_filters.sql` | Требует проверки | GIN-индекс и колонка `gender` должны быть применены в Supabase до production replace. Если миграция не накатывалась — фильтры size/gender будут медленными или сломаны. |
 | `Export3.json` не в git | Осознанно | Файл выгрузки лежит локально в корне проекта и не коммитится (объём + операционные данные). Для CI/CD импорт нужно запускать вручную или через отдельный pipeline с артефактом. |

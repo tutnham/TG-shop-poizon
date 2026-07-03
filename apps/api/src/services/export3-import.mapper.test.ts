@@ -87,7 +87,7 @@ describe("export3-import mapper", () => {
     assert.deepEqual(row.row.sizes, { EU: ["42", "43"] });
   });
 
-  it("keeps products that are importable by scalar or child price", () => {
+  it("keeps products that are importable by price and male/female gender", () => {
     const data = {
       categories: [],
       brands: [],
@@ -95,10 +95,25 @@ describe("export3-import mapper", () => {
         product({ productId: 1, price: 0, children: [{ price: 4100 }] }),
         product({ productId: 2, price: 3900, children: [] }),
         product({ productId: 3, price: 0, children: [] }),
+        product({ productId: 4, price: 3900, gender: "Малыши" }),
+        product({ productId: 5, price: 3900, gender: "Unisex" }),
       ],
     };
 
     assert.deepEqual([...buildImportableProductIdSet(data)].sort(), ["1", "2"]);
+  });
+
+  it("skips products with non male/female gender", () => {
+    const row = mapExport3ProductToUpsertRow(
+      product({ gender: "Малыши" }),
+      {
+        ...rates,
+        categoryCache: new Map([[10, "category-uuid"]]),
+      },
+    );
+
+    assert.equal(row.status, "skipped");
+    assert.equal(row.reason, "invalid_gender");
   });
 
   it("normalizes watch category slugs when watches appear in future exports", () => {

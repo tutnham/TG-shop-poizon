@@ -191,7 +191,7 @@ async function main() {
   const batch: Export3UpsertRow[] = [];
   let skippedNoPrice = 0;
   let skippedNoImages = 0;
-  let unknownGender = 0;
+  let skippedInvalidGender = 0;
 
   for (const p of data.products) {
     const mapped = mapExport3ProductToUpsertRow(p, {
@@ -203,14 +203,8 @@ async function main() {
     if (mapped.status === "skipped") {
       if (mapped.reason === "no_images") skippedNoImages++;
       if (mapped.reason === "no_price") skippedNoPrice++;
+      if (mapped.reason === "invalid_gender") skippedInvalidGender++;
       continue;
-    }
-
-    if (mapped.unknownGender) {
-      unknownGender++;
-      console.warn(
-        `[import-pop2] Неизвестный gender "${p.gender}" для productId=${p.productId}`,
-      );
     }
 
     batch.push(mapped.row);
@@ -218,7 +212,8 @@ async function main() {
 
   console.log(
     `[import-pop2] Товаров к импорту: ${batch.length}` +
-      ` (пропущено: без цены=${skippedNoPrice}, без картинок=${skippedNoImages})`,
+      ` (пропущено: без цены=${skippedNoPrice}, без картинок=${skippedNoImages},` +
+      ` не м/ж=${skippedInvalidGender})`,
   );
 
   if (batch.length === 0) {
@@ -235,7 +230,7 @@ async function main() {
   console.log(`  Ошибок: ${totalErrors}`);
   console.log(`  Пропущено (без цены): ${skippedNoPrice}`);
   console.log(`  Пропущено (без картинок): ${skippedNoImages}`);
-  console.log(`  Неизвестный gender: ${unknownGender}`);
+  console.log(`  Пропущено (не муж/жен): ${skippedInvalidGender}`);
 }
 
 main().catch((e) => {

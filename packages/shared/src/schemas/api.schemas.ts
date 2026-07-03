@@ -1,12 +1,6 @@
 import { z } from "zod";
 
-export const ProductGenderSchema = z.enum([
-  "male",
-  "female",
-  "unisex",
-  "kids",
-  "unknown",
-]);
+export const ProductGenderSchema = z.enum(["male", "female"]);
 
 export const ProductsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),

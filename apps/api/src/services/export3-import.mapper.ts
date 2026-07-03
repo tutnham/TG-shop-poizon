@@ -1,5 +1,8 @@
 import type { ProductGender } from "@poizon-shop/shared";
-import { normalizeProductGender } from "../lib/normalize-gender.js";
+import {
+  isCatalogGender,
+  normalizeProductGender,
+} from "../lib/normalize-gender.js";
 import { stripCjk } from "./poizon-sku.mapper.js";
 import { type SizePricesMap, minSizePrice } from "./product-pricing.js";
 
@@ -77,8 +80,11 @@ export type Export3UpsertRow = {
 };
 
 export type Export3MapResult =
-  | { status: "mapped"; row: Export3UpsertRow; unknownGender: string | null }
-  | { status: "skipped"; reason: "no_price" | "no_images" };
+  | { status: "mapped"; row: Export3UpsertRow }
+  | {
+      status: "skipped";
+      reason: "no_price" | "no_images" | "invalid_gender";
+    };
 
 export type Export3Rates = {
   rateCnyRub: number;
@@ -175,10 +181,15 @@ export function hasImportablePrice(product: Pop2Product): boolean {
   );
 }
 
+export function isImportableProduct(product: Pop2Product): boolean {
+  if (!hasImportablePrice(product)) return false;
+  return isCatalogGender(normalizeProductGender(product.gender));
+}
+
 export function buildImportableProductIdSet(data: Pop2Data): Set<string> {
   const keep = new Set<string>();
   for (const product of data.products ?? []) {
-    if (hasImportablePrice(product)) {
+    if (isImportableProduct(product)) {
       keep.add(String(product.productId));
     }
   }
@@ -191,6 +202,11 @@ export function mapExport3ProductToUpsertRow(
 ): Export3MapResult {
   if (!p.images || p.images.length === 0) {
     return { status: "skipped", reason: "no_images" };
+  }
+
+  const normalizedGender = normalizeProductGender(p.gender);
+  if (!isCatalogGender(normalizedGender)) {
+    return { status: "skipped", reason: "invalid_gender" };
   }
 
   const variantPricing = buildVariantPricing(p, opts);
@@ -222,13 +238,8 @@ export function mapExport3ProductToUpsertRow(
         ? Object.fromEntries(sizeLabels.map((size) => [size, true]))
         : {};
 
-  const normalizedGender = normalizeProductGender(p.gender);
-  const unknownGender =
-    p.gender?.trim() && normalizedGender === "unknown" ? p.gender : null;
-
   return {
     status: "mapped",
-    unknownGender,
     row: {
       poizon_id: String(p.productId),
       name: buildProductName(p),
@@ -242,7 +253,7 @@ export function mapExport3ProductToUpsertRow(
       sizes: sizeLabels.length > 0 ? { EU: sizeLabels } : {},
       stock,
       sold_count: p.favoriteCount || 0,
-      is_available: priceRub > 0,
+      is_available: true,
       gender: normalizedGender,
     },
   };

@@ -28,25 +28,6 @@ const GENDER_ALIASES: Record<string, ProductGender> = {
   女: "female",
   女士: "female",
   女装: "female",
-
-  unisex: "unisex",
-  uni: "unisex",
-  neutral: "unisex",
-  унисекс: "unisex",
-  中性: "unisex",
-
-  kids: "kids",
-  kid: "kids",
-  child: "kids",
-  children: "kids",
-  youth: "kids",
-  junior: "kids",
-  дет: "kids",
-  детский: "kids",
-  детские: "kids",
-  детская: "kids",
-  童: "kids",
-  儿童: "kids",
 };
 
 function normalizeToken(raw: string): string {
@@ -54,8 +35,8 @@ function normalizeToken(raw: string): string {
 }
 
 /**
- * Maps raw gender strings from Poizon/pop2/API dumps to a stable filter value.
- * Unknown values return "unknown" (caller may log for later alias expansion).
+ * Maps raw gender strings to male/female only.
+ * Unisex, kids and unknown values return null (product must not enter catalog).
  */
 export function normalizeProductGender(
   raw: string | null | undefined,
@@ -74,5 +55,11 @@ export function normalizeProductGender(
     }
   }
 
-  return "unknown";
+  return null;
+}
+
+export function isCatalogGender(
+  gender: ProductGender | null | undefined,
+): gender is ProductGender {
+  return gender === "male" || gender === "female";
 }

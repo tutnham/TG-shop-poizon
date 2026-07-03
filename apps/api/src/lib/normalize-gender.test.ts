@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { normalizeProductGender } from "./normalize-gender.js";
+import {
+  isCatalogGender,
+  normalizeProductGender,
+} from "./normalize-gender.js";
 
 describe("normalizeProductGender", () => {
   it("maps English male aliases", () => {
@@ -12,9 +15,11 @@ describe("normalizeProductGender", () => {
     assert.equal(normalizeProductGender("Женский"), "female");
   });
 
-  it("maps unisex and kids", () => {
-    assert.equal(normalizeProductGender("Unisex"), "unisex");
-    assert.equal(normalizeProductGender("Детский"), "kids");
+  it("returns null for unisex, kids and other non-catalog values", () => {
+    assert.equal(normalizeProductGender("Unisex"), null);
+    assert.equal(normalizeProductGender("Детский"), null);
+    assert.equal(normalizeProductGender("Малыши"), null);
+    assert.equal(normalizeProductGender("space-suit"), null);
   });
 
   it("returns null for empty input", () => {
@@ -22,7 +27,9 @@ describe("normalizeProductGender", () => {
     assert.equal(normalizeProductGender(null), null);
   });
 
-  it("returns unknown for unrecognized values", () => {
-    assert.equal(normalizeProductGender("space-suit"), "unknown");
+  it("isCatalogGender accepts only male and female", () => {
+    assert.equal(isCatalogGender("male"), true);
+    assert.equal(isCatalogGender("female"), true);
+    assert.equal(isCatalogGender(null), false);
   });
 });

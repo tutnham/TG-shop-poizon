@@ -4,6 +4,7 @@ import type {
   ProductListItem,
   SizePricesMap,
 } from "@poizon-shop/shared";
+import { CATALOG_GENDERS } from "@poizon-shop/shared";
 import { dedupeByNameRu, dedupeDisplayLabels } from "../lib/dedupe-labels.js";
 import { sanitizeSearchQuery } from "../lib/search-sanitize.js";
 import { getSupabase } from "./client.js";
@@ -56,6 +57,27 @@ async function resolveCategoryIdBySlug(slug: string): Promise<string | null> {
   return (data?.id as string | undefined) ?? null;
 }
 
+/** Products visible in the shop: available, priced, men/women only. */
+function applyCatalogFilters<T>(query: T): T {
+  const q = query as {
+    eq: (col: string, val: unknown) => T;
+    gt: (col: string, val: number) => T;
+    in: (col: string, vals: readonly string[]) => T;
+  };
+  return q
+    .eq("is_available", true)
+    .gt("price_rub", 0)
+    .in("gender", CATALOG_GENDERS) as T;
+}
+
+function isVisibleInCatalog(row: ProductRow): boolean {
+  return (
+    row.is_available &&
+    Number(row.price_rub) > 0 &&
+    (row.gender === "male" || row.gender === "female")
+  );
+}
+
 export async function listProducts(opts: {
   page: number;
   limit: number;
@@ -68,10 +90,9 @@ export async function listProducts(opts: {
   size?: string;
   gender?: ProductGender;
 }): Promise<{ items: ProductListItem[]; total: number }> {
-  let query = getSupabase()
-    .from("products")
-    .select(LIST_PRODUCT_COLUMNS, { count: "exact" })
-    .eq("is_available", true);
+  let query = applyCatalogFilters(
+    getSupabase().from("products").select(LIST_PRODUCT_COLUMNS, { count: "exact" }),
+  );
 
   if (opts.category) {
     const categoryId = await resolveCategoryIdBySlug(opts.category);
@@ -129,7 +150,7 @@ export async function getProductById(
     .eq("id", id)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) return null;
+  if (!data || !isVisibleInCatalog(data as ProductRow)) return null;
   return rowToProductDetail(data as ProductRow);
 }
 
@@ -142,7 +163,7 @@ export async function getProductByPoizonId(
     .eq("poizon_id", poizonId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) return null;
+  if (!data || !isVisibleInCatalog(data as ProductRow)) return null;
   return rowToProductDetail(data as ProductRow);
 }
 
@@ -163,11 +184,9 @@ function rowToProductDetail(row: ProductRow): ProductDetail {
 export async function listCategories(): Promise<
   { id: string; name: string; name_ru: string; slug: string }[]
 > {
-  const { data: productRows, error: productError } = await getSupabase()
-    .from("products")
-    .select("category_id")
-    .eq("is_available", true)
-    .not("category_id", "is", null);
+  const { data: productRows, error: productError } = await applyCatalogFilters(
+    getSupabase().from("products").select("category_id").not("category_id", "is", null),
+  );
   if (productError) throw new Error(productError.message);
 
   const categoryIds = [
@@ -188,11 +207,9 @@ export async function listCategories(): Promise<
 }
 
 export async function listBrands(): Promise<string[]> {
-  const { data, error } = await getSupabase()
-    .from("products")
-    .select("brand")
-    .eq("is_available", true)
-    .not("brand", "is", null);
+  const { data, error } = await applyCatalogFilters(
+    getSupabase().from("products").select("brand").not("brand", "is", null),
+  );
   if (error) throw new Error(error.message);
   const brands = (data ?? [])
     .map((row) => row.brand)
@@ -200,13 +217,7 @@ export async function listBrands(): Promise<string[]> {
   return dedupeDisplayLabels(brands);
 }
 
-const GENDER_ORDER: ProductGender[] = [
-  "male",
-  "female",
-  "unisex",
-  "kids",
-  "unknown",
-];
+const GENDER_ORDER: ProductGender[] = ["male", "female"];
 
 function numericSizeSort(a: string, b: string): number {
   const na = Number.parseFloat(a.replace(",", "."));
@@ -226,10 +237,9 @@ export async function listAvailableSizes(
     : null;
   if (opts.category && !categoryId) return [];
 
-  let query = getSupabase()
-    .from("products")
-    .select("stock")
-    .eq("is_available", true);
+  let query = applyCatalogFilters(
+    getSupabase().from("products").select("stock"),
+  );
   if (categoryId) query = query.eq("category_id", categoryId);
 
   const { data, error } = await query;
@@ -256,11 +266,9 @@ export async function listAvailableGenders(
     : null;
   if (opts.category && !categoryId) return [];
 
-  let query = getSupabase()
-    .from("products")
-    .select("gender")
-    .eq("is_available", true)
-    .not("gender", "is", null);
+  let query = applyCatalogFilters(
+    getSupabase().from("products").select("gender"),
+  );
   if (categoryId) query = query.eq("category_id", categoryId);
 
   const { data, error } = await query;
