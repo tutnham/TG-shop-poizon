@@ -25,9 +25,9 @@ import { hideBackButton, hideMainButton } from "../telegram.js";
 const PENDING_CATEGORY_KEY = "poizon_pending_category";
 const WATCHES_CATEGORY_SLUG = "watches";
 
-type CatalogStep = "category" | "brand" | "size" | "gender" | "results";
+type CatalogStep = "category" | "brand" | "size" | "gender" | "done";
 
-const STEP_TITLE_KEYS: Record<Exclude<CatalogStep, "results">, string> = {
+const STEP_TITLE_KEYS: Record<Exclude<CatalogStep, "done">, string> = {
   category: "catalog_step_category",
   brand: "catalog_step_brand",
   size: "catalog_step_size",
@@ -65,7 +65,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let apiCategories: { slug: string; name_ru: string }[] = [];
 
   function canShowCatalog(): boolean {
-    return Boolean(search) || currentStep === "results";
+    return Boolean(search) || Boolean(activeCategory);
   }
 
   function filtersActive(): boolean {
@@ -246,6 +246,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         <span>${t("catalog_back")}</span>
       </button>
       <h3 class="catalog-wizard__title" id="catalog-step-title"></h3>
+      <button type="button" class="catalog-wizard__skip" id="catalog-skip" hidden>
+        ${t("catalog_skip")}
+      </button>
     </div>
     <section class="chips-row hide-scrollbar" id="catalog-step-chips"></section>
   `;
@@ -253,6 +256,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   const pathEl = wizard.querySelector("#catalog-path") as HTMLElement;
   const backBtn = wizard.querySelector("#catalog-back") as HTMLButtonElement;
+  const skipBtn = wizard.querySelector("#catalog-skip") as HTMLButtonElement;
   const stepTitleEl = wizard.querySelector(
     "#catalog-step-title",
   ) as HTMLElement;
@@ -358,12 +362,25 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   function renderStepTitle(): void {
-    if (currentStep === "results") {
-      stepTitleEl.hidden = true;
-      return;
+    const showFilters = currentStep !== "category" && currentStep !== "done";
+    stepTitleEl.hidden = !showFilters;
+    skipBtn.hidden = !showFilters;
+    if (showFilters) {
+      stepTitleEl.textContent = t(STEP_TITLE_KEYS[currentStep]);
     }
-    stepTitleEl.hidden = false;
-    stepTitleEl.textContent = t(STEP_TITLE_KEYS[currentStep]);
+  }
+
+  function nextFilterStep(from: CatalogStep): CatalogStep {
+    if (from === "brand") {
+      if (availableSizes.length > 0) return "size";
+      if (availableGenders.length > 0) return "gender";
+      return "done";
+    }
+    if (from === "size") {
+      if (availableGenders.length > 0) return "gender";
+      return "done";
+    }
+    return "done";
   }
 
   function previousStep(step: CatalogStep): CatalogStep | null {
@@ -374,9 +391,20 @@ export async function renderHome(app: HTMLElement): Promise<void> {
         return "brand";
       case "gender":
         return availableSizes.length > 0 ? "size" : "brand";
+      case "done":
+        if (availableGenders.length > 0) return "gender";
+        if (availableSizes.length > 0) return "size";
+        return "brand";
       default:
         return null;
     }
+  }
+
+  async function reloadCatalogIfVisible(): Promise<void> {
+    if (!canShowCatalog()) return;
+    resetCatalogGrid();
+    updateCatalogVisibility();
+    await loadMore();
   }
 
   async function goBackToStep(step: CatalogStep): Promise<void> {
@@ -395,16 +423,17 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       activeGender = "";
       currentStep = "brand";
     } else if (step === "size") {
+      activeSize = "";
       activeGender = "";
       currentStep = "size";
     } else if (step === "gender") {
       activeGender = "";
       currentStep = "gender";
     }
-    resetCatalogGrid();
     renderWizard();
     updateCatalogVisibility();
     if (currentStep === "brand") await renderBrandStep();
+    await reloadCatalogIfVisible();
   }
 
   async function goToPreviousStep(): Promise<void> {
@@ -421,8 +450,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       activeBrand = "";
       activeSize = "";
       activeGender = "";
-      availableSizes = [];
-      availableGenders = [];
     } else if (prev === "size") {
       activeSize = "";
       activeGender = "";
@@ -430,13 +457,22 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       activeGender = "";
     }
     currentStep = prev;
-    resetCatalogGrid();
     renderWizard();
     updateCatalogVisibility();
     if (currentStep === "brand") await renderBrandStep();
+    await reloadCatalogIfVisible();
+  }
+
+  async function skipCurrentStep(): Promise<void> {
+    if (stale()) return;
+    if (currentStep === "brand" || currentStep === "size" || currentStep === "gender") {
+      currentStep = nextFilterStep(currentStep);
+      renderWizard();
+    }
   }
 
   backBtn.onclick = () => void goToPreviousStep();
+  skipBtn.onclick = () => void skipCurrentStep();
 
   async function refreshAvailableFilters(): Promise<void> {
     const requestCategory = activeCategory;
@@ -514,7 +550,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   async function renderCurrentStep(): Promise<void> {
-    stepChips.hidden = currentStep === "results";
+    stepChips.hidden = currentStep === "category" || currentStep === "done";
     switch (currentStep) {
       case "category":
         renderCategoryStep();
@@ -528,7 +564,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       case "gender":
         renderGenderStep();
         break;
-      case "results":
+      case "done":
         stepChips.innerHTML = "";
         break;
     }
@@ -539,32 +575,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     renderStepTitle();
     backBtn.hidden = currentStep === "category";
     void renderCurrentStep();
-  }
-
-  async function advanceAfterBrand(): Promise<void> {
-    await refreshAvailableFilters();
-    if (stale()) return;
-    if (availableSizes.length > 0) {
-      currentStep = "size";
-      return;
-    }
-    if (availableGenders.length > 0) {
-      currentStep = "gender";
-      return;
-    }
-    currentStep = "results";
-    updateCatalogVisibility();
-    await loadMore();
-  }
-
-  async function advanceAfterSize(): Promise<void> {
-    if (availableGenders.length > 0) {
-      currentStep = "gender";
-      return;
-    }
-    currentStep = "results";
-    updateCatalogVisibility();
-    await loadMore();
   }
 
   async function selectCategory(category: string): Promise<void> {
@@ -579,7 +589,11 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     resetCatalogGrid();
     renderWizard();
     updateCatalogVisibility();
-    await renderBrandStep();
+    await Promise.all([
+      refreshAvailableFilters(),
+      renderBrandStep(),
+      loadMore(),
+    ]);
   }
 
   async function selectBrand(brand: string): Promise<void> {
@@ -587,28 +601,28 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     activeBrand = brand;
     activeSize = "";
     activeGender = "";
+    currentStep = nextFilterStep("brand");
     resetCatalogGrid();
-    await advanceAfterBrand();
-    if (stale()) return;
     renderWizard();
     updateCatalogVisibility();
+    await loadMore();
   }
 
   async function selectSize(size: string): Promise<void> {
     if (stale()) return;
     activeSize = size;
     activeGender = "";
+    currentStep = nextFilterStep("size");
     resetCatalogGrid();
-    await advanceAfterSize();
-    if (stale()) return;
     renderWizard();
     updateCatalogVisibility();
+    await loadMore();
   }
 
   async function selectGender(gender: ProductGender): Promise<void> {
     if (stale()) return;
     activeGender = gender;
-    currentStep = "results";
+    currentStep = "done";
     resetCatalogGrid();
     renderWizard();
     updateCatalogVisibility();
@@ -791,13 +805,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
   if (pendingCategory !== null) {
     sessionStorage.removeItem(PENDING_CATEGORY_KEY);
-    if (!stale()) {
-      activeCategory = pendingCategory;
-      currentStep = "brand";
-      renderWizard();
-      updateCatalogVisibility();
-      await renderBrandStep();
-    }
+    if (!stale()) await selectCategory(pendingCategory);
   } else if (!stale()) {
     renderWizard();
     updateCatalogVisibility();
