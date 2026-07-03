@@ -199,7 +199,8 @@ shop.get("/categories", publicCache(300, 600), async (c) => {
 });
 
 shop.get("/brands", publicCache(300, 600), async (c) => {
-  const brands = await productRepo.listBrands();
+  const category = c.req.query("category")?.trim() || undefined;
+  const brands = await productRepo.listBrands({ category });
   return c.json({ data: brands });
 });
 

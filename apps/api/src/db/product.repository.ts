@@ -200,14 +200,26 @@ export async function listCategories(): Promise<
   return dedupeByNameRu(data ?? []);
 }
 
-export async function listBrands(): Promise<string[]> {
-  const { data, error } = await getSupabase()
+export async function listBrands(
+  opts: {
+    category?: string;
+  } = {},
+): Promise<string[]> {
+  const categoryId = opts.category
+    ? await resolveCategoryIdBySlug(opts.category)
+    : null;
+  if (opts.category && !categoryId) return [];
+
+  let query = getSupabase()
     .from("products")
     .select("brand")
     .eq("is_available", true)
     .gt("price_rub", 0)
     .or(CATALOG_GENDER_OR_NULL_FILTER)
     .not("brand", "is", null);
+  if (categoryId) query = query.eq("category_id", categoryId);
+
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   const brands = (data ?? [])
     .map((row) => row.brand)

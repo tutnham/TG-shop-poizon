@@ -22,9 +22,17 @@ import {
 import { clearPageRoot, ensurePageRoot } from "../shell.js";
 import { hideBackButton, hideMainButton } from "../telegram.js";
 
-const PENDING_BRAND_KEY = "poizon_pending_brand";
 const PENDING_CATEGORY_KEY = "poizon_pending_category";
 const WATCHES_CATEGORY_SLUG = "watches";
+
+type CatalogStep = "category" | "brand" | "size" | "gender" | "results";
+
+const STEP_TITLE_KEYS: Record<Exclude<CatalogStep, "results">, string> = {
+  category: "catalog_step_category",
+  brand: "catalog_step_brand",
+  size: "catalog_step_size",
+  gender: "catalog_step_gender",
+};
 
 // ── Конфигурация DOM-рециклинга для 9000+ товаров ──
 const MAX_VISIBLE_CARDS = 120; // Максимум карточек в DOM одновременно
@@ -48,11 +56,40 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let activeGender = "";
   let activeCategory = "";
   let search = "";
+  let currentStep: CatalogStep = "category";
+  let availableSizes: string[] = [];
+  let availableGenders: ProductGender[] = [];
+  const categoryLabels = new Map<string, string>([
+    [WATCHES_CATEGORY_SLUG, t("category_watches")],
+  ]);
+  let apiCategories: { slug: string; name_ru: string }[] = [];
+
+  function canShowCatalog(): boolean {
+    return Boolean(search) || currentStep === "results";
+  }
 
   function filtersActive(): boolean {
     return Boolean(
       activeBrand || activeSize || activeGender || activeCategory || search,
     );
+  }
+
+  function resetCatalogGrid(): void {
+    page = 1;
+    hasMore = true;
+    cardIndex = 0;
+    allCards.length = 0;
+    grid.innerHTML = "";
+  }
+
+  function updateCatalogVisibility(): void {
+    const visible = canShowCatalog();
+    catalog.hidden = !visible;
+    sentinel.hidden = !visible || allCards.length >= LOAD_MORE_THRESHOLD;
+    if (!visible) {
+      setCatalogPreviewVisible(false);
+      main.querySelector("#load-more-btn")?.remove();
+    }
   }
 
   function badgeForIndex(
@@ -190,12 +227,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   );
 
   async function doRefresh() {
-    if (stale()) return;
-    page = 1;
-    hasMore = true;
-    cardIndex = 0;
-    allCards.length = 0;
-    grid.innerHTML = "";
+    if (stale() || !canShowCatalog()) return;
+    resetCatalogGrid();
     try {
       await loadMore();
     } finally {
@@ -203,24 +236,27 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     }
   }
 
-  const chips = document.createElement("section");
-  chips.className = "chips-row hide-scrollbar";
-  main.appendChild(chips);
+  const wizard = document.createElement("section");
+  wizard.className = "catalog-wizard";
+  wizard.innerHTML = `
+    <div class="catalog-wizard__path" id="catalog-path"></div>
+    <div class="catalog-wizard__head">
+      <button type="button" class="catalog-wizard__back" id="catalog-back" hidden>
+        <span class="material-symbols-outlined">arrow_back</span>
+        <span>${t("catalog_back")}</span>
+      </button>
+      <h3 class="catalog-wizard__title" id="catalog-step-title"></h3>
+    </div>
+    <section class="chips-row hide-scrollbar" id="catalog-step-chips"></section>
+  `;
+  main.appendChild(wizard);
 
-  const categoryChips = document.createElement("section");
-  categoryChips.className = "chips-row hide-scrollbar";
-  categoryChips.id = "category-chips";
-  main.appendChild(categoryChips);
-
-  const sizeChips = document.createElement("section");
-  sizeChips.className = "chips-row hide-scrollbar";
-  sizeChips.id = "size-chips";
-  main.appendChild(sizeChips);
-
-  const genderChips = document.createElement("section");
-  genderChips.className = "chips-row hide-scrollbar";
-  genderChips.id = "gender-chips";
-  main.appendChild(genderChips);
+  const pathEl = wizard.querySelector("#catalog-path") as HTMLElement;
+  const backBtn = wizard.querySelector("#catalog-back") as HTMLButtonElement;
+  const stepTitleEl = wizard.querySelector(
+    "#catalog-step-title",
+  ) as HTMLElement;
+  const stepChips = wizard.querySelector("#catalog-step-chips") as HTMLElement;
 
   const trust = document.createElement("section");
   trust.innerHTML = `
@@ -247,6 +283,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   const catalog = document.createElement("section");
   catalog.className = "catalog-section";
+  catalog.hidden = true;
   catalog.innerHTML = `
     <div class="section-head">
       <h2>${t("popular")}</h2>
@@ -264,180 +301,318 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   void mountCartPeek(main);
 
-  const allChip = document.createElement("button");
-  allChip.type = "button";
-  allChip.className = "chip active";
-  allChip.dataset.brand = "";
-  allChip.textContent = t("chip_all");
-  allChip.onclick = () => filterBrand("");
-  chips.appendChild(allChip);
-
   function renderFilterChip(
     container: HTMLElement,
     label: string,
     value: string,
-    active: boolean,
     onSelect: (value: string) => void,
   ): void {
     const chip = document.createElement("button");
     chip.type = "button";
-    chip.className = `chip${active ? " active" : ""}`;
+    chip.className = "chip";
     chip.dataset.value = value;
     chip.textContent = label;
     chip.onclick = () => onSelect(value);
     container.appendChild(chip);
   }
 
-  function syncChipActive(container: HTMLElement, value: string): void {
-    for (const c of container.querySelectorAll(".chip")) {
-      const chipValue = (c as HTMLElement).dataset.value ?? "";
-      c.classList.toggle("active", chipValue === value);
+  function renderPath(): void {
+    pathEl.innerHTML = "";
+    const segments: { step: CatalogStep; label: string }[] = [];
+    if (activeCategory) {
+      segments.push({
+        step: "category",
+        label: categoryLabels.get(activeCategory) ?? activeCategory,
+      });
+    }
+    if (activeBrand) segments.push({ step: "brand", label: activeBrand });
+    if (activeSize) {
+      segments.push({
+        step: "size",
+        label: `${t("filter_size")} ${activeSize}`,
+      });
+    }
+    if (activeGender) {
+      segments.push({
+        step: "gender",
+        label: t(`filter_gender_${activeGender}`),
+      });
+    }
+
+    for (const [index, segment] of segments.entries()) {
+      if (index > 0) {
+        const sep = document.createElement("span");
+        sep.className = "catalog-wizard__sep";
+        sep.textContent = "›";
+        sep.setAttribute("aria-hidden", "true");
+        pathEl.appendChild(sep);
+      }
+      const crumb = document.createElement("button");
+      crumb.type = "button";
+      crumb.className = "catalog-wizard__crumb";
+      crumb.textContent = segment.label;
+      crumb.onclick = () => void goBackToStep(segment.step);
+      pathEl.appendChild(crumb);
+    }
+    pathEl.hidden = segments.length === 0;
+  }
+
+  function renderStepTitle(): void {
+    if (currentStep === "results") {
+      stepTitleEl.hidden = true;
+      return;
+    }
+    stepTitleEl.hidden = false;
+    stepTitleEl.textContent = t(STEP_TITLE_KEYS[currentStep]);
+  }
+
+  function previousStep(step: CatalogStep): CatalogStep | null {
+    switch (step) {
+      case "brand":
+        return "category";
+      case "size":
+        return "brand";
+      case "gender":
+        return availableSizes.length > 0 ? "size" : "brand";
+      default:
+        return null;
     }
   }
 
-  async function filterSize(size: string) {
+  async function goBackToStep(step: CatalogStep): Promise<void> {
     if (stale()) return;
-    activeSize = size;
-    page = 1;
-    hasMore = true;
-    cardIndex = 0;
-    allCards.length = 0;
-    grid.innerHTML = "";
-    syncChipActive(sizeChips, size);
-    await loadMore();
+    if (step === "category") {
+      activeCategory = "";
+      activeBrand = "";
+      activeSize = "";
+      activeGender = "";
+      availableSizes = [];
+      availableGenders = [];
+      currentStep = "category";
+    } else if (step === "brand") {
+      activeBrand = "";
+      activeSize = "";
+      activeGender = "";
+      currentStep = "brand";
+    } else if (step === "size") {
+      activeGender = "";
+      currentStep = "size";
+    } else if (step === "gender") {
+      activeGender = "";
+      currentStep = "gender";
+    }
+    resetCatalogGrid();
+    renderWizard();
+    updateCatalogVisibility();
+    if (currentStep === "brand") await renderBrandStep();
   }
 
-  async function filterGender(gender: string) {
-    if (stale()) return;
-    activeGender = gender;
-    page = 1;
-    hasMore = true;
-    cardIndex = 0;
-    allCards.length = 0;
-    grid.innerHTML = "";
-    syncChipActive(genderChips, gender);
-    await loadMore();
+  async function goToPreviousStep(): Promise<void> {
+    const prev = previousStep(currentStep);
+    if (!prev) return;
+    if (prev === "category") {
+      activeCategory = "";
+      activeBrand = "";
+      activeSize = "";
+      activeGender = "";
+      availableSizes = [];
+      availableGenders = [];
+    } else if (prev === "brand") {
+      activeBrand = "";
+      activeSize = "";
+      activeGender = "";
+      availableSizes = [];
+      availableGenders = [];
+    } else if (prev === "size") {
+      activeSize = "";
+      activeGender = "";
+    } else if (prev === "gender") {
+      activeGender = "";
+    }
+    currentStep = prev;
+    resetCatalogGrid();
+    renderWizard();
+    updateCatalogVisibility();
+    if (currentStep === "brand") await renderBrandStep();
   }
 
-  async function filterCategory(category: string) {
-    if (stale()) return;
-    activeCategory = category;
-    activeSize = "";
-    activeGender = "";
-    page = 1;
-    hasMore = true;
-    cardIndex = 0;
-    allCards.length = 0;
-    grid.innerHTML = "";
-    syncChipActive(categoryChips, category);
-    await refreshProductFilters();
-    await loadMore();
-  }
+  backBtn.onclick = () => void goToPreviousStep();
 
-  async function refreshProductFilters() {
+  async function refreshAvailableFilters(): Promise<void> {
     const requestCategory = activeCategory;
     const q = new URLSearchParams();
     if (requestCategory) q.set("category", requestCategory);
+    const { data: filters } = await apiGet<{
+      data: { sizes: string[]; genders: ProductGender[] };
+    }>(`/api/product-filters${q.size ? `?${q}` : ""}`);
+    if (stale() || requestCategory !== activeCategory) return;
+    availableSizes = filters.sizes;
+    availableGenders = filters.genders;
+  }
 
+  async function renderBrandStep(): Promise<void> {
+    stepChips.innerHTML = "";
+    const requestCategory = activeCategory;
+    const q = new URLSearchParams();
+    if (requestCategory) q.set("category", requestCategory);
     try {
-      const { data: filters } = await apiGet<{
-        data: { sizes: string[]; genders: ProductGender[] };
-      }>(`/api/product-filters${q.size ? `?${q}` : ""}`);
+      const { data: brands } = await apiGet<{ data: string[] }>(
+        `/api/brands${q.size ? `?${q}` : ""}`,
+      );
       if (stale() || requestCategory !== activeCategory) return;
-
-      sizeChips.innerHTML = "";
-      genderChips.innerHTML = "";
-
-      if (filters.sizes.length > 0) {
-        renderFilterChip(
-          sizeChips,
-          t("filter_size_all"),
-          "",
-          !activeSize,
-          (v) => void filterSize(v),
+      for (const brandName of brands) {
+        renderFilterChip(stepChips, brandName, brandName, (value) =>
+          void selectBrand(value),
         );
-        for (const size of filters.sizes) {
-          renderFilterChip(
-            sizeChips,
-            `${t("filter_size")} ${size}`,
-            size,
-            activeSize === size,
-            (v) => void filterSize(v),
-          );
-        }
-      }
-
-      if (filters.genders.length > 0) {
-        renderFilterChip(
-          genderChips,
-          t("filter_gender_all"),
-          "",
-          !activeGender,
-          (v) => void filterGender(v),
-        );
-        for (const gender of filters.genders) {
-          renderFilterChip(
-            genderChips,
-            t(`filter_gender_${gender}`),
-            gender,
-            activeGender === gender,
-            (v) => void filterGender(v),
-          );
-        }
       }
     } catch {
-      sizeChips.innerHTML = "";
-      genderChips.innerHTML = "";
+      stepChips.innerHTML = `<p class="empty-state">${t("error")}</p>`;
     }
   }
 
-  try {
-    const [{ data: brands }, { data: categories }] = await Promise.all([
-      apiGet<{ data: string[] }>("/api/brands"),
-      apiGet<{
-        data: { slug: string; name_ru: string }[];
-      }>("/api/categories"),
-    ]);
-    if (stale()) return;
-    for (const brandName of brands) {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "chip";
-      chip.dataset.brand = brandName;
-      chip.textContent = brandName;
-      chip.onclick = () => filterBrand(brandName);
-      chips.appendChild(chip);
-    }
-
+  function renderCategoryStep(): void {
+    stepChips.innerHTML = "";
     renderFilterChip(
-      categoryChips,
-      t("chip_all_categories"),
-      "",
-      !activeCategory,
-      (v) => void filterCategory(v),
-    );
-    renderFilterChip(
-      categoryChips,
+      stepChips,
       t("category_watches"),
       WATCHES_CATEGORY_SLUG,
-      activeCategory === WATCHES_CATEGORY_SLUG,
-      (v) => void filterCategory(v),
+      (value) => void selectCategory(value),
     );
-
-    for (const category of categories) {
+    for (const category of apiCategories) {
       if (category.slug === WATCHES_CATEGORY_SLUG) continue;
       renderFilterChip(
-        categoryChips,
+        stepChips,
         category.name_ru,
         category.slug,
-        activeCategory === category.slug,
-        (v) => void filterCategory(v),
+        (value) => void selectCategory(value),
       );
     }
+  }
 
-    await refreshProductFilters();
-  } catch {
-    /* ignore */
+  function renderSizeStep(): void {
+    stepChips.innerHTML = "";
+    for (const size of availableSizes) {
+      renderFilterChip(
+        stepChips,
+        `${t("filter_size")} ${size}`,
+        size,
+        (value) => void selectSize(value),
+      );
+    }
+  }
+
+  function renderGenderStep(): void {
+    stepChips.innerHTML = "";
+    for (const gender of availableGenders) {
+      renderFilterChip(
+        stepChips,
+        t(`filter_gender_${gender}`),
+        gender,
+        (value) => void selectGender(value as ProductGender),
+      );
+    }
+  }
+
+  async function renderCurrentStep(): Promise<void> {
+    stepChips.hidden = currentStep === "results";
+    switch (currentStep) {
+      case "category":
+        renderCategoryStep();
+        break;
+      case "brand":
+        await renderBrandStep();
+        break;
+      case "size":
+        renderSizeStep();
+        break;
+      case "gender":
+        renderGenderStep();
+        break;
+      case "results":
+        stepChips.innerHTML = "";
+        break;
+    }
+  }
+
+  function renderWizard(): void {
+    renderPath();
+    renderStepTitle();
+    backBtn.hidden = currentStep === "category";
+    void renderCurrentStep();
+  }
+
+  async function advanceAfterBrand(): Promise<void> {
+    await refreshAvailableFilters();
+    if (stale()) return;
+    if (availableSizes.length > 0) {
+      currentStep = "size";
+      return;
+    }
+    if (availableGenders.length > 0) {
+      currentStep = "gender";
+      return;
+    }
+    currentStep = "results";
+    updateCatalogVisibility();
+    await loadMore();
+  }
+
+  async function advanceAfterSize(): Promise<void> {
+    if (availableGenders.length > 0) {
+      currentStep = "gender";
+      return;
+    }
+    currentStep = "results";
+    updateCatalogVisibility();
+    await loadMore();
+  }
+
+  async function selectCategory(category: string): Promise<void> {
+    if (stale()) return;
+    activeCategory = category;
+    activeBrand = "";
+    activeSize = "";
+    activeGender = "";
+    availableSizes = [];
+    availableGenders = [];
+    currentStep = "brand";
+    resetCatalogGrid();
+    renderWizard();
+    updateCatalogVisibility();
+    await renderBrandStep();
+  }
+
+  async function selectBrand(brand: string): Promise<void> {
+    if (stale()) return;
+    activeBrand = brand;
+    activeSize = "";
+    activeGender = "";
+    resetCatalogGrid();
+    await advanceAfterBrand();
+    if (stale()) return;
+    renderWizard();
+    updateCatalogVisibility();
+  }
+
+  async function selectSize(size: string): Promise<void> {
+    if (stale()) return;
+    activeSize = size;
+    activeGender = "";
+    resetCatalogGrid();
+    await advanceAfterSize();
+    if (stale()) return;
+    renderWizard();
+    updateCatalogVisibility();
+  }
+
+  async function selectGender(gender: ProductGender): Promise<void> {
+    if (stale()) return;
+    activeGender = gender;
+    currentStep = "results";
+    resetCatalogGrid();
+    renderWizard();
+    updateCatalogVisibility();
+    await loadMore();
   }
 
   const config = await apiGet<{
@@ -499,23 +674,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     }
   }
 
-  async function filterBrand(brand: string) {
-    if (stale()) return;
-    activeBrand = brand;
-    page = 1;
-    hasMore = true;
-    cardIndex = 0;
-    allCards.length = 0;
-    grid.innerHTML = "";
-    for (const c of chips.querySelectorAll(".chip")) {
-      const chipBrand = (c as HTMLElement).dataset.brand ?? "";
-      c.classList.toggle("active", chipBrand === brand);
-    }
-    await loadMore();
-  }
-
   async function loadMore() {
-    if (loading || !hasMore || stale()) return;
+    if (loading || !hasMore || stale() || !canShowCatalog()) return;
     loading = true;
     const sk = document.createElement("div");
     sk.className = "skeleton";
@@ -579,12 +739,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
       search = searchInputForCatalog.value.trim();
-      page = 1;
-      hasMore = true;
-      cardIndex = 0;
-      allCards.length = 0;
-      grid.innerHTML = "";
-      void loadMore();
+      resetCatalogGrid();
+      updateCatalogVisibility();
+      if (canShowCatalog()) void loadMore();
     }, 350);
   });
 
@@ -593,6 +750,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   });
   const sentinel = document.createElement("div");
   sentinel.style.height = "1px";
+  sentinel.hidden = true;
   main.appendChild(sentinel);
   observer.observe(sentinel);
 
@@ -617,15 +775,31 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     { passive: true },
   );
 
-  const pendingBrand = sessionStorage.getItem(PENDING_BRAND_KEY);
+  try {
+    const { data: categories } = await apiGet<{
+      data: { slug: string; name_ru: string }[];
+    }>("/api/categories");
+    if (stale()) return;
+    apiCategories = categories;
+    for (const category of categories) {
+      categoryLabels.set(category.slug, category.name_ru);
+    }
+  } catch {
+    /* ignore */
+  }
+
   const pendingCategory = sessionStorage.getItem(PENDING_CATEGORY_KEY);
   if (pendingCategory !== null) {
     sessionStorage.removeItem(PENDING_CATEGORY_KEY);
-    if (!stale()) await filterCategory(pendingCategory);
-  } else if (pendingBrand !== null) {
-    sessionStorage.removeItem(PENDING_BRAND_KEY);
-    if (!stale()) await filterBrand(pendingBrand);
+    if (!stale()) {
+      activeCategory = pendingCategory;
+      currentStep = "brand";
+      renderWizard();
+      updateCatalogVisibility();
+      await renderBrandStep();
+    }
   } else if (!stale()) {
-    await loadMore();
+    renderWizard();
+    updateCatalogVisibility();
   }
 }
