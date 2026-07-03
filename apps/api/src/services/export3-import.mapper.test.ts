@@ -88,7 +88,7 @@ describe("export3-import mapper", () => {
     assert.deepEqual(row.row.sizes, { EU: ["42", "43"] });
   });
 
-  it("keeps products that are importable by price and catalog gender rules", () => {
+  it("keeps all priced products regardless of gender label", () => {
     const data = {
       categories: [],
       brands: [],
@@ -104,7 +104,7 @@ describe("export3-import mapper", () => {
 
     assert.deepEqual(
       [...buildImportableProductIdSet(data)].sort(),
-      ["1", "2", "6"],
+      ["1", "2", "4", "5", "6"],
     );
   });
 
@@ -123,7 +123,7 @@ describe("export3-import mapper", () => {
     }
   });
 
-  it("skips products with explicit non-catalog gender labels", () => {
+  it("imports explicit non-catalog gender labels with gender=null", () => {
     const row = mapExport3ProductToUpsertRow(
       product({ gender: "Малыши" }),
       {
@@ -132,8 +132,10 @@ describe("export3-import mapper", () => {
       },
     );
 
-    assert.equal(row.status, "skipped");
-    assert.equal(row.reason, "invalid_gender");
+    assert.equal(row.status, "mapped");
+    if (row.status === "mapped") {
+      assert.equal(row.row.gender, null);
+    }
   });
 
   it("normalizes watch category slugs when watches appear in future exports", () => {
@@ -201,7 +203,7 @@ describe("export3-import mapper", () => {
     }
   });
 
-  it("skips Unisex watches without explicit male/female hints", () => {
+  it("imports Unisex watches without explicit male/female hints as gender=null", () => {
     const watch = product({
       title: "SWATCH Автоматический Механический механизм Унисекс Часы",
       gender: "Унисекс",
@@ -216,11 +218,14 @@ describe("export3-import mapper", () => {
       categoryCache: new Map([[10, "category-uuid"]]),
     });
 
-    assert.equal(row.status, "skipped");
-    assert.equal(row.reason, "invalid_gender");
+    assert.equal(row.status, "mapped");
+    if (row.status === "mapped") {
+      assert.equal(row.row.gender, null);
+      assert.equal(row.row.price_rub, 15000);
+    }
   });
 
-  it("includes Unisex products with inferred gender in importable set", () => {
+  it("includes all priced Unisex products in importable set", () => {
     const data = {
       categories: [],
       brands: [],
@@ -242,6 +247,6 @@ describe("export3-import mapper", () => {
       ],
     };
 
-    assert.deepEqual([...buildImportableProductIdSet(data)], ["10"]);
+    assert.deepEqual([...buildImportableProductIdSet(data)].sort(), ["10", "11"]);
   });
 });

@@ -1,7 +1,6 @@
 import type { ProductGender } from "@poizon-shop/shared";
 import {
   isCatalogGender,
-  isEmptyGenderField,
   normalizeProductGender,
 } from "../lib/normalize-gender.js";
 import { stripCjk } from "./poizon-sku.mapper.js";
@@ -82,10 +81,7 @@ export type Export3UpsertRow = {
 
 export type Export3MapResult =
   | { status: "mapped"; row: Export3UpsertRow }
-  | {
-      status: "skipped";
-      reason: "no_price" | "no_images" | "invalid_gender";
-    };
+  | { status: "skipped"; reason: "no_price" | "no_images" };
 
 export type Export3Rates = {
   rateCnyRub: number;
@@ -211,21 +207,8 @@ export function resolveImportGender(product: Pop2Product): ProductGender | null 
   return null;
 }
 
-/** Priced products with male/female or an empty gender field are importable. */
-export function isImportableResolvedGender(
-  rawGender: string | null | undefined,
-  resolved: ProductGender | null,
-): boolean {
-  if (isCatalogGender(resolved)) return true;
-  return resolved === null && isEmptyGenderField(rawGender);
-}
-
 export function isImportableProduct(product: Pop2Product): boolean {
-  if (!hasImportablePrice(product)) return false;
-  return isImportableResolvedGender(
-    product.gender,
-    resolveImportGender(product),
-  );
+  return hasImportablePrice(product);
 }
 
 export function buildImportableProductIdSet(data: Pop2Data): Set<string> {
@@ -244,11 +227,6 @@ export function mapExport3ProductToUpsertRow(
 ): Export3MapResult {
   if (!p.images || p.images.length === 0) {
     return { status: "skipped", reason: "no_images" };
-  }
-
-  const normalizedGender = resolveImportGender(p);
-  if (!isImportableResolvedGender(p.gender, normalizedGender)) {
-    return { status: "skipped", reason: "invalid_gender" };
   }
 
   const variantPricing = buildVariantPricing(p, opts);
@@ -279,6 +257,8 @@ export function mapExport3ProductToUpsertRow(
       : sizeLabels.length > 0
         ? Object.fromEntries(sizeLabels.map((size) => [size, true]))
         : {};
+
+  const normalizedGender = resolveImportGender(p);
 
   return {
     status: "mapped",
