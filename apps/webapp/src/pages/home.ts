@@ -56,7 +56,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let activeGender = "";
   let activeCategory = "";
   let search = "";
-  let currentStep: CatalogStep = "category";
+  let currentStep: CatalogStep = "done";
   let availableSizes: string[] = [];
   let availableGenders: ProductGender[] = [];
   const categoryLabels = new Map<string, string>([
@@ -65,7 +65,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let apiCategories: { slug: string; name_ru: string }[] = [];
 
   function canShowCatalog(): boolean {
-    return Boolean(search) || Boolean(activeCategory);
+    return true;
   }
 
   function filtersActive(): boolean {
@@ -83,13 +83,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   function updateCatalogVisibility(): void {
-    const visible = canShowCatalog();
-    catalog.hidden = !visible;
-    sentinel.hidden = !visible || allCards.length >= LOAD_MORE_THRESHOLD;
-    if (!visible) {
-      setCatalogPreviewVisible(false);
-      main.querySelector("#load-more-btn")?.remove();
-    }
+    catalog.hidden = false;
+    sentinel.hidden = allCards.length >= LOAD_MORE_THRESHOLD;
   }
 
   function badgeForIndex(
@@ -227,7 +222,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   );
 
   async function doRefresh() {
-    if (stale() || !canShowCatalog()) return;
+    if (stale()) return;
     resetCatalogGrid();
     try {
       await loadMore();
@@ -249,6 +244,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       <button type="button" class="catalog-wizard__skip" id="catalog-skip" hidden>
         ${t("catalog_skip")}
       </button>
+      <button type="button" class="catalog-wizard__filters" id="catalog-filter-open" hidden>
+        ${t("catalog_filters")}
+      </button>
     </div>
     <section class="chips-row hide-scrollbar" id="catalog-step-chips"></section>
   `;
@@ -257,6 +255,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   const pathEl = wizard.querySelector("#catalog-path") as HTMLElement;
   const backBtn = wizard.querySelector("#catalog-back") as HTMLButtonElement;
   const skipBtn = wizard.querySelector("#catalog-skip") as HTMLButtonElement;
+  const filterOpenBtn = wizard.querySelector(
+    "#catalog-filter-open",
+  ) as HTMLButtonElement;
   const stepTitleEl = wizard.querySelector(
     "#catalog-step-title",
   ) as HTMLElement;
@@ -287,7 +288,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   const catalog = document.createElement("section");
   catalog.className = "catalog-section";
-  catalog.hidden = true;
   catalog.innerHTML = `
     <div class="section-head">
       <h2>${t("popular")}</h2>
@@ -362,15 +362,22 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   function renderStepTitle(): void {
-    const showFilters = currentStep !== "category" && currentStep !== "done";
-    stepTitleEl.hidden = !showFilters;
-    skipBtn.hidden = !showFilters;
-    if (showFilters) {
+    const showFilterPanel = currentStep !== "done";
+    stepTitleEl.hidden = !showFilterPanel;
+    skipBtn.hidden = currentStep === "done";
+    filterOpenBtn.hidden = currentStep !== "done";
+    if (showFilterPanel) {
       stepTitleEl.textContent = t(STEP_TITLE_KEYS[currentStep]);
     }
   }
 
   function nextFilterStep(from: CatalogStep): CatalogStep {
+    if (from === "category") {
+      if (availableSizes.length > 0 || availableGenders.length > 0) {
+        return "brand";
+      }
+      return "done";
+    }
     if (from === "brand") {
       if (availableSizes.length > 0) return "size";
       if (availableGenders.length > 0) return "gender";
@@ -385,6 +392,8 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   function previousStep(step: CatalogStep): CatalogStep | null {
     switch (step) {
+      case "category":
+        return null;
       case "brand":
         return "category";
       case "size":
@@ -440,12 +449,9 @@ export async function renderHome(app: HTMLElement): Promise<void> {
     const prev = previousStep(currentStep);
     if (!prev) return;
     if (prev === "category") {
-      activeCategory = "";
       activeBrand = "";
       activeSize = "";
       activeGender = "";
-      availableSizes = [];
-      availableGenders = [];
     } else if (prev === "brand") {
       activeBrand = "";
       activeSize = "";
@@ -465,14 +471,25 @@ export async function renderHome(app: HTMLElement): Promise<void> {
 
   async function skipCurrentStep(): Promise<void> {
     if (stale()) return;
+    if (currentStep === "category") {
+      currentStep = "done";
+      renderWizard();
+      return;
+    }
     if (currentStep === "brand" || currentStep === "size" || currentStep === "gender") {
       currentStep = nextFilterStep(currentStep);
       renderWizard();
     }
   }
 
+  function openFilters(): void {
+    currentStep = "category";
+    renderWizard();
+  }
+
   backBtn.onclick = () => void goToPreviousStep();
   skipBtn.onclick = () => void skipCurrentStep();
+  filterOpenBtn.onclick = () => openFilters();
 
   async function refreshAvailableFilters(): Promise<void> {
     const requestCategory = activeCategory;
@@ -550,7 +567,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   async function renderCurrentStep(): Promise<void> {
-    stepChips.hidden = currentStep === "category" || currentStep === "done";
+    stepChips.hidden = currentStep === "done";
     switch (currentStep) {
       case "category":
         renderCategoryStep();
@@ -573,7 +590,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   function renderWizard(): void {
     renderPath();
     renderStepTitle();
-    backBtn.hidden = currentStep === "category";
+    backBtn.hidden = currentStep === "category" || currentStep === "done";
     void renderCurrentStep();
   }
 
@@ -689,7 +706,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   }
 
   async function loadMore() {
-    if (loading || !hasMore || stale() || !canShowCatalog()) return;
+    if (loading || !hasMore || stale()) return;
     loading = true;
     const sk = document.createElement("div");
     sk.className = "skeleton";
@@ -755,7 +772,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       search = searchInputForCatalog.value.trim();
       resetCatalogGrid();
       updateCatalogVisibility();
-      if (canShowCatalog()) void loadMore();
+      void loadMore();
     }, 350);
   });
 
@@ -764,7 +781,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   });
   const sentinel = document.createElement("div");
   sentinel.style.height = "1px";
-  sentinel.hidden = true;
   main.appendChild(sentinel);
   observer.observe(sentinel);
 
@@ -809,5 +825,6 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   } else if (!stale()) {
     renderWizard();
     updateCatalogVisibility();
+    await loadMore();
   }
 }
