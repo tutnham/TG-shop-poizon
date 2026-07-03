@@ -1,6 +1,7 @@
 import type { ProductGender } from "@poizon-shop/shared";
 import {
   isCatalogGender,
+  isEmptyGenderField,
   normalizeProductGender,
 } from "../lib/normalize-gender.js";
 import { stripCjk } from "./poizon-sku.mapper.js";
@@ -181,9 +182,50 @@ export function hasImportablePrice(product: Pop2Product): boolean {
   );
 }
 
+function collectGenderHints(product: Pop2Product): string[] {
+  const hints: string[] = [];
+  if (product.title?.trim()) hints.push(product.title.trim());
+  if (product.keywords?.length) hints.push(product.keywords.join(" "));
+  if (product.vendorCode?.trim()) hints.push(product.vendorCode.trim());
+  if (product.seriesName?.trim()) hints.push(product.seriesName.trim());
+  return hints;
+}
+
+/** Avoid inferring gender from neutral text; Cyrillic-safe (JS \\b ignores Cyrillic). */
+function hintHasExplicitCatalogGender(hint: string): boolean {
+  if (/\b(?:male|female|men'?s?|women'?s?)\b/i.test(hint)) return true;
+  return /мужск|мужчин|женск|женщин/i.test(hint);
+}
+
+/** Resolves catalog gender from field, then from title/keywords when export marks Unisex. */
+export function resolveImportGender(product: Pop2Product): ProductGender | null {
+  const direct = normalizeProductGender(product.gender);
+  if (isCatalogGender(direct)) return direct;
+
+  for (const hint of collectGenderHints(product)) {
+    if (!hintHasExplicitCatalogGender(hint)) continue;
+    const inferred = normalizeProductGender(hint);
+    if (isCatalogGender(inferred)) return inferred;
+  }
+
+  return null;
+}
+
+/** Priced products with male/female or an empty gender field are importable. */
+export function isImportableResolvedGender(
+  rawGender: string | null | undefined,
+  resolved: ProductGender | null,
+): boolean {
+  if (isCatalogGender(resolved)) return true;
+  return resolved === null && isEmptyGenderField(rawGender);
+}
+
 export function isImportableProduct(product: Pop2Product): boolean {
   if (!hasImportablePrice(product)) return false;
-  return isCatalogGender(normalizeProductGender(product.gender));
+  return isImportableResolvedGender(
+    product.gender,
+    resolveImportGender(product),
+  );
 }
 
 export function buildImportableProductIdSet(data: Pop2Data): Set<string> {
@@ -204,8 +246,8 @@ export function mapExport3ProductToUpsertRow(
     return { status: "skipped", reason: "no_images" };
   }
 
-  const normalizedGender = normalizeProductGender(p.gender);
-  if (!isCatalogGender(normalizedGender)) {
+  const normalizedGender = resolveImportGender(p);
+  if (!isImportableResolvedGender(p.gender, normalizedGender)) {
     return { status: "skipped", reason: "invalid_gender" };
   }
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   isCatalogGender,
+  isEmptyGenderField,
   normalizeProductGender,
 } from "./normalize-gender.js";
 
@@ -31,5 +32,11 @@ describe("normalizeProductGender", () => {
     assert.equal(isCatalogGender("male"), true);
     assert.equal(isCatalogGender("female"), true);
     assert.equal(isCatalogGender(null), false);
+  });
+
+  it("isEmptyGenderField detects missing export labels", () => {
+    assert.equal(isEmptyGenderField(""), true);
+    assert.equal(isEmptyGenderField(null), true);
+    assert.equal(isEmptyGenderField("Малыши"), false);
   });
 });

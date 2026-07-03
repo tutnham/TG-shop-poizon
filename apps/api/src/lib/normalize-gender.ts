@@ -63,3 +63,8 @@ export function isCatalogGender(
 ): gender is ProductGender {
   return gender === "male" || gender === "female";
 }
+
+/** Export field is empty — product has no gender label in the source file. */
+export function isEmptyGenderField(raw: string | null | undefined): boolean {
+  return raw == null || !String(raw).trim();
+}

@@ -4,7 +4,6 @@ import type {
   ProductListItem,
   SizePricesMap,
 } from "@poizon-shop/shared";
-import { CATALOG_GENDERS } from "@poizon-shop/shared";
 import { dedupeByNameRu, dedupeDisplayLabels } from "../lib/dedupe-labels.js";
 import { sanitizeSearchQuery } from "../lib/search-sanitize.js";
 import { getSupabase } from "./client.js";
@@ -57,12 +56,13 @@ async function resolveCategoryIdBySlug(slug: string): Promise<string | null> {
   return (data?.id as string | undefined) ?? null;
 }
 
+const CATALOG_GENDER_OR_NULL_FILTER =
+  "gender.is.null,gender.eq.male,gender.eq.female";
+
 function isVisibleInCatalog(row: ProductRow): boolean {
-  return (
-    row.is_available &&
-    Number(row.price_rub) > 0 &&
-    (row.gender === "male" || row.gender === "female")
-  );
+  if (!row.is_available || Number(row.price_rub) <= 0) return false;
+  if (row.gender == null) return true;
+  return row.gender === "male" || row.gender === "female";
 }
 
 export async function listProducts(opts: {
@@ -82,7 +82,7 @@ export async function listProducts(opts: {
     .select(LIST_PRODUCT_COLUMNS, { count: "exact" })
     .eq("is_available", true)
     .gt("price_rub", 0)
-    .in("gender", CATALOG_GENDERS);
+    .or(CATALOG_GENDER_OR_NULL_FILTER);
 
   if (opts.category) {
     const categoryId = await resolveCategoryIdBySlug(opts.category);
@@ -179,7 +179,7 @@ export async function listCategories(): Promise<
     .select("category_id")
     .eq("is_available", true)
     .gt("price_rub", 0)
-    .in("gender", CATALOG_GENDERS)
+    .or(CATALOG_GENDER_OR_NULL_FILTER)
     .not("category_id", "is", null);
   if (productError) throw new Error(productError.message);
 
@@ -206,7 +206,7 @@ export async function listBrands(): Promise<string[]> {
     .select("brand")
     .eq("is_available", true)
     .gt("price_rub", 0)
-    .in("gender", CATALOG_GENDERS)
+    .or(CATALOG_GENDER_OR_NULL_FILTER)
     .not("brand", "is", null);
   if (error) throw new Error(error.message);
   const brands = (data ?? [])
@@ -240,7 +240,7 @@ export async function listAvailableSizes(
     .select("stock")
     .eq("is_available", true)
     .gt("price_rub", 0)
-    .in("gender", CATALOG_GENDERS);
+    .or(CATALOG_GENDER_OR_NULL_FILTER);
   if (categoryId) query = query.eq("category_id", categoryId);
 
   const { data, error } = await query;
@@ -272,7 +272,7 @@ export async function listAvailableGenders(
     .select("gender")
     .eq("is_available", true)
     .gt("price_rub", 0)
-    .in("gender", CATALOG_GENDERS);
+    .or(CATALOG_GENDER_OR_NULL_FILTER);
   if (categoryId) query = query.eq("category_id", categoryId);
 
   const { data, error } = await query;

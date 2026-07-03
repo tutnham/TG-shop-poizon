@@ -8,6 +8,7 @@ import {
   createCategorySlug,
   extractSizeLabel,
   mapExport3ProductToUpsertRow,
+  resolveImportGender,
 } from "./export3-import.mapper.js";
 
 const rates = {
@@ -87,7 +88,7 @@ describe("export3-import mapper", () => {
     assert.deepEqual(row.row.sizes, { EU: ["42", "43"] });
   });
 
-  it("keeps products that are importable by price and male/female gender", () => {
+  it("keeps products that are importable by price and catalog gender rules", () => {
     const data = {
       categories: [],
       brands: [],
@@ -97,13 +98,32 @@ describe("export3-import mapper", () => {
         product({ productId: 3, price: 0, children: [] }),
         product({ productId: 4, price: 3900, gender: "Малыши" }),
         product({ productId: 5, price: 3900, gender: "Unisex" }),
+        product({ productId: 6, price: 3900, gender: "" }),
       ],
     };
 
-    assert.deepEqual([...buildImportableProductIdSet(data)].sort(), ["1", "2"]);
+    assert.deepEqual(
+      [...buildImportableProductIdSet(data)].sort(),
+      ["1", "2", "6"],
+    );
   });
 
-  it("skips products with non male/female gender", () => {
+  it("imports products with an empty gender field as gender=null", () => {
+    const row = mapExport3ProductToUpsertRow(
+      product({ gender: "" }),
+      {
+        ...rates,
+        categoryCache: new Map([[10, "category-uuid"]]),
+      },
+    );
+
+    assert.equal(row.status, "mapped");
+    if (row.status === "mapped") {
+      assert.equal(row.row.gender, null);
+    }
+  });
+
+  it("skips products with explicit non-catalog gender labels", () => {
     const row = mapExport3ProductToUpsertRow(
       product({ gender: "Малыши" }),
       {
@@ -133,5 +153,95 @@ describe("export3-import mapper", () => {
       ),
       "Nike Air Max AM-001",
     );
+  });
+
+  it("infers male gender for Unisex watches from title", () => {
+    const watch = product({
+      title: "Механический механизм Tissot Мужские часы PR100",
+      gender: "Унисекс",
+      price: 28125,
+      children: [],
+      sizes: [],
+    });
+
+    assert.equal(resolveImportGender(watch), "male");
+
+    const row = mapExport3ProductToUpsertRow(watch, {
+      ...rates,
+      categoryCache: new Map([[10, "category-uuid"]]),
+    });
+
+    assert.equal(row.status, "mapped");
+    if (row.status === "mapped") {
+      assert.equal(row.row.gender, "male");
+      assert.equal(row.row.price_rub, 28125);
+      assert.deepEqual(row.row.sizes, {});
+      assert.deepEqual(row.row.stock, {});
+    }
+  });
+
+  it("infers female gender for Unisex watches from title", () => {
+    const watch = product({
+      title: "Часы SWATCH Женские Часы 42 мм",
+      gender: "Унисекс",
+      price: 12000,
+      children: [],
+    });
+
+    assert.equal(resolveImportGender(watch), "female");
+
+    const row = mapExport3ProductToUpsertRow(watch, {
+      ...rates,
+      categoryCache: new Map([[10, "category-uuid"]]),
+    });
+
+    assert.equal(row.status, "mapped");
+    if (row.status === "mapped") {
+      assert.equal(row.row.gender, "female");
+    }
+  });
+
+  it("skips Unisex watches without explicit male/female hints", () => {
+    const watch = product({
+      title: "SWATCH Автоматический Механический механизм Унисекс Часы",
+      gender: "Унисекс",
+      price: 15000,
+      children: [],
+    });
+
+    assert.equal(resolveImportGender(watch), null);
+
+    const row = mapExport3ProductToUpsertRow(watch, {
+      ...rates,
+      categoryCache: new Map([[10, "category-uuid"]]),
+    });
+
+    assert.equal(row.status, "skipped");
+    assert.equal(row.reason, "invalid_gender");
+  });
+
+  it("includes Unisex products with inferred gender in importable set", () => {
+    const data = {
+      categories: [],
+      brands: [],
+      products: [
+        product({
+          productId: 10,
+          title: "Tissot Мужские часы PR100",
+          gender: "Унисекс",
+          price: 28125,
+          children: [],
+        }),
+        product({
+          productId: 11,
+          title: "SWATCH Унисекс Часы",
+          gender: "Унисекс",
+          price: 15000,
+          children: [],
+        }),
+      ],
+    };
+
+    assert.deepEqual([...buildImportableProductIdSet(data)], ["10"]);
   });
 });

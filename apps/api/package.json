@@ -14,6 +14,7 @@
     "sync:poizon": "npx tsx scripts/poizon-sync.ts",
     "import:pop2": "npx tsx scripts/import-pop2.ts",
     "import:export3": "npx tsx scripts/import-pop2.ts ../../Export3.json",
+    "import:clock": "npx tsx scripts/import-pop2.ts ../../clock.json",
     "purge:stale": "npx tsx scripts/purge-stale-products.ts",
     "purge:stale:dry": "npx tsx scripts/purge-stale-products.ts ../../Export3.json --dry-run",
     "delete:demo": "npx tsx scripts/delete-demo.ts",
