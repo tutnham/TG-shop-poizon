@@ -297,7 +297,10 @@ npm run webhook:set
 | `npm run import:pop2` | Импорт из pop2.json |
 | `npm run import:export3` | Импорт из `Export3.json` (`../../Export3.json` относительно `apps/api`) |
 | `npm run import:clock` | Импорт из `clock.json` в корне проекта |
+| `npm run import:1307` | Additive-импорт часов и очков из `1307.json` (без `purge:stale`) |
 | `npm run patch:clock` | Патч каталога часов из `clock.json` |
+| `npm run patch:1307-watches` | Патч часов из `1307.json` (только slug `watches`) |
+| `npm run patch:glasses` | Патч очков из `1307.json` (только slug `glasses`) |
 | `npm run purge:stale:dry` | Предпросмотр replace-очистки каталога по `Export3.json` |
 | `npm run purge:stale` | Удаление товаров, отсутствующих в переданной выгрузке |
 | `npm run delete:demo` | Удаление демо-данных |
@@ -325,6 +328,27 @@ npm run purge:stale
 ```bash
 npm run purge:stale -w @poizon-shop/api -- ../../Export3.json --poizon-only
 ```
+
+### Additive-импорт часов и очков из `1307.json`
+
+`1307.json` — выгрузка Pop2 с часами и очками (~1007 товаров). Файл держите в корне проекта локально, **не коммитьте** в git.
+
+```bash
+# 1. Импорт (additive upsert, не трогает кроссовки/одежду)
+npm run import:1307 -w @poizon-shop/api
+
+# 2. Проверка количества в категориях watches / glasses
+npx tsx scripts/count-category-products.ts
+
+# 3. Добор нулевых цен (долгий шаг, внешний Poizon API)
+npm run fetch:prices -w @poizon-shop/api -- ../../1307.json
+
+# 4. Патч gender/category после возможной смены poizon_id
+npm run patch:1307-watches -w @poizon-shop/api
+npm run patch:glasses -w @poizon-shop/api
+```
+
+**Важно:** не запускайте `purge:stale` по `Export3.json` сразу после `import:1307` — это удалит только что импортированные часы/очки, если их нет в keep-set Export3.
 
 ---
 

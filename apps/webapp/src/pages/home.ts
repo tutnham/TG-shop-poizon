@@ -24,6 +24,7 @@ import { hideBackButton, hideMainButton } from "../telegram.js";
 
 const PENDING_CATEGORY_KEY = "poizon_pending_category";
 const WATCHES_CATEGORY_SLUG = "watches";
+const GLASSES_CATEGORY_SLUG = "glasses";
 
 type CatalogStep = "category" | "brand" | "size" | "gender" | "done";
 
@@ -61,6 +62,7 @@ export async function renderHome(app: HTMLElement): Promise<void> {
   let availableGenders: ProductGender[] = [];
   const categoryLabels = new Map<string, string>([
     [WATCHES_CATEGORY_SLUG, t("category_watches")],
+    [GLASSES_CATEGORY_SLUG, t("category_glasses")],
   ]);
   let apiCategories: { slug: string; name_ru: string }[] = [];
 
@@ -538,8 +540,18 @@ export async function renderHome(app: HTMLElement): Promise<void> {
       WATCHES_CATEGORY_SLUG,
       (value) => void selectCategory(value),
     );
+    renderFilterChip(
+      stepChips,
+      t("category_glasses"),
+      GLASSES_CATEGORY_SLUG,
+      (value) => void selectCategory(value),
+    );
     for (const category of apiCategories) {
-      if (category.slug === WATCHES_CATEGORY_SLUG) continue;
+      if (
+        category.slug === WATCHES_CATEGORY_SLUG ||
+        category.slug === GLASSES_CATEGORY_SLUG
+      )
+        continue;
       renderFilterChip(
         stepChips,
         category.name_ru,

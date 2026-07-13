@@ -135,7 +135,7 @@ function pickSpuIdFromArticleSearch(
     }
   }
 
-  if (items.length === 1) return items[0]?.spuId;
+  if (items.length === 1) return items[0]?.spuId ?? null;
 
   return null;
 }

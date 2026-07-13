@@ -1,5 +1,5 @@
 /**
- * Проставляет gender и category_id для часов из clock.json
+ * Проставляет gender и category_id для очков из glasses/1307.json
  * (в т.ч. после fetch-missing-prices, где poizon_id мог смениться).
  */
 import { readFileSync } from "node:fs";
@@ -14,8 +14,7 @@ import {
 
 loadDotEnv();
 
-const SLUG_FILTER =
-  process.argv.find((arg) => arg.startsWith("--slug="))?.split("=")[1] ?? null;
+const GLASSES_SLUG = "glasses";
 const SUPABASE_URL = process.env.SUPABASE_URL?.replace(/\/+$/, "") ?? "";
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 
@@ -81,7 +80,9 @@ async function ensureCategories(data: Pop2Data): Promise<Map<number, string>> {
       }),
     });
     if (!insertRes.ok) {
-      console.warn(`[patch-clock] category "${cat.name}": ${insertRes.status}`);
+      console.warn(
+        `[patch-glasses] category "${cat.name}": ${insertRes.status}`,
+      );
       continue;
     }
 
@@ -94,10 +95,10 @@ async function ensureCategories(data: Pop2Data): Promise<Map<number, string>> {
   return categoryCache;
 }
 
-function categoryIdsForSlug(data: Pop2Data, slug: string): Set<number> {
+function glassesCategoryIds(data: Pop2Data): Set<number> {
   const ids = new Set<number>();
   for (const cat of data.categories ?? []) {
-    if (createCategorySlug(cat.name) === slug) {
+    if (createCategorySlug(cat.name) === GLASSES_SLUG) {
       ids.add(cat.id);
     }
   }
@@ -118,6 +119,8 @@ const COLOR_NAME_HINTS: Record<string, string[]> = {
   розов: ["粉", "pink"],
   pink: ["粉", "pink"],
   беж: ["贝母", "beige"],
+  золот: ["金", "gold"],
+  gold: ["金", "gold"],
 };
 
 function colorSearchTerms(title: string): string[] {
@@ -174,7 +177,8 @@ async function findProductRow(
       .split(/\s+/)
       .filter(
         (w) =>
-          w.length >= 4 && !/^(tissot|swatch|rolex|montblanc|часы)$/i.test(w),
+          w.length >= 4 &&
+          !/^(gucci|prada|dior|ray-ban|очки|солнцезащитные)$/i.test(w),
       );
 
     for (const word of words.slice(0, 4)) {
@@ -207,15 +211,12 @@ async function findProductRow(
 
 async function main(): Promise<void> {
   const filePath =
-    process.argv.find((arg) => !arg.startsWith("--") && arg.endsWith(".json")) ??
     process.argv[2] ??
-    fileURLToPath(new URL("../../../clock.json", import.meta.url));
+    fileURLToPath(new URL("../../../1307.json", import.meta.url));
 
   const data = JSON.parse(readFileSync(filePath, "utf-8")) as Pop2Data;
   const categoryCache = await ensureCategories(data);
-  const slugFilterIds = SLUG_FILTER
-    ? categoryIdsForSlug(data, SLUG_FILTER)
-    : null;
+  const glassesIds = glassesCategoryIds(data);
 
   let patched = 0;
   let skipped = 0;
@@ -223,7 +224,7 @@ async function main(): Promise<void> {
   const usedIds = new Set<string>();
 
   for (const product of data.products ?? []) {
-    if (slugFilterIds && !slugFilterIds.has(product.categoryId)) {
+    if (!glassesIds.has(product.categoryId)) {
       continue;
     }
 
@@ -255,7 +256,7 @@ async function main(): Promise<void> {
 
     if (error) {
       console.warn(
-        `[patch-clock] update failed poizon=${row.poizon_id}:`,
+        `[patch-glasses] update failed poizon=${row.poizon_id}:`,
         error.message,
       );
       continue;
@@ -263,12 +264,12 @@ async function main(): Promise<void> {
 
     patched++;
     console.log(
-      `[patch-clock] OK poizon=${row.poizon_id} gender=${gender} category=${categoryId ?? "null"}`,
+      `[patch-glasses] OK poizon=${row.poizon_id} gender=${gender} category=${categoryId ?? "null"}`,
     );
   }
 
   console.log(
-    `\n[patch-clock] patched=${patched} skipped=${skipped} notFound=${notFound}`,
+    `\n[patch-glasses] patched=${patched} skipped=${skipped} notFound=${notFound}`,
   );
 }
 

@@ -140,6 +140,34 @@ describe("export3-import mapper", () => {
     assert.equal(createCategorySlug("Watches"), "watches");
   });
 
+  it("normalizes glasses category slugs when eyewear appears in future exports", () => {
+    assert.equal(createCategorySlug("Очки"), "glasses");
+    assert.equal(createCategorySlug("Солнцезащитные очки"), "glasses");
+    assert.equal(createCategorySlug("Eyewear"), "glasses");
+  });
+
+  it("imports products with zero price as available for later fetch:prices", () => {
+    const result = mapExport3ProductToUpsertRow(
+      product({
+        price: 0,
+        children: [],
+        images: ["https://cdn-img.thepoizon.ru/test.jpg"],
+        categoryId: 7249,
+      }),
+      {
+        categoryCache: new Map([[7249, "cat-glasses"]]),
+        rateCnyRub: 11,
+        rateCnyUsd: 7,
+      },
+    );
+    assert.equal(result.status, "mapped");
+    if (result.status === "mapped") {
+      assert.equal(result.row.price_rub, 0);
+      assert.equal(result.row.price_cny, 0);
+      assert.equal(result.row.is_available, true);
+    }
+  });
+
   it("builds a readable name without CJK-only title noise", () => {
     assert.equal(
       buildProductName(

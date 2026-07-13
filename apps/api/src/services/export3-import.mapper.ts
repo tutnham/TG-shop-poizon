@@ -93,6 +93,9 @@ export function createCategorySlug(name: string): string {
   if (/\bwatch(?:es)?\b|час(?:ы|ов)?/i.test(normalized)) {
     return "watches";
   }
+  if (/\bglasses?\b|очк|eyewear|sunglass/i.test(normalized)) {
+    return "glasses";
+  }
 
   return normalized.replace(/[^a-zа-яё0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -235,16 +238,16 @@ export function mapExport3ProductToUpsertRow(
   const scalarFromSizes = minSizePrice(variantPricing.size_prices);
   const priceRub = scalarFromSizes?.rub ?? p.price ?? 0;
 
-  if (priceRub <= 0) {
-    return { status: "skipped", reason: "no_price" };
-  }
-
   const priceCny =
-    scalarFromSizes?.cny ??
-    Math.round((priceRub / opts.rateCnyRub) * 100) / 100;
+    priceRub > 0
+      ? (scalarFromSizes?.cny ??
+        Math.round((priceRub / opts.rateCnyRub) * 100) / 100)
+      : 0;
   const priceUsdt =
-    scalarFromSizes?.usdt ??
-    Math.round((priceCny / opts.rateCnyUsd) * 10000) / 10000;
+    priceRub > 0
+      ? (scalarFromSizes?.usdt ??
+        Math.round((priceCny / opts.rateCnyUsd) * 10000) / 10000)
+      : 0;
 
   const sizeLabels =
     variantPricing.sizes.length > 0
