@@ -8,6 +8,12 @@ import {
 import { getEnvOptional } from "../types/env.types.js";
 import { refreshRates } from "./currency.service.js";
 import {
+  type EmbeddedImage,
+  ensureImageBucket,
+  extractEmbeddedImages,
+  uploadProductImages,
+} from "./excel-images.service.js";
+import {
   EXCEL_IMPORT_SOURCE,
   type ExcelField,
   type ExcelRowFields,
@@ -46,6 +52,7 @@ export type ExcelImportStats = {
   skipped: number;
   duplicates: number;
   errors: number;
+  imagesUploaded: number;
   skipDetails: ExcelSkippedRow[];
 };
 
@@ -112,11 +119,15 @@ function cellHyperlink(value: CellValueLike): string | undefined {
   return undefined;
 }
 
-/** Читает первый лист: заголовки + строки, сопоставленные полям по алиасам. */
+/** Читает первый лист: заголовки + строки + изображения, вставленные поверх строк. */
 export async function parseExcelWorkbook(
   buffer: Uint8Array,
   aliasOverrides: Partial<Record<ExcelField, string[]>> = {},
-): Promise<{ headers: (string | null)[]; rows: RawExcelRow[] }> {
+): Promise<{
+  headers: (string | null)[];
+  rows: RawExcelRow[];
+  imagesByRow: Map<number, EmbeddedImage[]>;
+}> {
   const workbook = new ExcelJS.Workbook();
   try {
     await workbook.xlsx.load(
@@ -146,6 +157,8 @@ export async function parseExcelWorkbook(
     );
   }
 
+  const imagesByRow = extractEmbeddedImages(workbook, sheet);
+
   const rows: RawExcelRow[] = [];
   sheet.eachRow({ includeEmpty: false }, (row, rowNum) => {
     if (rowNum === 1) return;
@@ -161,13 +174,16 @@ export async function parseExcelWorkbook(
       if (text || hyperlink) hasData = true;
       fields[field] = hyperlink ? { text, hyperlink } : { text };
     }
-    if (hasData) rows.push({ rowNum, fields });
+    const embeddedImageCount = imagesByRow.get(rowNum)?.length ?? 0;
+    if (hasData || embeddedImageCount > 0) {
+      rows.push({ rowNum, fields, embeddedImageCount });
+    }
   });
 
   if (rows.length === 0) throw new ExcelImportError("EMPTY_FILE");
   if (rows.length > maxRows()) throw new ExcelImportError("TOO_MANY_ROWS");
 
-  return { headers, rows };
+  return { headers, rows, imagesByRow };
 }
 
 async function ensureCategories(names: string[]): Promise<Map<string, string>> {
@@ -213,7 +229,10 @@ export async function importProductsFromExcel(
     Partial<Record<ExcelField, string[]>>
   >("excel_import_mapping", {});
 
-  const { rows } = await parseExcelWorkbook(buffer, aliasOverrides);
+  const { rows, imagesByRow } = await parseExcelWorkbook(
+    buffer,
+    aliasOverrides,
+  );
 
   // Dedupe по артикулу: last-wins (Supabase не принимает дубли conflict key в одном upsert)
   const byArticle = new Map<string, RawExcelRow>();
@@ -251,6 +270,7 @@ export async function importProductsFromExcel(
   };
 
   const batch: ExcelUpsertRow[] = [];
+  const pendingImages: { row: ExcelUpsertRow; images: EmbeddedImage[] }[] = [];
   for (const row of byArticle.values()) {
     const result = mapExcelRowToUpsertRow(row, mapCtx);
     if (result.status === "skipped") {
@@ -262,6 +282,20 @@ export async function importProductsFromExcel(
       continue;
     }
     batch.push(result.row);
+    const images = imagesByRow.get(row.rowNum);
+    if (images?.length) pendingImages.push({ row: result.row, images });
+  }
+
+  let imagesUploaded = 0;
+  if (pendingImages.length > 0) {
+    await ensureImageBucket();
+    for (const { row, images } of pendingImages) {
+      const urls = await uploadProductImages(row.poizon_id, images);
+      imagesUploaded += urls.length;
+      if (urls.length > 0) {
+        row.image_urls = [...new Set([...row.image_urls, ...urls])];
+      }
+    }
   }
 
   const articles = batch.map((row) => row.poizon_id);
@@ -287,6 +321,7 @@ export async function importProductsFromExcel(
     skipped: skipDetails.length,
     duplicates,
     errors,
+    imagesUploaded,
     skipDetails,
   };
 }

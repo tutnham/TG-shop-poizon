@@ -197,4 +197,20 @@ describe("excel-import mapper", () => {
       { status: "skipped", reason: "no_images" },
     );
   });
+
+  it("keeps rows with embedded images when requireImages", () => {
+    const strict = { ...mapCtx, requireImages: true };
+    const result = mapExcelRowToUpsertRow(
+      {
+        ...row({
+          article: { text: "A1" },
+          name: { text: "Товар" },
+          price: { text: "100" },
+        }),
+        embeddedImageCount: 2,
+      },
+      strict,
+    );
+    assert.equal(result.status, "mapped");
+  });
 });

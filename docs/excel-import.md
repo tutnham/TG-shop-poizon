@@ -34,10 +34,24 @@ npm run excel:template -w @poizon-shop/api   # создаст docs/excel-import-
 | Цена | Цена, Price, Стоимость | да | число > 0 |
 | Валюта | Валюта, Currency | нет | `CNY` / `RUB` (или ₽/¥/юань/рубль); по умолчанию `CNY` |
 | Размеры | Размеры, Sizes, Размерный ряд | нет | в одной ячейке: `40,41,42` |
-| Фото | Фото, Изображения, Images | нет | URL через пробел/запятую, либо гиперссылка в ячейке |
+| Фото | Фото, Изображения, Images | нет | URL через пробел/запятую, гиперссылка в ячейке либо картинка, вставленная поверх строки |
 | Пол | Пол, Gender | нет | мужской/женский/male/female/unisex |
 
 \* Строка без артикула или без цены пропускается.
+
+## Фото прямо в таблице
+
+Заказчик может вставлять изображения поверх строк товаров (обычная вставка
+«Рисунки → поместить над ячейками», НЕ «в ячейку» — rich-data in-cell картинки
+exceljs не читает). При импорте:
+
+- картинки извлекаются по якорю и привязываются к строке товара;
+- загружаются в Supabase Storage, бакет `product-images` (создаётся
+  автоматически, публичный), путь `excel-import/{артикул}/{n}.{ext}`;
+- публичные URL добавляются в `image_urls` после URL из колонки «Фото».
+
+Лимиты: до 8 фото на товар (`EXCEL_IMPORT_MAX_IMAGES_PER_PRODUCT`),
+до 4 МБ на фото (`EXCEL_IMPORT_MAX_IMAGE_BYTES`) — превышающие пропускаются.
 
 ## Цены
 
@@ -62,7 +76,8 @@ npm run excel:template -w @poizon-shop/api   # создаст docs/excel-import-
   дополнительные алиасы колонок под реальный шаблон заказчика.
 - Env: `EXCEL_IMPORT_DEFAULT_CURRENCY` (CNY|RUB), `EXCEL_IMPORT_MAX_ROWS`
   (по умолчанию 2000), `EXCEL_IMPORT_MAX_BYTES` (8 МБ),
-  `EXCEL_IMPORT_REQUIRE_IMAGES`.
+  `EXCEL_IMPORT_REQUIRE_IMAGES`, `EXCEL_IMPORT_MAX_IMAGES_PER_PRODUCT` (8),
+  `EXCEL_IMPORT_MAX_IMAGE_BYTES` (4 МБ).
 
 ## Лимиты
 
@@ -74,5 +89,7 @@ npm run excel:template -w @poizon-shop/api   # создаст docs/excel-import-
 
 - `apps/api/src/services/excel-import.mapper.ts` — алиасы колонок, маппинг строки.
 - `apps/api/src/services/excel-import.service.ts` — парсинг (exceljs), категории, upsert.
+- `apps/api/src/services/excel-images.service.ts` — извлечение вставленных фото, загрузка в Storage.
+- `apps/api/scripts/generate-excel-template.ts` — генератор шаблона для заказчика.
 - `apps/api/src/lib/telegram-file.ts` — скачивание файла из Telegram.
 - `apps/api/src/bots/admin.bot.ts` — команда `/import`, хендлер `message:document`.

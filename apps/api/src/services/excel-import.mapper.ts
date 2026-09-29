@@ -39,7 +39,12 @@ export type ExcelCell = { text: string; hyperlink?: string };
 
 export type ExcelRowFields = Partial<Record<ExcelField, ExcelCell>>;
 
-export type RawExcelRow = { rowNum: number; fields: ExcelRowFields };
+export type RawExcelRow = {
+  rowNum: number;
+  fields: ExcelRowFields;
+  /** Фото, вставленные поверх строки (учитывается при requireImages). */
+  embeddedImageCount?: number;
+};
 
 export type ExcelUpsertRow = {
   poizon_id: string;
@@ -284,7 +289,7 @@ export function mapExcelRowToUpsertRow(
   if (!name) return { status: "skipped", reason: "no_name" };
 
   const imageUrls = splitImages(row.fields.images);
-  if (ctx.requireImages && imageUrls.length === 0) {
+  if (ctx.requireImages && imageUrls.length === 0 && !row.embeddedImageCount) {
     return { status: "skipped", reason: "no_images" };
   }
 
