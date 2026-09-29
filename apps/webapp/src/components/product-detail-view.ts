@@ -4,7 +4,7 @@ import { t } from "../i18n/index.js";
 import { addProductToCart } from "../lib/cart-actions.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
 import { isProductInCart, loadCartLines } from "../lib/cart-presence.js";
-import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { escapeHtml, imageSrcOrPlaceholder } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { showToast } from "../lib/toast.js";
 import { navigate } from "../router.js";
@@ -179,7 +179,7 @@ export function renderProductDetailView(
 
   page.innerHTML = `
     <div class="product-gallery">
-      <img src="${escapeAttrUrl(p.image_urls[0] ?? p.image_url)}" alt="${escapeHtml(p.name)}" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
+      <img src="${imageSrcOrPlaceholder(p.image_urls[0] ?? p.image_url)}" alt="${escapeHtml(p.name)}" class="product-gallery__img" width="800" height="800" fetchpriority="high" decoding="async" />
     </div>
     <p class="product-detail__brand">${escapeHtml(p.brand ?? "")}</p>
     <h2 class="product-detail__title">${escapeHtml(p.name)}</h2>

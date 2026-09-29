@@ -363,6 +363,7 @@ const UPSERT_BATCH_SIZE = 100;
 
 export async function upsertProductsBatch(
   rows: UpsertProductRow[],
+  source = "poizon",
 ): Promise<{ inserted: number; errors: number }> {
   let inserted = 0;
   let errors = 0;
@@ -371,7 +372,7 @@ export async function upsertProductsBatch(
   for (let i = 0; i < rows.length; i += UPSERT_BATCH_SIZE) {
     const chunk = rows.slice(i, i + UPSERT_BATCH_SIZE).map((row) => ({
       ...row,
-      source: "poizon",
+      source,
       synced_at: now,
       updated_at: now,
     }));
@@ -392,6 +393,26 @@ export async function upsertProductsBatch(
   }
 
   return { inserted, errors };
+}
+
+/** Какие из переданных poizon_id уже есть в каталоге (для счёта created/updated). */
+export async function fetchExistingPoizonIds(
+  poizonIds: string[],
+): Promise<Set<string>> {
+  const existing = new Set<string>();
+  const CHUNK = 200;
+  for (let i = 0; i < poizonIds.length; i += CHUNK) {
+    const chunk = poizonIds.slice(i, i + CHUNK);
+    const { data, error } = await getSupabase()
+      .from("products")
+      .select("poizon_id")
+      .in("poizon_id", chunk);
+    if (error) throw new Error(error.message);
+    for (const row of data ?? []) {
+      existing.add(row.poizon_id as string);
+    }
+  }
+  return existing;
 }
 
 export async function getLastSyncTime(): Promise<string | null> {

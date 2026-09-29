@@ -1,7 +1,7 @@
 import type { ProductListItem } from "@poizon-shop/shared";
 import { t } from "../i18n/index.js";
 import { isProductInCartSync } from "../lib/cart-presence.js";
-import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { escapeHtml, imageSrcOrPlaceholder } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { hideKeyboard } from "../lib/keyboard.js";
 import { navigate } from "../router.js";
@@ -101,7 +101,7 @@ export function renderProductCard(
   el.innerHTML = `
     ${badgeHtml}
     <div class="product-card__media">
-      <img src="${escapeAttrUrl(p.image_url)}" alt="${escapeHtml(p.name)}" width="400" height="400" loading="lazy" decoding="async" />
+      <img src="${imageSrcOrPlaceholder(p.image_url)}" alt="${escapeHtml(p.name)}" width="400" height="400" loading="lazy" decoding="async" />
       <button type="button" class="product-card__fav" aria-label="${t("favorite")}">
         <span class="material-symbols-outlined">favorite</span>
       </button>

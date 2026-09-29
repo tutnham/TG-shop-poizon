@@ -16,6 +16,8 @@
     "import:export3": "npx tsx scripts/import-pop2.ts ../../Export3.json",
     "import:clock": "npx tsx scripts/import-pop2.ts ../../clock.json",
     "import:1307": "npx tsx scripts/import-pop2.ts ../../1307.json",
+    "import:excel": "npx tsx scripts/import-excel.ts",
+    "excel:template": "npx tsx scripts/generate-excel-template.ts",
     "patch:clock": "npx tsx scripts/patch-clock-catalog.ts ../../clock.json",
     "patch:1307-watches": "npx tsx scripts/patch-clock-catalog.ts ../../1307.json --slug=watches",
     "patch:glasses": "npx tsx scripts/patch-glasses-catalog.ts ../../1307.json",
@@ -36,6 +38,7 @@
     "@poizon-shop/shared": "file:../../packages/shared",
     "@supabase/supabase-js": "^2.47.10",
     "decimal.js": "^10.6.0",
+    "exceljs": "^4.4.0",
     "grammy": "^1.35.0",
     "hono": "^4.6.14",
     "zod": "^3.24.1"

@@ -2,7 +2,14 @@ import type { OrderStatus, PaymentMethod } from "@poizon-shop/shared";
 import { Bot, InlineKeyboard } from "grammy";
 import { getAdminTelegramIds } from "../db/config.repository.js";
 import * as orderRepo from "../db/order.repository.js";
+import { downloadTelegramFile } from "../lib/telegram-file.js";
 import { refreshRates } from "../services/currency.service.js";
+import type { ExcelSkipReason } from "../services/excel-import.mapper.js";
+import {
+  ExcelImportError,
+  type ExcelImportStats,
+  importProductsFromExcel,
+} from "../services/excel-import.service.js";
 import { applyOrderStatusChange } from "../services/order.service.js";
 import { runFullSync } from "../services/poizon-sync.service.js";
 import {
@@ -30,7 +37,90 @@ function mainMenu(): InlineKeyboard {
     .text("💰 Цены", "menu:pricing")
     .row()
     .text("🔄 Синхронизация", "menu:sync")
-    .text("⚙️ Помощь", "menu:help");
+    .text("⚙️ Помощь", "menu:help")
+    .row()
+    .text("📥 Импорт Excel", "menu:import");
+}
+
+// ── Импорт товаров из Excel ─────────────────────────────────────────
+
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const IMPORT_MAX_BYTES_FALLBACK = 8 * 1024 * 1024;
+const IMPORT_RETRY_TTL_MS = 5 * 60 * 1000;
+const recentImports = new Map<string, number>();
+
+const IMPORT_HELP = [
+  "📥 Импорт товаров из Excel",
+  "",
+  "Пришлите файл .xlsx в этот чат.",
+  "Колонки: Артикул, Название, Бренд, Категория, Цена, Валюта, Размеры, Фото, Пол.",
+  "Обязательны: Артикул и Цена.",
+  "",
+  "• Валюта CNY — цена пересчитывается с наценкой; RUB — итоговая розничная цена.",
+  "• Размеры в одной ячейке через запятую: 40,41,42.",
+  "• Фото — ссылки через пробел или запятую.",
+  "• Товар с таким же артикулом обновится, новый — добавится.",
+  "",
+  "Лимиты: 8 МБ, 2000 строк на файл.",
+].join("\n");
+
+function importMaxBytes(): number {
+  const raw = Number.parseInt(getEnvOptional("EXCEL_IMPORT_MAX_BYTES"), 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : IMPORT_MAX_BYTES_FALLBACK;
+}
+
+const SKIP_REASON_LABELS: Record<ExcelSkipReason, string> = {
+  no_article: "нет артикула",
+  no_price: "нет цены",
+  no_name: "нет названия",
+  no_images: "нет фото",
+};
+
+function formatImportStats(stats: ExcelImportStats): string {
+  const lines = [
+    stats.errors > 0 ? "⚠️ Импорт завершён с ошибками" : "✅ Импорт завершён",
+    `Всего строк: ${stats.parsed}`,
+    `Создано: ${stats.created}`,
+    `Обновлено: ${stats.updated}`,
+    `Пропущено: ${stats.skipped}`,
+  ];
+  if (stats.duplicates > 0)
+    lines.push(`Дубликаты артикулов: ${stats.duplicates}`);
+  if (stats.errors > 0) lines.push(`Ошибки записи: ${stats.errors}`);
+  for (const skip of stats.skipDetails.slice(0, 10)) {
+    const article = skip.article ? ` (арт. ${skip.article})` : "";
+    lines.push(
+      `· строка ${skip.rowNum}${article}: ${SKIP_REASON_LABELS[skip.reason]}`,
+    );
+  }
+  if (stats.skipDetails.length > 10) {
+    lines.push(`… и ещё ${stats.skipDetails.length - 10}`);
+  }
+  return lines.join("\n");
+}
+
+function formatImportError(err: unknown): string {
+  if (err instanceof ExcelImportError) {
+    switch (err.code) {
+      case "FILE_CORRUPT":
+        return "❌ Файл повреждён или не является .xlsx";
+      case "EMPTY_FILE":
+        return "❌ В файле нет строк с товарами";
+      case "TOO_MANY_ROWS":
+        return "❌ Слишком много строк (лимит 2000). Разбейте файл на части.";
+      case "HEADERS_UNRECOGNIZED": {
+        const found = err.details.length
+          ? `Найдены заголовки: ${err.details.join(", ")}.`
+          : "Заголовки не найдены.";
+        return `❌ Не распознаны колонки таблицы. ${found}\nОжидаются: Артикул, Название, Цена (см. /import).`;
+      }
+      default:
+        return `❌ Ошибка импорта: ${err.code}`;
+    }
+  }
+  const message = err instanceof Error ? err.message : String(err);
+  return `❌ Ошибка импорта: ${message.slice(0, 300)}`;
 }
 
 function orderKeyboard(orderId: string, status: string): InlineKeyboard {
@@ -138,6 +228,60 @@ function setupAdminBot(bot: Bot): void {
     await ctx.reply(
       result.ok ? `✅ ${result.items_synced} товаров` : `❌ ${result.error}`,
     );
+  });
+
+  bot.command("import", async (ctx) => {
+    await ctx.reply(IMPORT_HELP);
+  });
+
+  bot.callbackQuery("menu:import", async (ctx) => {
+    await ctx.editMessageText(IMPORT_HELP, { reply_markup: mainMenu() });
+    await ctx.answerCallbackQuery();
+  });
+
+  bot.on("message:document", async (ctx) => {
+    const doc = ctx.message.document;
+    const isXlsx =
+      doc.mime_type === XLSX_MIME || /\.xlsx$/i.test(doc.file_name ?? "");
+    if (!isXlsx) {
+      await ctx.reply("Пришлите файл .xlsx с товарами. Инструкция: /import");
+      return;
+    }
+    const maxBytes = importMaxBytes();
+    if (doc.file_size && doc.file_size > maxBytes) {
+      await ctx.reply(
+        `Файл больше ${Math.floor(maxBytes / (1024 * 1024))} МБ — разбейте на части.`,
+      );
+      return;
+    }
+
+    // Guard от повторной доставки того же update (Telegram retry)
+    const now = Date.now();
+    for (const [key, ts] of recentImports) {
+      if (now - ts > IMPORT_RETRY_TTL_MS) recentImports.delete(key);
+    }
+    if (recentImports.has(doc.file_unique_id)) return;
+    recentImports.set(doc.file_unique_id, now);
+
+    const statusMsg = await ctx.reply("⏳ Читаю файл...");
+    try {
+      const token = getEnvOptional("ADMIN_BOT_TOKEN");
+      if (!token) throw new Error("ADMIN_BOT_TOKEN not set");
+      const buffer = await downloadTelegramFile(token, doc.file_id);
+      const stats = await importProductsFromExcel(buffer);
+      await ctx.api.editMessageText(
+        ctx.chat.id,
+        statusMsg.message_id,
+        formatImportStats(stats),
+      );
+    } catch (err) {
+      console.error("[admin-bot] excel import failed:", err);
+      await ctx.api.editMessageText(
+        ctx.chat.id,
+        statusMsg.message_id,
+        formatImportError(err),
+      );
+    }
   });
 
   bot.callbackQuery("menu:main", async (ctx) => {

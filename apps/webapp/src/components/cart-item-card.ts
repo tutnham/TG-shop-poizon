@@ -2,7 +2,7 @@ import { apiDelete, apiPatch } from "../api/client.js";
 import { t } from "../i18n/index.js";
 import { refreshCartBadge } from "../lib/cart-badge.js";
 import { notifyCartChanged } from "../lib/cart-presence.js";
-import { escapeAttrUrl, escapeHtml } from "../lib/escape.js";
+import { escapeHtml, imageSrcOrPlaceholder } from "../lib/escape.js";
 import { formatRub, formatUsdt } from "../lib/format-price.js";
 import { navigate } from "../router.js";
 
@@ -33,7 +33,7 @@ export function renderCartItemCard(
 
   card.innerHTML = `
     <button type="button" class="cart-item-card__media" data-product-link>
-      <img src="${escapeAttrUrl(item.product.image_url)}" alt="${escapeHtml(item.product.name)}" loading="lazy" />
+      <img src="${imageSrcOrPlaceholder(item.product.image_url)}" alt="${escapeHtml(item.product.name)}" loading="lazy" />
     </button>
     <div class="cart-item-card__body">
       <h3 class="cart-item-card__name">${escapeHtml(item.product.name)}</h3>

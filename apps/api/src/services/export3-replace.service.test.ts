@@ -35,4 +35,17 @@ describe("export3 replace service", () => {
       ["300"],
     );
   });
+
+  it("never selects excel_import rows regardless of mode", () => {
+    const stale = selectStaleProducts(
+      [
+        { id: "uuid-1", poizon_id: "100", source: "poizon" },
+        { id: "uuid-2", poizon_id: "ART-1", source: "excel_import" },
+        { id: "uuid-3", poizon_id: "ART-2", source: "excel_import" },
+      ],
+      new Set(["100"]),
+    );
+
+    assert.deepEqual(stale, []);
+  });
 });
