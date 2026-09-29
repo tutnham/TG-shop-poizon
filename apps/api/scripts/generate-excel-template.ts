@@ -21,7 +21,7 @@ const HEADERS = [
   "Пол",
 ];
 
-const COLUMN_WIDTHS = [16, 34, 14, 18, 10, 10, 18, 44, 12];
+const MIN_COLUMN_WIDTHS = [12, 20, 12, 14, 8, 8, 14, 40, 10];
 
 const SAMPLE_ROW = [
   "ОБРАЗЕЦ",
@@ -42,7 +42,11 @@ const INSTRUCTIONS: string[] = [
   "2. Обязательные колонки: АРТИКУЛ и ЦЕНА. Без них товар не добавится.",
   "3. Артикул — уникальный код товара. Если товар с таким артикулом уже есть в магазине, он обновится.",
   "4. Цена — число. Валюта: CNY (юани, цена пересчитается с наценкой) или RUB (рубли, итоговая розничная цена).",
-  "5. Размеры — в одной ячейке через запятую, например: 40,41,42,43. Для одежды: S,M,L,XL.",
+  "5. Размеры — в одной ячейке через запятую. Формат зависит от категории товара:",
+  "   • Кроссовки/обувь: 40,41,42,43 (европейские размеры)",
+  "   • Одежда: S,M,L,XL или 44,46,48,50",
+  "   • Очки: 52-18-140 (линза-мост-дужка) или один размер",
+  "   • Аксессуары: один размер, универсальный или оставьте пустым",
   "6. Пол — мужской / женский / unisex (или оставьте пустым).",
   "7. Категория — например: Кроссовки, Очки, Одежда. Новая категория создастся автоматически.",
   "",
@@ -88,18 +92,23 @@ function styleProductsSheet(sheet: ExcelJS.Worksheet): void {
   }
   header.getCell(1).note = "Обязательно. Уникальный код товара.";
   header.getCell(5).note = "Обязательно. Число. Валюта — в соседней колонке.";
+  header.getCell(7).note =
+    "Через запятую. Для обуви: 40,41,42. Для одежды: S,M,L,XL. Для очков: 52-18-140. Для аксессуаров: один размер или пустое.";
   header.getCell(8).note =
     "Вставьте фото поверх ячеек этой колонки (Вставка → Рисунки → Поместить над ячейками) или впишите ссылки через пробел.";
 
-  sheet.getColumn(6).width = COLUMN_WIDTHS[5];
+  // Устанавливаем минимальные ширины
   HEADERS.forEach((_, i) => {
-    sheet.getColumn(i + 1).width = COLUMN_WIDTHS[i];
+    sheet.getColumn(i + 1).width = MIN_COLUMN_WIDTHS[i];
   });
 
   sheet.addRow(SAMPLE_ROW);
   sheet.getRow(2).font = { italic: true, color: { argb: "FF808080" } };
   sheet.getRow(2).height = 30;
   sheet.getRow(2).alignment = { wrapText: true, vertical: "top" };
+
+  // Автоподбор ширины колонок (как Cells.EntireColumn.AutoFit в VBA)
+  autoFitColumns(sheet);
 
   // Выпадающие списки: Валюта (F) и Пол (I), строки 2–1000
   for (let r = 2; r <= 1000; r++) {
@@ -118,6 +127,27 @@ function styleProductsSheet(sheet: ExcelJS.Worksheet): void {
   }
 
   sheet.views = [{ state: "frozen", ySplit: 1 }];
+}
+
+/**
+ * Автоподбор ширины колонок на основе содержимого ячеек.
+ * Аналог Cells.EntireColumn.AutoFit в VBA.
+ */
+function autoFitColumns(sheet: ExcelJS.Worksheet): void {
+  for (let col = 1; col <= sheet.columnCount; col++) {
+    let maxWidth = 0;
+    sheet.eachRow({ includeEmpty: false }, (row) => {
+      const cell = row.getCell(col);
+      const text = cell.text || "";
+      // Учитываем переносы строк
+      const lines = text.split("\n");
+      const maxLineLength = Math.max(...lines.map((l) => l.length));
+      if (maxLineLength > maxWidth) maxWidth = maxLineLength;
+    });
+    // Добавляем небольшой отступ, ограничиваем максимумом
+    const minWidth = MIN_COLUMN_WIDTHS[col - 1] || 8;
+    sheet.getColumn(col).width = Math.min(Math.max(maxWidth + 2, minWidth), 60);
+  }
 }
 
 function styleInstructionsSheet(sheet: ExcelJS.Worksheet): void {
