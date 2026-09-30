@@ -94,12 +94,6 @@ function styleProductsSheet(sheet: ExcelJS.Worksheet): void {
       fgColor: { argb: "FFC00000" },
     };
   }
-  header.getCell(1).note = "Обязательно. Уникальный код товара.";
-  header.getCell(5).note = "Обязательно. Число. Валюта — в соседней колонке.";
-  header.getCell(7).note =
-    "Любые варианты/параметры товара через запятую: размеры (40,41,42), память (64GB,128GB), цвет (Black,White), длина (40cm,45cm) и т.д. Можно оставить пустым.";
-  header.getCell(8).note =
-    "Вставьте фото поверх ячеек этой колонки (Вставка → Рисунки → Поместить над ячейками) или впишите ссылки через пробел.";
 
   // Устанавливаем минимальные ширины
   HEADERS.forEach((_, i) => {
@@ -113,24 +107,6 @@ function styleProductsSheet(sheet: ExcelJS.Worksheet): void {
 
   // Автоподбор ширины колонок (как Cells.EntireColumn.AutoFit в VBA)
   autoFitColumns(sheet);
-
-  // Выпадающие списки: Валюта (F) и Пол (I), строки 2–1000
-  for (let r = 2; r <= 1000; r++) {
-    sheet.getCell(`F${r}`).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: ['"CNY,RUB"'],
-      showErrorMessage: false,
-    };
-    sheet.getCell(`I${r}`).dataValidation = {
-      type: "list",
-      allowBlank: true,
-      formulae: ['"мужской,женский,unisex"'],
-      showErrorMessage: false,
-    };
-  }
-
-  sheet.views = [{ state: "frozen", ySplit: 1 }];
 }
 
 /**
